@@ -1,0 +1,32 @@
+{
+  "name": "hawtio-dashboard",
+  "version": "2.0.0",
+  "keywords": [
+    "hawtio"
+  ],
+  "main": [
+    "dist/hawtio-dashboard.js",
+    "dist/hawtio-dashboard.css"
+  ],
+  "ignore": [
+    "dist/hawtio-dashboard-test.js",
+    "**/.*",
+    "node_modules",
+    "libs",
+    "plugins"
+  ],
+  "dependencies": {
+    "hawtio-core": "~2.0.0",
+    "hawtio-core-navigation": "~2.0.0",
+    "hawtio-utilities": "~2.0.0",
+    "hawtio-ui": "~2.0.34"
+  },
+  "devDependencies": {
+    "bootstrap": "~3.3.1",
+    "patternfly": "~1.1.2",
+    "hawtio-core-dts": "~2.0.0"
+  },
+  "resolutions": {
+    "lodash": "~3.2.0"
+  }
+}

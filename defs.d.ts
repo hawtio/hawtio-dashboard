@@ -1,0 +1,14 @@
+/// <reference path="d.ts/includes.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/dashboardInterfaces.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/dashboardHelpers.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/dashboardPlugin.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/dashboardRepository.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/editDashboards.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/rectangleLocation.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/gridsterDirective.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/import.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/navbar.d.ts"/>
+/// <reference path="d.ts/dashboard/ts/share.d.ts"/>
+/// <reference path="d.ts/example/ts/exampleGlobals.d.ts"/>
+/// <reference path="d.ts/example/ts/examplePlugin.d.ts"/>
+/// <reference path="d.ts/example/ts/page1.d.ts"/>
