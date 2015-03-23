@@ -6,7 +6,13 @@
 /// <reference path="rectangleLocation.ts"/>
 module Dashboard {
 
+  var modules:Array<string> = undefined;
+
   _module.directive('hawtioDashboard', function() {
+    modules = hawtioPluginLoader['modules'].filter((name) => {
+      return _.isString(name) && name !== 'ng';
+    });
+    log.debug("Modules: ", modules);
     return new Dashboard.GridsterDirective();
   });
 
@@ -14,10 +20,10 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$injector", "$route", "$templateCache", "dashboardRepository", "$compile", ($scope, $element, $attrs, $location, $routeParams, $injector, $route,
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$injector", "$route", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", ($scope, $element, $attrs, $location, $routeParams, $injector, $route,
                          $templateCache,
                          dashboardRepository:DashboardRepository,
-                         $compile) => {
+                         $compile, $templateRequest) => {
 
       $scope.route = $route;
       $scope.injector = $injector;
@@ -149,7 +155,6 @@ module Dashboard {
               minWidth = rightEdge + 1;
             }
           }
-
         });
 
         var gridster = $element.gridster({
@@ -169,47 +174,48 @@ module Dashboard {
         }).data('gridster');
 
         var template = $templateCache.get("widgetTemplate");
+
+        var remaining = widgets.length;
+
+        function maybeFinishUp() {
+          remaining = remaining - 1;
+          if (remaining === 0) {
+            makeResizable();
+            getGridster().enable();
+            Core.$apply($scope);
+          }
+        }
+
         angular.forEach(widgets, (widget) => {
-          var childScope = $scope.$new(false);
-          childScope.widget = widget;
           var path = widget.path;
           var search = null;
           if (widget.search) {
             search = Dashboard.decodeURIComponentProperties(widget.search);
           }
+          if (widget.routeParams) {
+            _.extend(search, angular.fromJson(widget.routeParams));
+          }
           var hash = widget.hash; // TODO decode object?
           var location = new RectangleLocation($location, path, search, hash);
-          var routeParams = null;
-          if (widget.routeParams) {
-            routeParams = angular.fromJson(widget.routeParams);
-          }
-          /*
 
-          var childWorkspace = workspace.createChildWorkspace(location);
-          //var childWorkspace = workspace;
-          childWorkspace.$location = location;
-
-          // now we need to update the selection from the location search()
-          if (search) {
-            var key = location.search()['nid'];
-            if (key && workspace.tree) {
-              // lets find the node for this key...
-              childWorkspace.selection = workspace.keyToNodeMap[key];
-              if (!childWorkspace.selection) {
-                var decodedKey = decodeURIComponent(key);
-                childWorkspace.selection = workspace.keyToNodeMap[decodedKey];
-              }
-            }
-          }*/
-
-          var $$scopeInjections = {
-            location: location,
-            $location: location,
-            $routeParams: routeParams
-          };
-          childScope.$$scopeInjections = $$scopeInjections;
-          childScope.inDashboard = true;
-
+          var tmpModuleName = 'dashboard-' + widget.id;
+          var tmpModule = angular.module(tmpModuleName, modules);
+          tmpModule.config(['$provide', ($provide) => {
+            $provide.decorator('$location', ['$delegate', ($delegate) => {
+              //log.debug("Using $location: ", location);
+              return location;
+            }]);
+            $provide.decorator('$route', ['$delegate', ($delegate) => {
+              // really handy for debugging, mostly to tell if a widget's route
+              // isn't actually available in the child app
+              //log.debug("Using $route: ", $delegate);
+              return $delegate;
+            }]);
+            $provide.decorator('$routeParams', ['$delegate', ($delegate) => {
+              //log.debug("Using $routeParams: ", search);
+              return search;
+            }]);
+          }]);
           if (!widget.size_x || widget.size_x < 1) {
             widget.size_x = 1;
           }
@@ -218,23 +224,20 @@ module Dashboard {
           }
           var div = $('<div></div>');
           div.html(template);
-
-          var outerDiv = $('<li class="grid-block" style="display: list-item; position: absolute"></li>');
-          outerDiv.html($compile(div.contents())(childScope));
-          var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
-
-          $scope.widgetMap[widget.id] = {
-            widget: w,
-            scope: childScope
-          };
-
-
+          var body = div.find('.widget-body');
+          var widgetBody = $templateRequest(widget.include);
+          widgetBody.then((widgetBody) => {
+            var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
+            body.html(widgetBody);
+            outerDiv.html(body);
+            angular.bootstrap(body, [tmpModuleName]);
+            var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
+            $scope.widgetMap[widget.id] = {
+              widget: w
+            };
+            maybeFinishUp();
+          });
         });
-
-        makeResizable();
-        getGridster().enable();
-
-        Core.$apply($scope);
       }
 
       function serializeDashboard() {

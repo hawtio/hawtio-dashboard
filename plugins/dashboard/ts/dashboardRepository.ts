@@ -29,8 +29,8 @@ module Dashboard {
           "col": 1,
           "size_x": 3,
           "size_y": 4,
-          "path": "jmx/attributes",
-          "include": "",
+          "path": "/example/page1",
+          "include": "test-plugins/example/html/page1.html",
           "search": {
             "nid": "root-java.lang-OperatingSystem"
           },
@@ -44,7 +44,7 @@ module Dashboard {
           "size_x": 2,
           "size_y": 2,
           "path": "jmx/widget/donut",
-          "include": "",
+          "include": "test-plugins/example/html/page1.html",
           "search": {},
           "hash": "",
           "routeParams": "{\"type\":\"donut\",\"title\":\"Java Heap Memory\",\"mbean\":\"java.lang:type=Memory\",\"attribute\":\"HeapMemoryUsage\",\"total\":\"Max\",\"terms\":\"Used\",\"remaining\":\"Free\"}"
@@ -56,8 +56,8 @@ module Dashboard {
           "col": 8,
           "size_x": 2,
           "size_y": 2,
-          "path": "jmx/widget/donut",
-          "include": "",
+          "path": "/example/page1",
+          "include": "test-plugins/example/html/page1.html",
           "search": {},
           "hash": "",
           "routeParams": "{\"type\":\"donut\",\"title\":\"Java Non Heap Memory\",\"mbean\":\"java.lang:type=Memory\",\"attribute\":\"NonHeapMemoryUsage\",\"total\":\"Max\",\"terms\":\"Used\",\"remaining\":\"Free\"}"
@@ -69,8 +69,8 @@ module Dashboard {
           "col": 4,
           "size_x": 6,
           "size_y": 2,
-          "path": "jmx/charts",
-          "include": "",
+          "path": "/example/page1",
+          "include": "test-plugins/example/html/page1.html",
           "search": {
             "size": "%7B%22size_x%22%3A2%2C%22size_y%22%3A2%7D",
             "title": "Java%20Non%20Heap%20Memory",
@@ -86,8 +86,8 @@ module Dashboard {
           "col": 4,
           "size_x": 2,
           "size_y": 2,
-          "path": "jmx/widget/area",
-          "include": "",
+          "path": "/example/page1",
+          "include": "test-plugins/example/html/page1.html",
           "search": {},
           "hash": "",
           "routeParams": "{\"type\":\"area\",\"title\":\"System CPU Load\",\"mbean\":\"java.lang:type=OperatingSystem\",\"attribute\":\"SystemCpuLoad\"}"
@@ -109,6 +109,8 @@ module Dashboard {
 
     constructor() {
       this.localStorage = Core.getLocalStorage();
+
+      delete this.localStorage['userDashboards'];
 
       if ('userDashboards' in this.localStorage) {
         // log.info("Found previously saved dashboards");

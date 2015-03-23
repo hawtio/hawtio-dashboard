@@ -70,9 +70,12 @@ var DevExample;
 /// <reference path="examplePlugin.ts"/>
 var DevExample;
 (function (DevExample) {
-    DevExample.Page1Controller = DevExample._module.controller("DevExample.Page1Controller", ["$scope", function ($scope) {
+    DevExample.Page1Controller = DevExample._module.controller("DevExample.Page1Controller", ["$scope", "$routeParams", "$location", function ($scope, $routeParams, $location) {
+        DevExample.log.debug("$routeParams: ", $routeParams);
+        $scope.routeParams = $routeParams;
+        $scope.location = $location;
         $scope.target = "World!";
     }]);
 })(DevExample || (DevExample = {}));
 
-angular.module("hawtio-dashboard-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/example/html/page1.html","<div class=\"row\">\n  <div class=\"col-md-12\" ng-controller=\"DevExample.Page1Controller\">\n    <h1>Page 1</h1>\n    <p>This plugin won\'t be exported in the bower package</p>\n    <p class=\'customClass\'>Hello {{target}}</p>\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-dashboard-test-templates");
+angular.module("hawtio-dashboard-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/example/html/page1.html","<div class=\"row\">\n  <div class=\"col-md-12\" ng-controller=\"DevExample.Page1Controller\">\n    <h1>Page 1</h1>\n    <p>Path: {{location.path()}}</p>\n    <p>Search: {{location.search()}}</p>\n    <p>Route Params:\n      <pre>{{routeParams}}</pre>\n    </p>\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-dashboard-test-templates");

@@ -16,7 +16,10 @@
 /// <reference path="examplePlugin.ts"/>
 module DevExample {
 
-  export var Page1Controller = _module.controller("DevExample.Page1Controller", ["$scope", ($scope) => {
+  export var Page1Controller = _module.controller("DevExample.Page1Controller", ["$scope", "$routeParams", "$location", ($scope, $routeParams, $location) => {
+    log.debug("$routeParams: ", $routeParams);
+    $scope.routeParams = $routeParams;
+    $scope.location = $location;
     $scope.target = "World!";
   }]);
 
