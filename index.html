@@ -9,8 +9,6 @@
 
     <link rel="stylesheet" href="libs/bootstrap/dist/css/bootstrap.css" />
     <link rel="stylesheet" href="libs/patternfly/dist/css/patternfly.css" />
-    <link rel="stylesheet" href="dist/jquery.gridster.css"/>
-    <link rel="stylesheet" href="dist/hawtio-dashboard.css" />
 
 
     <!-- bower:css -->
@@ -21,6 +19,11 @@
     <link rel="stylesheet" href="libs/hawtio-ui/dist/default.css" />
     <link rel="stylesheet" href="libs/hawtio-ui/dist/hawtio-ui.css" />
     <!-- endbower -->
+
+    <link rel="stylesheet" href="dist/hawtio-console-assembly.css" />
+
+    <!--    <link rel="stylesheet" href="dist/jquery.gridster.css"/> -->
+    <link rel="stylesheet" href="dist/hawtio-dashboard.css" />
 
     <!-- ES6/ES6 shim -->
     <!--[if IE 8]>
@@ -78,9 +81,9 @@
   </head>
 
   <body>
-    <nav class="navbar navbar-default navbar-pf" role="navigation">
+    <nav class="navbar navbar-default navbar-fixed-top navbar-pf" role="navigation">
       <ul class="nav navbar-nav navbar-primary" hawtio-main-nav></ul>
-      <ul class="nav navbar-nav" hawtio-sub-tabs></ul>
+      <ul class="nav navbar-nav navbar-persistent" hawtio-sub-tabs></ul>
     </nav>
 
     <div id="main" class="container-fluid ng-cloak" ng-controller="HawtioNav.ViewController">

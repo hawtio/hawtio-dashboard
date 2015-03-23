@@ -77,43 +77,23 @@ module Dashboard {
 
     $scope.addViewToDashboard = () => {
       var nextHref = null;
-      angular.forEach($scope.selectedItems, (selectedItem) => {
-        // TODO this could be a helper function
-        var text = $scope.url;
-        var query = null;
-        if (text) {
-          var idx = text.indexOf('?');
-          if (idx && idx > 0) {
-            query = text.substring(idx + 1);
-            text = text.substring(0, idx);
-          }
-          text = Core.trimLeading(text, "#");
-        }
-        var search = {};
-        if (query) {
-          var expressions = query.split("&");
-          angular.forEach(expressions, (expression) => {
-            if (expression) {
-              var names = expression.split("=");
-              var key = names[0];
-              var value = names.length > 1 ? names[1] : null;
-              if (value) {
-                value = encodeURIComponent(value);
-              }
-              var old = search[key];
-              if (old) {
-                if (!angular.isArray(old)) {
-                  old = [old];
-                  search[key] = old;
-                }
-                old.push(value);
-              } else {
-                search[key] = value;
-              }
-            }
-          });
-        }
-        //console.log("path is: " + text + " the search is " + JSON.stringify(search));
+      var selected = $scope.gridOptions.selectedItems;
+
+      var currentUrl = new URI();
+      var href = currentUrl.query(true)['href'];
+      if (href) {
+        href = href.unescapeURL();
+      }
+      log.debug("href: ", href);
+      $scope.url = href;
+
+      var widgetURI = new URI(href);
+
+      angular.forEach(selected, (selectedItem) => {
+
+        var text = widgetURI.path();
+        var search = widgetURI.query(true);
+
         if ($route && $route.routes) {
           var value = $route.routes[text];
           if (value) {
@@ -129,7 +109,7 @@ module Dashboard {
                 col: 1,
                 size_x: 1,
                 size_y: 1,
-                path: Core.trimLeading(text, "/"),
+                path: text,
                 include: templateUrl,
                 search: search,
                 hash: ""
@@ -216,9 +196,11 @@ module Dashboard {
                 widget['routeParams'] = $scope.routeParams;
               }
               selectedItem.widgets.push(widget);
-
               if (!nextHref && selectedItem.id) {
-                nextHref = new URI().path("/dashboard/id/" + selectedItem.id).toString();
+                nextHref = new URI().path("/dashboard/id/" + selectedItem.id).query({
+                  'main-tab': 'dashboard',
+                  'sub-tab': 'dashboard-' + selectedItem.id
+                }).removeQuery('href');
               }
 
             }
@@ -230,11 +212,11 @@ module Dashboard {
 
       // now lets update the actual dashboard config
       var commitMessage = "Add widget";
-      dashboardRepository.putDashboards($scope.selectedItems, commitMessage, function(dashboards) {
+      dashboardRepository.putDashboards(selected, commitMessage, (dashboards) => {
+        log.debug("Put dashboards: ", dashboards);
+        log.debug("Next href: ", nextHref.toString());
         if (nextHref) {
-          // remove any dodgy query
-          delete $location.search()["href"];
-          $location.path(nextHref);
+          $location.path(nextHref.path()).search(nextHref.query(true));
           Core.$apply($scope);
         }
       });

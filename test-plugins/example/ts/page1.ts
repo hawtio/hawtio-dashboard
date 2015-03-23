@@ -21,6 +21,16 @@ module DevExample {
     $scope.routeParams = $routeParams;
     $scope.location = $location;
     $scope.target = "World!";
+
+    $scope.addToDashboardLink = () => {
+      var href = new URI();
+      var target = new URI("/dashboard/add").search({
+        'main-tab': 'dashboard',
+        'sub-tab': 'dashboard-manage',
+        'href': href.toString().escapeURL(true)
+      });
+      return target.toString();
+    }
   }]);
 
 }
