@@ -12,7 +12,6 @@ module Dashboard {
     modules = hawtioPluginLoader['modules'].filter((name) => {
       return _.isString(name) && name !== 'ng';
     });
-    log.debug("Modules: ", modules);
     return new Dashboard.GridsterDirective();
   });
 
@@ -20,13 +19,7 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$injector", "$route", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", ($scope, $element, $attrs, $location, $routeParams, $injector, $route,
-                         $templateCache,
-                         dashboardRepository:DashboardRepository,
-                         $compile, $templateRequest) => {
-
-      $scope.route = $route;
-      $scope.injector = $injector;
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest) => {
 
       var gridSize = 150;
       var gridMargin = 6;
@@ -37,6 +30,7 @@ module Dashboard {
 
       $scope.widgetMap = {};
 
+      /*
       $scope.$on('$destroy', () => {
         angular.forEach($scope.widgetMap, (value, key) => {
           if ('scope' in value) {
@@ -45,6 +39,7 @@ module Dashboard {
           }
         });
       });
+      */
 
       updateWidgets();
 
@@ -130,7 +125,7 @@ module Dashboard {
             if (id) {
               $location.path("/dashboard/id/" + id);
             } else {
-              $location.path("/dashboard/edit?tab=dashboard");
+              $location.path("/dashboard/edit");
             }
             Core.$apply($scope);
           });
@@ -174,7 +169,6 @@ module Dashboard {
         }).data('gridster');
 
         var template = $templateCache.get("widgetTemplate");
-
         var remaining = widgets.length;
 
         function maybeFinishUp() {
@@ -308,7 +302,6 @@ module Dashboard {
 
 
       function resizeBlock(elmObj) {
-        //var elmObj = $(elmObj);
         var area = elmObj.find('.widget-area');
         var w = elmObj.width() - gridSize;
         var h = elmObj.height() - gridSize;

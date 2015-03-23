@@ -4,10 +4,8 @@
  */
 module Dashboard {
 
-  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository) => {
+  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav) => {
 
-    //$scope.hash = workspace.hash();
-    $scope.selectedItems = [];
     $scope.repository = dashboardRepository;
     //$scope.duplicateDashboards = new UI.Dialog();
     $scope.selectedProfilesDialog = [];
@@ -20,11 +18,11 @@ module Dashboard {
     };
 
     $scope.hasSelection = () => {
-      return $scope.selectedItems.length !== 0;
+      return $scope.gridOptions.selectedItems.length !== 0;
     };
 
     $scope.gridOptions = {
-      selectedItems: $scope.selectedItems,
+      selectedItems: [],
       showFilter: false,
       showColumnMenu: false,
       filterOptions: {
@@ -37,25 +35,18 @@ module Dashboard {
         {
           field: 'title',
           displayName: 'Dashboard',
-          cellTemplate: '<div class="ngCellText"><a ng-href="#/dashboard/id/{{row.getProperty(' + "'id'" + ')}}{{hash}}"><editable-property class="inline-block" on-save="onDashRenamed(row.entity)" property="title" ng-model="row.entity"></editable-property></a></div>'
+          cellTemplate: '<div class="ngCellText"><a href="/dashboard/id/{{row.entity.id}}{{row.entity.hash}}">{{row.entity.title}}</a></div>'
         },
         {
           field: 'group',
           displayName: 'Group'
         }
       ],
-      afterSelectionChange: afterSelectionChange
-    };
-
-
-    $scope.onDashRenamed = (dash) => {
-      dashboardRepository.putDashboards([dash], "Renamed dashboard", (dashboards) => {
-        dashboardLoaded(null, dashboards);
-      });
     };
 
     // helpers so we can enable/disable parts of the UI depending on how
     // dashboard data is stored
+    /*
     $scope.usingGit = () => {
       return dashboardRepository.getType() === 'git';
     };
@@ -80,6 +71,7 @@ module Dashboard {
         displayName: 'File Name'
       }]);
     }
+    */
 
     $scope.$on("$routeChangeSuccess", function (event, current, previous) {
       // lets do this asynchronously to avoid Error: $digest already in progress
@@ -92,38 +84,6 @@ module Dashboard {
       if (href) {
         $location.url(href);
       }
-    };
-
-
-    $scope.duplicateToProfiles = () => {
-      if ($scope.hasSelection()) {
-        $scope.duplicateDashboards.open();
-      }
-    };
-
-
-    $scope.doDuplicateToProfiles = () => {
-      $scope.duplicateDashboards.close();
-
-      var newDashboards = [];
-
-      $scope.selectedItems.forEach((dashboard) => {
-        $scope.selectedProfilesDialog.forEach((profile) => {
-          var newDash = dashboardRepository.cloneDashboard(dashboard);
-          newDash['profileId'] = profile.id;
-          newDash['title'] = dashboard.title;
-          newDashboards.push(newDash);
-        });
-      });
-
-      var commitMessage = "Duplicating " + $scope.selectedItems.length + " dashboards to " + $scope.selectedProfilesDialog.length + " profiles";
-
-      dashboardRepository.putDashboards(newDashboards, commitMessage, (dashboards) => {
-        // let's just be safe and ensure there's no selections
-        deselectAll();
-        dashboardLoaded(null, dashboards);
-      });
-
     };
 
     $scope.addViewToDashboard = () => {
@@ -300,6 +260,7 @@ module Dashboard {
       dashboardRepository.putDashboards([newDash], "Created new dashboard: " + title, (dashboards) => {
         // let's just be safe and ensure there's no selections
         deselectAll();
+        setSubTabs(nav.builder(), dashboards, $rootScope);
         dashboardLoaded(null, dashboards);
       });
 
@@ -308,7 +269,7 @@ module Dashboard {
     $scope.duplicate = () => {
       var newDashboards = [];
       var commitMessage = "Duplicated dashboard(s) ";
-      angular.forEach($scope.selectedItems, (item, idx) => {
+      angular.forEach($scope.gridOptions.selectedItems, (item, idx) => {
         // lets unselect this item
         var commitMessage = "Duplicated dashboard " + item.title;
         var newDash = dashboardRepository.cloneDashboard(item);
@@ -320,22 +281,24 @@ module Dashboard {
 
       commitMessage = commitMessage + newDashboards.map((d) => { return d.title }).join(',');
       dashboardRepository.putDashboards(newDashboards, commitMessage, (dashboards) => {
+        setSubTabs(nav.builder(), dashboards, $rootScope);
         dashboardLoaded(null, dashboards);
       });
     };
 
     $scope.deleteDashboard = () => {
       if ($scope.hasSelection()) {
-        dashboardRepository.deleteDashboards($scope.selectedItems, (dashboards) => {
+        dashboardRepository.deleteDashboards($scope.gridOptions.selectedItems, (dashboards) => {
           // let's just be safe and ensure there's no selections
           deselectAll();
+          setSubTabs(nav.builder(), dashboards, $rootScope);
           dashboardLoaded(null, dashboards);
         });
       }
     };
 
     $scope.gist = () => {
-      if ($scope.selectedItems.length > 0) {
+      if ($scope.gridOptions.selectedItems.length > 0) {
         var id = $scope.selectedItems[0].id;
         $location.path("/dashboard/id/" + id + "/share");
       }
@@ -368,31 +331,24 @@ module Dashboard {
     }
 
     function dashboardLoaded(event, dashboards) {
+      dashboards.forEach((dashboard) => {
+        dashboard.hash = '?main-tab=dashboard&sub-tab=dashboard-' + dashboard.id;
+      });
       $scope._dashboards = dashboards;
+
       if (event === null) {
         $scope.$emit('dashboardsUpdated', dashboards);
       }
-      Core.$apply($scope);
+      Core.$apply($rootScope);
     }
 
     function dashboards() {
       return $scope._dashboards;
     }
 
-    function afterSelectionChange(rowItem, checkAll) {
-      if (checkAll === void 0) {
-        // then row was clicked, not select-all checkbox
-        $scope.gridOptions['$gridScope'].allSelected = rowItem.config.selectedItems.length == $scope._dashboards.length;
-      } else {
-        $scope.gridOptions['$gridScope'].allSelected = checkAll;
-      }
-    }
-
     function deselectAll() {
-      $scope.selectedItems.splice(0);
-      $scope.gridOptions['$gridScope'].allSelected = false;
+      $scope.gridOptions.selectedItems.length = 0;
     }
 
-    updateData();
   }]);
 }

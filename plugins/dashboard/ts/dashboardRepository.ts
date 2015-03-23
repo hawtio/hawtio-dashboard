@@ -110,8 +110,6 @@ module Dashboard {
     constructor() {
       this.localStorage = Core.getLocalStorage();
 
-      delete this.localStorage['userDashboards'];
-
       if ('userDashboards' in this.localStorage) {
         // log.info("Found previously saved dashboards");
       } else {
