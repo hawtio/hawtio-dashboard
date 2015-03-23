@@ -1,3 +1,6 @@
+<script type="text/ng-template" id="editDashboardTitleCell.html">
+  <div class="ngCellText"><a href="/dashboard/id/{{row.entity.id}}{{row.entity.hash}}">{{row.entity.title}}</a></div>
+</script>
 <div ng-controller="Dashboard.EditDashboardsController">
   <div class="row">
     <div class="col-md-12">
@@ -8,6 +11,13 @@
              title="Create a new empty dashboard"
              data-placement="bottom">
             <i class="fa fa-plus"></i> Create</button>
+        </li>
+        <li>
+          <button class="btn" ng-click="renameDashboard()"
+            ng-disabled="gridOptions.selectedItems.length !== 1"
+             title="Rename the selected dashboard"
+             data-placement="bottom">
+            <i class="fa fa-arrows-h"></i> Rename</button>
         </li>
         <li>
           <button class="btn" ng-disabled="!hasSelection()"

@@ -4,11 +4,8 @@
  */
 module Dashboard {
 
-  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav) => {
+  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal) => {
 
-    $scope.repository = dashboardRepository;
-    //$scope.duplicateDashboards = new UI.Dialog();
-    $scope.selectedProfilesDialog = [];
     $scope._dashboards = [];
 
     $rootScope.$on('dashboardsUpdated', dashboardLoaded);
@@ -35,7 +32,7 @@ module Dashboard {
         {
           field: 'title',
           displayName: 'Dashboard',
-          cellTemplate: '<div class="ngCellText"><a href="/dashboard/id/{{row.entity.id}}{{row.entity.hash}}">{{row.entity.title}}</a></div>'
+          cellTemplate: $templateCache.get('editDashboardTitleCell.html')
         },
         {
           field: 'group',
@@ -75,16 +72,8 @@ module Dashboard {
 
     $scope.$on("$routeChangeSuccess", function (event, current, previous) {
       // lets do this asynchronously to avoid Error: $digest already in progress
-      setTimeout(updateData, 100);
+      $timeout(updateData, 10);
     });
-
-
-    $scope.goBack = () => {
-      var href = Core.trimLeading($scope.url, "#");
-      if (href) {
-        $location.url(href);
-      }
-    };
 
     $scope.addViewToDashboard = () => {
       var nextHref = null;
@@ -229,7 +218,7 @@ module Dashboard {
               selectedItem.widgets.push(widget);
 
               if (!nextHref && selectedItem.id) {
-                nextHref = "/dashboard/id/" + selectedItem.id
+                nextHref = new URI().path("/dashboard/id/" + selectedItem.id).toString();
               }
 
             }
@@ -286,13 +275,58 @@ module Dashboard {
       });
     };
 
+    $scope.renameDashboard = () => {
+      if ($scope.gridOptions.selectedItems.length === 1) {
+        var selected = <any>_.first($scope.gridOptions.selectedItems);
+        var modal = $modal.open({
+          templateUrl: UrlHelpers.join(templatePath, 'renameDashboardModal.html'),
+          controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+            $scope.config = {
+              properties: {
+                'title': {
+                  type: 'string',
+                  default: selected.title
+                }
+              }
+            };
+            $scope.selected = selected;
+            $scope.ok = () => {
+              modal.close();
+              dashboardRepository.putDashboards([$scope.selected], 'renamed dashboard', (dashboards) => {
+                // let's just be safe and ensure there's no selections
+                deselectAll();
+                setSubTabs(nav.builder(), dashboards, $rootScope);
+                dashboardLoaded(null, dashboards);
+              });
+            }
+            $scope.cancel = () => {
+              modal.dismiss();
+            }
+          }]
+        });
+      }
+    };
+
     $scope.deleteDashboard = () => {
       if ($scope.hasSelection()) {
-        dashboardRepository.deleteDashboards($scope.gridOptions.selectedItems, (dashboards) => {
-          // let's just be safe and ensure there's no selections
-          deselectAll();
-          setSubTabs(nav.builder(), dashboards, $rootScope);
-          dashboardLoaded(null, dashboards);
+        var selected = $scope.gridOptions.selectedItems;
+        var modal = $modal.open({
+          templateUrl: UrlHelpers.join(templatePath, 'deleteDashboardModal.html'),
+          controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+            $scope.selected = selected;
+            $scope.ok = () => {
+              modal.close();
+              dashboardRepository.deleteDashboards($scope.selected, (dashboards) => {
+                // let's just be safe and ensure there's no selections
+                deselectAll();
+                setSubTabs(nav.builder(), dashboards, $rootScope);
+                dashboardLoaded(null, dashboards);
+              });
+            }
+            $scope.cancel = () => {
+              modal.dismiss();
+            }
+          }]
         });
       }
     };
