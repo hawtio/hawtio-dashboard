@@ -30,14 +30,39 @@ module Dashboard {
     }
   });
 
-  _module.run(["HawtioNav", "viewRegistry", (nav:HawtioMainNav.Registry, viewRegistry) => {
+  function addSubTabs(builder, tab, dashboards:DashboardRepository, $rootScope) {
+    if (!tab.tabs) {
+      tab.tabs = [];
+    }
+    dashboards.getDashboards((dashboards) => {
+      _.forEach(dashboards, (dashboard) => {
+        var child = builder
+                      .id('dashboard-' + dashboard.id)
+                      .title(() => dashboard.title || dashboard.id)
+                      .href(() => UrlHelpers.join('/dashboard/id' + dashboard.id))
+                      .build();
+        tab.tabs.push(child);
+      });
+      var manage = builder
+                      .id('dashboard-manage')
+                      .title(() => 'Manage')
+                      .href(() => '/dashboard/edit')
+                      .build();
+      tab.tabs.push(manage);
+      Core.$apply($rootScope);
+    });
+
+  }
+
+  _module.run(["HawtioNav", "viewRegistry", "dashboardRepository", "$rootScope", (nav:HawtioMainNav.Registry, viewRegistry, dashboards:DashboardRepository, $rootScope) => {
     var builder = nav.builder();
     var tab = builder.id(pluginName)
                 .href(() => '/dashboard/idx/0')
                 .title(() => 'Dashboard')
                 .build();
     nav.add(tab);
-    viewRegistry['dashboard'] = UrlHelpers.join(templatePath, 'layoutDashboard.html');
+    addSubTabs(builder, tab, dashboards, $rootScope);
+    //viewRegistry['dashboard'] = UrlHelpers.join(templatePath, 'layoutDashboard.html');
   }]);
 
   hawtioPluginLoader.addModule(pluginName);
