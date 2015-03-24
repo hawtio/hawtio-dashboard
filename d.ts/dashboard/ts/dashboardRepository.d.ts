@@ -2,6 +2,7 @@
 /// <reference path="dashboardInterfaces.d.ts" />
 declare module Dashboard {
     class LocalDashboardRepository implements DashboardRepository {
+        private defaults;
         private localStorage;
         constructor(defaults: DefaultDashboards);
         private loadDashboards();

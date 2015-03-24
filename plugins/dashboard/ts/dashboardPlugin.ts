@@ -63,7 +63,7 @@ module Dashboard {
     Core.$apply($rootScope);
   }
 
-  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash) => {
+  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", "$timeout", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash, $timeout) => {
     // special case here, we don't want to overwrite our stored tab!
     if (!dash.inDashboard) {
       var builder = nav.builder();
@@ -72,9 +72,11 @@ module Dashboard {
         .title(() => 'Dashboard')
         .build();
       nav.add(tab);
-      dashboards.getDashboards((dashboards) => {
-        setSubTabs(builder, dashboards, $rootScope);
-      });
+      $timeout(() => {
+        dashboards.getDashboards((dashboards) => {
+          setSubTabs(builder, dashboards, $rootScope);
+        });
+      }, 500);
     }
   }]);
 
