@@ -1,7 +1,9 @@
 <div class="row">
   <div class="col-md-12" ng-controller="DevExample.Page1Controller">
     <h1>Embedded Page</h1>
-    <p><a ng-href="{{addToDashboardLink()}}">Add this view to a dashboard</a></p>
+    <div ng-hide="inDashboard">
+      <p><a ng-href="{{addToDashboardLink()}}">Add this view to a dashboard</a></p>
+    </div>
     <p>Path: {{location.path()}}</p>
     <p>Search: {{location.search()}}</p>
     <p>Route Params:

@@ -191,10 +191,20 @@ module Dashboard {
           }
           var hash = widget.hash; // TODO decode object?
           var location = new RectangleLocation($location, path, search, hash);
-
+          if (!widget.size_x || widget.size_x < 1) {
+            widget.size_x = 1;
+          }
+          if (!widget.size_y || widget.size_y < 1) {
+            widget.size_y = 1;
+          }
           var tmpModuleName = 'dashboard-' + widget.id;
           var tmpModule = angular.module(tmpModuleName, modules);
           tmpModule.config(['$provide', ($provide) => {
+            $provide.decorator('HawtioDashboard', ['$delegate', '$rootScope', ($delegate, $rootScope) => {
+              $rootScope.inDashboard = true;
+              $delegate.inDashboard = true;
+              return $delegate;
+            }]);
             $provide.decorator('$location', ['$delegate', ($delegate) => {
               //log.debug("Using $location: ", location);
               return location;
@@ -210,12 +220,6 @@ module Dashboard {
               return search;
             }]);
           }]);
-          if (!widget.size_x || widget.size_x < 1) {
-            widget.size_x = 1;
-          }
-          if (!widget.size_y || widget.size_y < 1) {
-            widget.size_y = 1;
-          }
           var div = $('<div></div>');
           div.html(template);
           var body = div.find('.widget-body');
@@ -223,7 +227,7 @@ module Dashboard {
           widgetBody.then((widgetBody) => {
             var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
             body.html(widgetBody);
-            outerDiv.html(body);
+            outerDiv.html(div);
             angular.bootstrap(body, [tmpModuleName]);
             var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
             $scope.widgetMap[widget.id] = {
