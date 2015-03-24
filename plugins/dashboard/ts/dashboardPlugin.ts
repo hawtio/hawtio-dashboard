@@ -33,7 +33,12 @@ module Dashboard {
   var tab = undefined;
 
   export function setSubTabs(builder, dashboards:Array<Dashboard>, $rootScope) {
-    tab.tabs = [];
+    log.debug("Updating sub-tabs");
+    if (!tab.tabs) {
+      tab.tabs = [];
+    } else {
+      tab.tabs.length = 0;
+    }
     _.forEach(dashboards, (dashboard) => {
       var child = builder
         .id('dashboard-' + dashboard.id)
@@ -58,16 +63,19 @@ module Dashboard {
     Core.$apply($rootScope);
   }
 
-  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope) => {
-    var builder = nav.builder();
-    tab = builder.id(pluginName)
-                .href(() => '/dashboard/idx/0')
-                .title(() => 'Dashboard')
-                .build();
-    nav.add(tab);
-    dashboards.getDashboards((dashboards) => {
-      setSubTabs(builder, dashboards, $rootScope);
-    });
+  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash) => {
+    // special case here, we don't want to overwrite our stored tab!
+    if (!dash.inDashboard) {
+      var builder = nav.builder();
+      tab = builder.id(pluginName)
+        .href(() => '/dashboard/idx/0')
+        .title(() => 'Dashboard')
+        .build();
+      nav.add(tab);
+      dashboards.getDashboards((dashboards) => {
+        setSubTabs(builder, dashboards, $rootScope);
+      });
+    }
   }]);
 
   hawtioPluginLoader.addModule(pluginName);

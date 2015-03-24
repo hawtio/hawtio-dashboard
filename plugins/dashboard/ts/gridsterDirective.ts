@@ -238,7 +238,6 @@ module Dashboard {
                     modal.dismiss();
                   }
                 }]
-
               });
             };
           }]);
