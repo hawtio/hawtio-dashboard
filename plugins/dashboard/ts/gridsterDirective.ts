@@ -220,8 +220,7 @@ module Dashboard {
               return search;
             }]);
           }]);
-          var div = $('<div></div>');
-          div.html(template);
+          var div = $(template);
           var body = div.find('.widget-body');
           var widgetBody = $templateRequest(widget.include);
           widgetBody.then((widgetBody) => {
