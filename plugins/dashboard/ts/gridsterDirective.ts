@@ -19,7 +19,7 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest) => {
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate) => {
 
       var gridSize = 150;
       var gridMargin = 6;
@@ -30,20 +30,9 @@ module Dashboard {
 
       $scope.widgetMap = {};
 
-      /*
-      $scope.$on('$destroy', () => {
-        angular.forEach($scope.widgetMap, (value, key) => {
-          if ('scope' in value) {
-            var scope = value['scope'];
-            scope.$destroy();
-          }
-        });
-      });
-      */
+      setTimeout(updateWidgets, 10);
 
-      updateWidgets();
-
-      $scope.removeWidget = function(widget) {
+      function removeWidget(widget) {
         var gridster = getGridster();
         var widgetElem = null;
 
@@ -51,11 +40,7 @@ module Dashboard {
         var widgetData = $scope.widgetMap[widget.id];
         if (widgetData) {
           delete $scope.widgetMap[widget.id];
-          var scope = widgetData.scope;
           widgetElem = widgetData.widget;
-          if (scope) {
-            scope.$destroy();
-          }
         }
         if (!widgetElem) {
           // lets get the li parent element of the template
@@ -64,9 +49,6 @@ module Dashboard {
         if (gridster && widgetElem) {
           gridster.remove_widget(widgetElem);
         }
-        // no need to remove it...
-        //widgetElem.remove();
-
         // lets trash the JSON metadata
         if ($scope.dashboard) {
           var widgets = $scope.dashboard.widgets;
@@ -79,30 +61,23 @@ module Dashboard {
       };
 
       function changeWidgetSize(widget, sizefunc, savefunc) {
+        if (!widget) {
+          log.debug("widget undefined");
+          return;
+        }
         var gridster = getGridster();
+        log.debug("Widget ID: ", widget.id, " widgetMap: ", $scope.widgetMap);
         var entry = $scope.widgetMap[widget.id];
         var w = entry.widget;
-        var scope = entry.scope;
         sizefunc(entry);
         gridster.resize_widget(w, entry.size_x, entry.size_y);
         gridster.set_dom_grid_height();
-
         setTimeout(function() {
-          var template = $templateCache.get("widgetTemplate");
-          var div = $('<div></div>');
-          div.html(template);
-          w.html($compile(div.contents())(scope));
-
-          makeResizable();
-          Core.$apply($scope);
-
-          setTimeout(function() {
-            savefunc(widget);
-          }, 50);
-        }, 30);
+          savefunc(widget);
+        }, 50);
       }
 
-      $scope.onWidgetRenamed = function(widget) {
+      function onWidgetRenamed(widget) {
         updateDashboardRepository("Renamed widget to " + widget.title);
       };
 
@@ -140,6 +115,10 @@ module Dashboard {
         var minWidth = 6;
 
         angular.forEach(widgets, (widget) => {
+          if (!widget) {
+            log.debug("Undefined widget, skipping");
+            return;
+          }
           if (angular.isDefined(widget.row) && minHeight < widget.row) {
             minHeight = widget.row + 1;
           }
@@ -201,7 +180,6 @@ module Dashboard {
           var tmpModule = angular.module(tmpModuleName, modules);
           tmpModule.config(['$provide', ($provide) => {
             $provide.decorator('HawtioDashboard', ['$delegate', '$rootScope', ($delegate, $rootScope) => {
-              $rootScope.inDashboard = true;
               $delegate.inDashboard = true;
               return $delegate;
             }]);
@@ -220,14 +198,60 @@ module Dashboard {
               return search;
             }]);
           }]);
+          tmpModule.controller('HawtioDashboard.Title', ["$scope", "$modal", ($scope, $modal) => {
+            $scope.widget = widget;
+            $scope.removeWidget = (widget) => {
+              log.debug("Remove widget: ", widget);
+              var modal = $modal.open({
+                templateUrl: UrlHelpers.join(templatePath, 'deleteWidgetModal.html'),
+                controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+                  $scope.widget = widget;
+                  $scope.ok = () => {
+                    modal.close();
+                    removeWidget($scope.widget);
+                  }
+                  $scope.cancel = () => {
+                    modal.dismiss();
+                  }
+                }]
+              });
+            };
+            $scope.renameWidget = (widget) => {
+              log.debug("Rename widget: ", widget);
+              var modal = $modal.open({
+                templateUrl: UrlHelpers.join(templatePath, 'renameWidgetModal.html'),
+                controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+                  $scope.widget = widget;
+                  $scope.config = {
+                    properties: {
+                      'title': {
+                        type: 'string',
+                        default: widget.title
+                      }
+                    }
+                  };
+                  $scope.ok = () => {
+                    modal.close();
+                    onWidgetRenamed($scope.widget);
+                  }
+                  $scope.cancel = () => {
+                    modal.dismiss();
+                  }
+                }]
+
+              });
+            };
+          }]);
+
           var div = $(template);
+          div.attr({ 'data-widgetId': widget.id });
           var body = div.find('.widget-body');
           var widgetBody = $templateRequest(widget.include);
           widgetBody.then((widgetBody) => {
             var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
             body.html(widgetBody);
             outerDiv.html(div);
-            angular.bootstrap(body, [tmpModuleName]);
+            angular.bootstrap(div, [tmpModuleName]);
             var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
             $scope.widgetMap[widget.id] = {
               widget: w
@@ -260,9 +284,6 @@ module Dashboard {
       }
 
       function makeResizable() {
-
-        /*
-
         var blocks:any = $('.grid-block');
         blocks.resizable('destroy');
 
@@ -300,7 +321,6 @@ module Dashboard {
           getGridster().enable();
         });
 
-        */
       }
 
 

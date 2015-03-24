@@ -1,0 +1,11 @@
+<div class="modal-header">
+  <h3 class="modal-title">Delete Widget</h3>
+</div>
+<div class="modal-body">
+  <p>Are you sure you want to delete the widget <span ng-show="widget.title">"{{widget.title}}"</span>?</p>
+  <p class="strong">This operation cannot be undone</p>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" ng-click="ok()">OK</button>
+  <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
+</div>
