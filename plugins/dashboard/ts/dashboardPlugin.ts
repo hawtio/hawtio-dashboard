@@ -60,6 +60,13 @@ module Dashboard {
       .href(() => '/dashboard/edit?main-tab=dashboard&sub-tab=dashboard-manage')
       .build();
     tab.tabs.push(manage);
+    tab.tabs.forEach((tab) => {
+      tab.isSelected = () => {
+        var id = tab.id.replace('dashboard-', '');
+        var uri = new URI();
+        return uri.query(true)['sub-tab'] === tab.id || _.endsWith(uri.path(), id);
+      }
+    });
     Core.$apply($rootScope);
   }
 
