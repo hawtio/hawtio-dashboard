@@ -20,6 +20,11 @@ declare module Dashboard {
         group: string;
         widgets: Array<DashboardWidget>;
     }
+    interface DefaultDashboards {
+        add: (dashbard: Dashboard) => void;
+        remove: (id: string) => Dashboard;
+        getAll: () => Array<Dashboard>;
+    }
     interface DashboardRepository {
         putDashboards: (array: any[], commitMessage: string, fn) => any;
         deleteDashboards: (array: Array<Dashboard>, fn) => any;

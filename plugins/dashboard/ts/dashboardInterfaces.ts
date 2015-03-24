@@ -24,6 +24,12 @@ module Dashboard {
     widgets: Array<DashboardWidget>;
   }
 
+  export interface DefaultDashboards {
+    add: (dashbard:Dashboard) => void;
+    remove: (id:string) => Dashboard;
+    getAll: () => Array<Dashboard>;
+  }
+
   /**
    * Base interface that dashboard repositories must implement
    *

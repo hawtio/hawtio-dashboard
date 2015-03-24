@@ -5,8 +5,22 @@
  */
 module Dashboard {
 
-  _module.factory('dashboardRepository', [() => {
-    return new LocalDashboardRepository();
+  _module.factory('dashboardRepository', ['defaultDashboards', (defaultDashboards:DefaultDashboards) => {
+    return new LocalDashboardRepository(defaultDashboards);
+  }]);
+
+  _module.factory('defaultDashboards', [() => {
+    var defaults = <Array<Dashboard>>[];
+    var answer = {
+      add: (dashboard:Dashboard) => {
+        defaults.push(dashboard);
+      },
+      remove: (id:string) => {
+        return _.remove(defaults, (dashboard) => dashboard.id === id);
+      },
+      getAll: () => defaults
+    }
+    return answer;
   }]);
 
   /**
@@ -98,7 +112,6 @@ module Dashboard {
 
   ];
 
-
   /**
    * @class LocalDashboardRepository
    * @uses DashboardRepository
@@ -107,13 +120,13 @@ module Dashboard {
 
     private localStorage:WindowLocalStorage = null;
 
-    constructor() {
+    constructor(defaults:DefaultDashboards) {
       this.localStorage = Core.getLocalStorage();
 
       if ('userDashboards' in this.localStorage) {
         // log.info("Found previously saved dashboards");
       } else {
-        this.storeDashboards(defaultDashboards);
+        this.storeDashboards(defaults.getAll());
       }
     }
 

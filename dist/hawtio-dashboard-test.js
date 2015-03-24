@@ -43,7 +43,7 @@ var DevExample;
     DevExample._module = angular.module(DevExample.pluginName, []);
     var tab = undefined;
     DevExample._module.config(["$locationProvider", "$routeProvider", "HawtioNavBuilderProvider", function ($locationProvider, $routeProvider, builder) {
-        tab = builder.create().id(DevExample.pluginName).title(function () { return "Test DevExample"; }).href(function () { return "/test_example"; }).subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html")).build();
+        tab = builder.create().id(DevExample.pluginName).title(function () { return "Test DevExample"; }).href(function () { return "/test_example"; }).subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html")).subPath("Page 2", "page2", builder.join(DevExample.templatePath, "page2.html")).build();
         builder.configureRouting($routeProvider, tab);
     }]);
     DevExample._module.run(["HawtioNav", function (HawtioNav) {
@@ -88,4 +88,40 @@ var DevExample;
     }]);
 })(DevExample || (DevExample = {}));
 
-angular.module("hawtio-dashboard-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/example/html/page1.html","<div class=\"row\">\n  <div class=\"col-md-12\" ng-controller=\"DevExample.Page1Controller\">\n    <h1>Embedded Page</h1>\n    <div ng-hide=\"inDashboard\">\n      <p><a ng-href=\"{{addToDashboardLink()}}\">Add this view to a dashboard</a></p>\n    </div>\n    <p>Path: {{location.path()}}</p>\n    <p>Search: {{location.search()}}</p>\n    <p>Route Params:\n      <pre>{{routeParams}}</pre>\n    </p>\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-dashboard-test-templates");
+/// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+/// and other contributors as indicated by the @author tags.
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///   http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+/// <reference path="examplePlugin.ts"/>
+var DevExample;
+(function (DevExample) {
+    DevExample.Page1Controller = DevExample._module.controller("DevExample.Page2Controller", ["$scope", "$routeParams", "$location", "HawtioDashboard", function ($scope, $routeParams, $location, dash) {
+        $scope.inDashboard = dash.inDashboard;
+        DevExample.log.debug("$routeParams: ", $routeParams);
+        $scope.routeParams = $routeParams;
+        $scope.location = $location;
+        $scope.target = "World!";
+        $scope.addToDashboardLink = function () {
+            var href = new URI();
+            var target = new URI("/dashboard/add").search({
+                'main-tab': 'dashboard',
+                'sub-tab': 'dashboard-manage',
+                'href': href.toString().escapeURL(true)
+            });
+            return target.toString();
+        };
+    }]);
+})(DevExample || (DevExample = {}));
+
+angular.module("hawtio-dashboard-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/example/html/page1.html","<div class=\"row\">\n  <div class=\"col-md-12\" ng-controller=\"DevExample.Page1Controller\">\n    <h1>Some Controller (1)</h1>\n    <div ng-hide=\"inDashboard\">\n      <p><a ng-href=\"{{addToDashboardLink()}}\">Add this view to a dashboard</a></p>\n    </div>\n    <p>Path: {{location.path()}}</p>\n    <p>Search: {{location.search()}}</p>\n    <p>Route Params:\n      <pre>{{routeParams}}</pre>\n    </p>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/example/html/page2.html","<div class=\"row\">\n  <div class=\"col-md-12\" ng-controller=\"DevExample.Page2Controller\">\n    <h1>Some Controller(2)</h1>\n    <div ng-hide=\"inDashboard\">\n      <p><a ng-href=\"{{addToDashboardLink()}}\">Add this view to a dashboard</a></p>\n    </div>\n    <p>Path: {{location.path()}}</p>\n    <p>Search: {{location.search()}}</p>\n    <p>Route Params:\n      <pre>{{routeParams}}</pre>\n    </p>\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-dashboard-test-templates");

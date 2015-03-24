@@ -3,7 +3,7 @@
 declare module Dashboard {
     class LocalDashboardRepository implements DashboardRepository {
         private localStorage;
-        constructor();
+        constructor(defaults: DefaultDashboards);
         private loadDashboards();
         private storeDashboards(dashboards);
         putDashboards(array: any[], commitMessage: string, fn: any): void;
