@@ -19,7 +19,7 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate) => {
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", "$modal", "$sce", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate, $modal, $sce) => {
 
       var gridSize = 150;
       var gridMargin = 6;
@@ -159,104 +159,131 @@ module Dashboard {
           }
         }
 
-        angular.forEach(widgets, (widget) => {
-          var path = widget.path;
-          var search = null;
-          if (widget.search) {
-            search = Dashboard.decodeURIComponentProperties(widget.search);
-          }
-          if (widget.routeParams) {
-            _.extend(search, angular.fromJson(widget.routeParams));
-          }
-          var hash = widget.hash; // TODO decode object?
-          var location = new RectangleLocation($location, path, search, hash);
-          if (!widget.size_x || widget.size_x < 1) {
-            widget.size_x = 1;
-          }
-          if (!widget.size_y || widget.size_y < 1) {
-            widget.size_y = 1;
-          }
-          var tmpModuleName = 'dashboard-' + widget.id;
-          var tmpModule = angular.module(tmpModuleName, modules);
-          tmpModule.config(['$provide', ($provide) => {
-            $provide.decorator('HawtioDashboard', ['$delegate', '$rootScope', ($delegate, $rootScope) => {
-              $delegate.inDashboard = true;
-              return $delegate;
-            }]);
-            $provide.decorator('$location', ['$delegate', ($delegate) => {
-              //log.debug("Using $location: ", location);
-              return location;
-            }]);
-            $provide.decorator('$route', ['$delegate', ($delegate) => {
-              // really handy for debugging, mostly to tell if a widget's route
-              // isn't actually available in the child app
-              //log.debug("Using $route: ", $delegate);
-              return $delegate;
-            }]);
-            $provide.decorator('$routeParams', ['$delegate', ($delegate) => {
-              //log.debug("Using $routeParams: ", search);
-              return search;
-            }]);
-          }]);
-          tmpModule.controller('HawtioDashboard.Title', ["$scope", "$modal", ($scope, $modal) => {
-            $scope.widget = widget;
-            $scope.removeWidget = (widget) => {
-              log.debug("Remove widget: ", widget);
-              var modal = $modal.open({
-                templateUrl: UrlHelpers.join(templatePath, 'deleteWidgetModal.html'),
-                controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
-                  $scope.widget = widget;
-                  $scope.ok = () => {
-                    modal.close();
-                    removeWidget($scope.widget);
-                  }
-                  $scope.cancel = () => {
-                    modal.dismiss();
-                  }
-                }]
-              });
-            };
-            $scope.renameWidget = (widget) => {
-              log.debug("Rename widget: ", widget);
-              var modal = $modal.open({
-                templateUrl: UrlHelpers.join(templatePath, 'renameWidgetModal.html'),
-                controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
-                  $scope.widget = widget;
-                  $scope.config = {
-                    properties: {
-                      'title': {
-                        type: 'string',
-                        default: widget.title
-                      }
-                    }
-                  };
-                  $scope.ok = () => {
-                    modal.close();
-                    onWidgetRenamed($scope.widget);
-                  }
-                  $scope.cancel = () => {
-                    modal.dismiss();
-                  }
-                }]
-              });
-            };
-          }]);
-
-          var div = $(template);
-          div.attr({ 'data-widgetId': widget.id });
-          var body = div.find('.widget-body');
-          var widgetBody = $templateRequest(widget.include);
-          widgetBody.then((widgetBody) => {
-            var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
-            body.html(widgetBody);
-            outerDiv.html(div);
-            angular.bootstrap(div, [tmpModuleName]);
-            var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
-            $scope.widgetMap[widget.id] = {
-              widget: w
-            };
-            maybeFinishUp();
+        function doRemoveWidget($modal, widget) {
+          log.debug("Remove widget: ", widget);
+          var modal = $modal.open({
+            templateUrl: UrlHelpers.join(templatePath, 'deleteWidgetModal.html'),
+            controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+              $scope.widget = widget;
+              $scope.ok = () => {
+                modal.close();
+                removeWidget($scope.widget);
+              }
+              $scope.cancel = () => {
+                modal.dismiss();
+              }
+            }]
           });
+        }
+
+        function doRenameWidget($modal, widget) {
+          log.debug("Rename widget: ", widget);
+          var modal = $modal.open({
+            templateUrl: UrlHelpers.join(templatePath, 'renameWidgetModal.html'),
+            controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+              $scope.widget = widget;
+              $scope.config = {
+                properties: {
+                  'title': {
+                    type: 'string',
+                    default: widget.title
+                  }
+                }
+              };
+              $scope.ok = () => {
+                modal.close();
+                onWidgetRenamed($scope.widget);
+              }
+              $scope.cancel = () => {
+                modal.dismiss();
+              }
+            }]
+          });
+        }
+
+        angular.forEach(widgets, (widget) => {
+          var type = 'internal';
+          if ('iframe' in widget) {
+            type = 'external';
+          }
+          switch (type) {
+            case 'external':
+              var scope = $scope.$new();
+              scope.widget = widget;
+              scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
+              scope.renameWidget = (widget) => doRenameWidget($modal, widget);
+              var widgetBody:any = angular.element($templateCache.get('iframeWidgetTemplate.html'));
+              var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
+              widgetBody.find('iframe').attr('src', widget.iframe);
+              outerDiv.append($compile(widgetBody)(scope));
+              var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
+              $scope.widgetMap[widget.id] = {
+                widget: w
+              };
+              maybeFinishUp();
+              break;
+            case 'internal': 
+              var path = widget.path;
+              var search = null;
+              if (widget.search) {
+                search = Dashboard.decodeURIComponentProperties(widget.search);
+              }
+              if (widget.routeParams) {
+                _.extend(search, angular.fromJson(widget.routeParams));
+              }
+              var hash = widget.hash; // TODO decode object?
+              var location = new RectangleLocation($location, path, search, hash);
+              if (!widget.size_x || widget.size_x < 1) {
+                widget.size_x = 1;
+              }
+              if (!widget.size_y || widget.size_y < 1) {
+                widget.size_y = 1;
+              }
+              var tmpModuleName = 'dashboard-' + widget.id;
+              var tmpModule = angular.module(tmpModuleName, modules);
+              tmpModule.config(['$provide', ($provide) => {
+                $provide.decorator('HawtioDashboard', ['$delegate', '$rootScope', ($delegate, $rootScope) => {
+                  $delegate.inDashboard = true;
+                  return $delegate;
+                }]);
+                $provide.decorator('$location', ['$delegate', ($delegate) => {
+                  //log.debug("Using $location: ", location);
+                  return location;
+                }]);
+                $provide.decorator('$route', ['$delegate', ($delegate) => {
+                  // really handy for debugging, mostly to tell if a widget's route
+                  // isn't actually available in the child app
+                  //log.debug("Using $route: ", $delegate);
+                  return $delegate;
+                }]);
+                $provide.decorator('$routeParams', ['$delegate', ($delegate) => {
+                  //log.debug("Using $routeParams: ", search);
+                  return search;
+                }]);
+              }]);
+              tmpModule.controller('HawtioDashboard.Title', ["$scope", "$modal", ($scope, $modal) => {
+                $scope.widget = widget;
+                $scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
+                $scope.renameWidget = (widget) => doRenameWidget($modal, widget);
+              }]);
+
+              var div:any = $(template);
+              div.attr({ 'data-widgetId': widget.id });
+              var body = div.find('.widget-body');
+              var widgetBody = $templateRequest(widget.include);
+              widgetBody.then((widgetBody) => {
+                var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
+                body.html(widgetBody);
+                outerDiv.html(div);
+                angular.bootstrap(div, [tmpModuleName]);
+                var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
+                $scope.widgetMap[widget.id] = {
+                  widget: w
+                };
+                maybeFinishUp();
+              });
+              break;
+          }
         });
       }
 

@@ -9,9 +9,10 @@ declare module Dashboard {
         col?: number;
         size_x?: number;
         size_y?: number;
-        path: string;
-        include: string;
-        search: SearchMap;
+        path?: string;
+        url?: string;
+        include?: string;
+        search?: SearchMap;
         routeParams?: string;
     }
     interface Dashboard {

@@ -78,135 +78,163 @@ module Dashboard {
     $scope.addViewToDashboard = () => {
       var nextHref = null;
       var selected = $scope.gridOptions.selectedItems;
-
       var currentUrl = new URI();
-      var href = currentUrl.query(true)['href'];
+      var config = currentUrl.query(true);
+      var href = config['href'];
+      var iframe = config['iframe'];
+      var type = 'href';
       if (href) {
         href = href.unescapeURL();
+      } else if (iframe) {
+        iframe = iframe.unescapeURL();
+        type = 'iframe';
       }
-      log.debug("href: ", href);
-      $scope.url = href;
-
-      var widgetURI = new URI(href);
-
+      var widgetURI = <any> undefined;
+      switch(type) {
+        case 'href':
+          log.debug("href: ", href);
+          widgetURI = new URI(href);
+          break;
+        case 'iframe':
+          log.debug("iframe: ", iframe);
+          widgetURI = new URI(iframe);
+          break;
+        default:
+          log.debug("type unknown");
+          return;
+      }
+      var sizeStr = <any> config['size'];
+      if (sizeStr) {
+        sizeStr = sizeStr.unescapeURL();
+      }
+      var size = angular.fromJson(sizeStr) || { size_x: 1, size_y: 1 };
+      var title = (config['title'] || '').unescapeURL();
+      var templateWidget = {
+        id: undefined,
+        row: 1,
+        col: 1,
+        size_x: size.size_x,
+        size_y: size.size_y,
+        title: title
+      }
       angular.forEach(selected, (selectedItem) => {
 
-        var text = widgetURI.path();
-        var search = widgetURI.query(true);
+        var widget = _.cloneDeep(templateWidget);
 
-        if ($route && $route.routes) {
-          var value = $route.routes[text];
-          if (value) {
-            var templateUrl = value["templateUrl"];
-            if (templateUrl) {
-              if (!selectedItem.widgets) {
-                selectedItem.widgets = [];
-              }
-              var nextNumber = selectedItem.widgets.length + 1;
-              var widget = {
-                id: "w" + nextNumber, title: "",
-                row: 1,
-                col: 1,
-                size_x: 1,
-                size_y: 1,
-                path: text,
-                include: templateUrl,
-                search: search,
-                hash: ""
-              };
+        if (!selectedItem.widgets) {
+          selectedItem.widgets = [];
+        }
+        var nextNumber = selectedItem.widgets.length + 1;
+        widget.id = 'w' + nextNumber;
 
-              if ($scope.widgetTitle) {
-                widget.title = $scope.widgetTitle;
-              }
-
-              // figure out the width of the dash
-              var gridWidth = 0;
-
-              selectedItem.widgets.forEach((w) => {
-                var rightSide = w.col + w.size_x;
-                if (rightSide > gridWidth) {
-                  gridWidth = rightSide;
+        switch (type) {
+          case 'iframe': 
+            widget = <any>_.extend({
+              iframe: iframe
+            }, widget);
+            break;
+          case 'href':
+            var text = widgetURI.path();
+            var search = widgetURI.query(true);
+            if ($route && $route.routes) {
+              var value = $route.routes[text];
+              if (value) {
+                var templateUrl = value["templateUrl"];
+                if (templateUrl) {
+                  widget = <any> _.extend({
+                    path: text,
+                    include: templateUrl,
+                    search: search,
+                    hash: ""
+                  }, widget);
                 }
-              });
-
-              if ($scope.preferredSize) {
-                widget.size_x = parseInt($scope.preferredSize['size_x']);
-                widget.size_y = parseInt($scope.preferredSize['size_y']);
+              } else {
+                // TODO we need to be able to match URI templates...
+                return;
               }
-
-              var found = false;
-
-              var left = (w) => {
-                return w.col;
-              };
-
-              var right = (w)  => {
-                return w.col + w.size_x - 1;
-              };
-
-              var top = (w) => {
-                return w.row;
-              };
-
-              var bottom = (w) => {
-                return w.row + w.size_y - 1;
-              };
-
-              var collision = (w1, w2) => {
-                return !( left(w2) > right(w1) ||
-                          right(w2) < left(w1) ||
-                          top(w2) > bottom(w1) ||
-                          bottom(w2) < top(w1));
-              };
-
-              if (selectedItem.widgets.isEmpty()) {
-                found = true;
-              }
-
-              while (!found) {
-                widget.col = 1;
-                if (widget.col + widget.size_x > gridWidth) {
-                  // let's not look for a place next to existing widget
-                  selectedItem.widgets.forEach(function(w, idx) {
-                    if (widget.row <= w.row) {
-                      widget.row++;
-                    }
-                  });
-                  found = true;
-                }
-                for (; (widget.col + widget.size_x) <= gridWidth; widget.col++) {
-                  if (!selectedItem.widgets.any((w) => {
-                    var c = collision(w, widget);
-                    return c
-                  })) {
-                    found = true;
-                    break;
-                  }
-                }
-                if (!found) {
-                  widget.row = widget.row + 1
-                }
-                // just in case, keep the script from running away...
-                if (widget.row > 50) {
-                  found = true;
-                }
-              }
-
-              if ($scope.routeParams) {
-                widget['routeParams'] = $scope.routeParams;
-              }
-              selectedItem.widgets.push(widget);
-              if (!nextHref && selectedItem.id) {
-                nextHref = new URI().path("/dashboard/id/" + selectedItem.id).query({
-                  'main-tab': 'dashboard',
-                  'sub-tab': 'dashboard-' + selectedItem.id
-                }).removeQuery('href');
-              }
-
             }
-          } else {
-            // TODO we need to be able to match URI templates...
+            break;
+        }
+        // figure out the width of the dash
+        var gridWidth = 0;
+
+        selectedItem.widgets.forEach((w) => {
+          var rightSide = w.col + w.size_x;
+          if (rightSide > gridWidth) {
+            gridWidth = rightSide;
           }
+        });
+
+        var found = false;
+
+        var left = (w) => {
+          return w.col;
+        };
+
+        var right = (w)  => {
+          return w.col + w.size_x - 1;
+        };
+
+        var top = (w) => {
+          return w.row;
+        };
+
+        var bottom = (w) => {
+          return w.row + w.size_y - 1;
+        };
+
+        var collision = (w1, w2) => {
+          return !( left(w2) > right(w1) ||
+              right(w2) < left(w1) ||
+              top(w2) > bottom(w1) ||
+              bottom(w2) < top(w1));
+        };
+
+        if (selectedItem.widgets.isEmpty()) {
+          found = true;
+        }
+
+        while (!found) {
+          widget.col = 1;
+          if (widget.col + widget.size_x > gridWidth) {
+            // let's not look for a place next to existing widget
+            selectedItem.widgets.forEach(function(w, idx) {
+              if (widget.row <= w.row) {
+                widget.row++;
+              }
+            });
+            found = true;
+          }
+          for (; (widget.col + widget.size_x) <= gridWidth; widget.col++) {
+            if (!selectedItem.widgets.any((w) => {
+              var c = collision(w, widget);
+              return c
+            })) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            widget.row = widget.row + 1
+          }
+          // just in case, keep the script from running away...
+          if (widget.row > 50) {
+            found = true;
+          }
+        }
+
+        if ($scope.routeParams) {
+          widget['routeParams'] = $scope.routeParams;
+        }
+        selectedItem.widgets.push(widget);
+        if (!nextHref && selectedItem.id) {
+          nextHref = new URI().path("/dashboard/id/" + selectedItem.id).query({
+            'main-tab': 'dashboard',
+            'sub-tab': 'dashboard-' + selectedItem.id
+          }).removeQuery('href')
+            .removeQuery('title')
+            .removeQuery('iframe')
+            .removeQuery('size');
         }
       });
 

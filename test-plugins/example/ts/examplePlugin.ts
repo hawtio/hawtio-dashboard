@@ -31,6 +31,7 @@ module DevExample {
       .href(() => "/test_example")
       .subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html"))
       .subPath("Page 2", "page2", builder.join(DevExample.templatePath, "page2.html"))
+      .subPath("Embed IFrame", "page3", builder.join(DevExample.templatePath, "page3.html"))
       .build();
     builder.configureRouting($routeProvider, tab);
   }]);
