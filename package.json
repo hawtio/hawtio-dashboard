@@ -14,6 +14,7 @@
     "gulp-less": "3.0.1",
     "gulp-load-plugins": "^0.8.0",
     "gulp-notify": "^2.1.0",
+    "gulp-rename": "^1.2.0",
     "gulp-size": "^1.2.0",
     "gulp-sourcemaps": "^1.5.0",
     "gulp-tslint": "^1.4.2",
