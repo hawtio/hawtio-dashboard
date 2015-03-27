@@ -2,6 +2,8 @@
 
 [![Circle CI](https://circleci.com/gh/hawtio/hawtio-dashboard.svg?style=svg)](https://circleci.com/gh/hawtio/hawtio-dashboard)
 
+<a class="btn btn-primary" href="http://dashboard.hawt.io">View Demo</a>
+
 This module contains the dashboard widget for hawtio v2.
 
 Out of the box the backend used to store dashboards is in browser local storage.  However it's easily possible to override this storage method with any other backend, for example:
