@@ -43,6 +43,20 @@ module DevExample {
       defaults.add(dashboard);
     })
     HawtioNav.add(tab);
+    HawtioNav.add({
+      id: 'project-link',
+      isSelected: function() { return false; },
+      title: function() { return 'github'; },
+      click: function() { window.location.href = 'https://github.com/hawtio/hawtio-dashboard'; },
+      href: function() { return 'https://github.com/hawtio/hawtio-dashboard'; }
+    });
+    HawtioNav.add({
+      id: 'hawtio-link',
+      isSelected: function() { return false; },
+      title: function() { return 'hawtio'; },
+      click: function() { window.location.href = 'http://hawt.io'; },
+      href: function() { return 'http://hawt.io'; }
+    });
     log.debug("loaded");
   }]);
 
