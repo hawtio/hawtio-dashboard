@@ -236,6 +236,14 @@ var HawtioMainNav;
       this.self.reload = reload;
       return this;
     };
+    NavItemBuilderImpl.prototype.attributes = function(attributes) {
+      this.self.attributes = attributes;
+      return this;
+    };
+    NavItemBuilderImpl.prototype.linkAttributes = function(attributes) {
+      this.self.linkAttributes = attributes;
+      return this;
+    };
     NavItemBuilderImpl.prototype.context = function(context) {
       this.self.context = context;
       return this;
@@ -622,6 +630,16 @@ var HawtioMainNav;
       template = item.template();
     } else {
       template = $templateCache.get('templates/main-nav/navItem.html');
+    }
+    if (item.attributes || item.linkAttributes) {
+      var tmpEl = $(template);
+      if (item.attributes) {
+        tmpEl.attr(item.attributes);
+      }
+      if (item.linkAttributes) {
+        tmpEl.find('a').attr(item.linkAttributes);
+      }
+      template = tmpEl.prop('outerHTML');
     }
     element.append($compile(template)(newScope));
   }

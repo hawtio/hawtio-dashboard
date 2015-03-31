@@ -1,0 +1,25 @@
+.hawtio-form-2 .inline-array .form-control[disabled],
+.hawtio-form-2 .inline-array .table-control[disabled],
+.hawtio-form-2-unwrapped .form-control[disabled],
+.hawtio-form-2-unwrapped .table-control[disabled] {
+  border: none;
+  background: inherit;
+  color: #333;
+}
+
+.hawtio-form-2-unwrapped .form-group {
+  margin: auto;
+}
+
+.hawtio-form-2 table .help-block {
+  display: none;
+}
+
+.hawtio-form-2 .form-map-value .inline-array table {
+  border: 1px solid #d4d4d4;
+  margin-bottom: auto;
+}
+
+.hawtio-form-2 legend {
+  border: none;
+}
