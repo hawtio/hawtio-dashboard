@@ -44,7 +44,7 @@ var DevExample;
     var tab = undefined;
     var testDashboards = '[{"title":"Test Dashboard One","group":"Personal","widgets":[{"id":"w1","title":"","row":1,"col":1,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w2","title":"","row":1,"col":3,"size_x":2,"size_y":2,"path":"/test_example/page2","include":"test-plugins/example/html/page2.html","search":{"main-tab":"hawtio-test-plugin","sub-tab":"hawtio-test-plugin-page2"},"hash":""}],"id":"5120d5d69a0cf19ae6","hash":"?main-tab=dashboard&sub-tab=dashboard-5120d5d69a0cf19ae6"},{"title":"Test Dashboard Two","group":"Personal","widgets":[{"id":"w1","title":"A thing.  With a name.","row":1,"col":1,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w2","title":"Some Instance of Something","row":1,"col":3,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w3","title":"","row":1,"col":5,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w4","title":"","row":3,"col":3,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w5","title":"","row":1,"col":7,"size_x":2,"size_y":2,"path":"/test_example/page2","include":"test-plugins/example/html/page2.html","search":{"main-tab":"hawtio-test-plugin","sub-tab":"hawtio-test-plugin-page2"},"hash":""}],"id":"5120d5ef26e661afe4","hash":"?main-tab=dashboard&sub-tab=dashboard-5120d5ef26e661afe4"},{"title":"Test Dashboard Three","group":"Personal","widgets":[{"id":"w1","title":"I have a name!","row":1,"col":1,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w2","title":"","row":1,"col":3,"size_x":2,"size_y":2,"path":"/test_example/page1","include":"test-plugins/example/html/page1.html","search":{"main-tab":"hawtio-test-plugin"},"hash":""},{"id":"w3","title":"This is my title","row":1,"col":5,"size_x":2,"size_y":2,"path":"/test_example/page2","include":"test-plugins/example/html/page2.html","search":{"main-tab":"hawtio-test-plugin","sub-tab":"hawtio-test-plugin-page2"},"hash":""}],"id":"5120d5fa6488911695","hash":"?main-tab=dashboard&sub-tab=dashboard-5120d5fa6488911695"}]';
     DevExample._module.config(["$locationProvider", "$routeProvider", "HawtioNavBuilderProvider", function ($locationProvider, $routeProvider, builder) {
-        tab = builder.create().id(DevExample.pluginName).title(function () { return "Test DevExample"; }).href(function () { return "/test_example"; }).subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html")).subPath("Page 2", "page2", builder.join(DevExample.templatePath, "page2.html")).subPath("Embed IFrame", "page3", builder.join(DevExample.templatePath, "page3.html")).build();
+        tab = builder.create().id(DevExample.pluginName).title(function () { return "Example Controllers"; }).href(function () { return "/test_example"; }).subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html")).subPath("Page 2", "page2", builder.join(DevExample.templatePath, "page2.html")).subPath("Embed IFrame", "page3", builder.join(DevExample.templatePath, "page3.html")).build();
         builder.configureRouting($routeProvider, tab);
     }]);
     DevExample._module.run(["HawtioNav", 'DefaultDashboards', function (HawtioNav, defaults) {
@@ -55,33 +55,27 @@ var DevExample;
         HawtioNav.add(tab);
         HawtioNav.add({
             id: 'project-link',
-            isSelected: function () {
-                return false;
+            isSelected: function () { return false; },
+            title: function () { return 'github'; },
+            attributes: {
+                class: 'pull-right'
             },
-            title: function () {
-                return 'github';
+            linkAttributes: {
+                target: '_blank'
             },
-            click: function () {
-                window.location.href = 'https://github.com/hawtio/hawtio-dashboard';
-            },
-            href: function () {
-                return 'https://github.com/hawtio/hawtio-dashboard';
-            }
+            href: function () { return 'https://github.com/hawtio/hawtio-dashboard'; }
         });
         HawtioNav.add({
             id: 'hawtio-link',
-            isSelected: function () {
-                return false;
+            isSelected: function () { return false; },
+            title: function () { return 'hawtio'; },
+            attributes: {
+                class: 'pull-right'
             },
-            title: function () {
-                return 'hawtio';
+            linkAttributes: {
+                target: '_blank'
             },
-            click: function () {
-                window.location.href = 'http://hawt.io';
-            },
-            href: function () {
-                return 'http://hawt.io';
-            }
+            href: function () { return 'http://hawt.io'; }
         });
         DevExample.log.debug("loaded");
     }]);

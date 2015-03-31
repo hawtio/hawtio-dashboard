@@ -27,7 +27,7 @@ module DevExample {
     ($locationProvider, $routeProvider: ng.route.IRouteProvider, builder: HawtioMainNav.BuilderFactory) => {
     tab = builder.create()
       .id(DevExample.pluginName)
-      .title(() => "Test DevExample")
+      .title(() => "Example Controllers")
       .href(() => "/test_example")
       .subPath("Page 1", "page1", builder.join(DevExample.templatePath, "page1.html"))
       .subPath("Page 2", "page2", builder.join(DevExample.templatePath, "page2.html"))
@@ -45,17 +45,27 @@ module DevExample {
     HawtioNav.add(tab);
     HawtioNav.add({
       id: 'project-link',
-      isSelected: function() { return false; },
-      title: function() { return 'github'; },
-      click: function() { window.location.href = 'https://github.com/hawtio/hawtio-dashboard'; },
-      href: function() { return 'https://github.com/hawtio/hawtio-dashboard'; }
+      isSelected: () => false,
+      title: () => 'github',
+      attributes: {
+        class: 'pull-right'
+      },
+      linkAttributes: {
+        target: '_blank'
+      },
+      href: () => 'https://github.com/hawtio/hawtio-dashboard'
     });
     HawtioNav.add({
       id: 'hawtio-link',
-      isSelected: function() { return false; },
-      title: function() { return 'hawtio'; },
-      click: function() { window.location.href = 'http://hawt.io'; },
-      href: function() { return 'http://hawt.io'; }
+      isSelected: () => false,
+      title: () => 'hawtio',
+      attributes: {
+        class: 'pull-right'
+      },
+      linkAttributes: {
+        target: '_blank'
+      },
+      href: () => 'http://hawt.io'
     });
     log.debug("loaded");
   }]);
