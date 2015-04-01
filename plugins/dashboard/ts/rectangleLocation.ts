@@ -1,3 +1,4 @@
+/// <reference path="dashboardHelpers.ts"/>
 /**
  * @module Dashboard
  */
@@ -13,11 +14,16 @@ module Dashboard {
     private _path: string;
     private _hash: string;
     private _search: any;
+    private uri:URI;
 
     constructor(public delegate:ng.ILocationService, path:string, search, hash:string) {
       this._path = path;
       this._search = search;
       this._hash = hash;
+      this.uri = new URI(path);
+      this.uri.search((query) => {
+        return this._search;
+      });
     }
 
     absUrl() {
@@ -26,8 +32,8 @@ module Dashboard {
 
     hash(newHash:string = null):any {
       if (newHash) {
-        return this.delegate.hash(newHash).search('tab', null);
-        //this._hash = newHash;
+        this.uri.search(newHash);
+        return this;
       }
       return this._hash;
     }
@@ -38,7 +44,8 @@ module Dashboard {
 
     path(newPath:string = null):any {
       if (newPath) {
-        return this.delegate.path(newPath).search('tab', null);
+        this.uri.path(newPath);
+        return this;
       }
       return this._path;
     }
@@ -58,14 +65,16 @@ module Dashboard {
 
     search(parametersMap:any = null):any {
       if (parametersMap) {
-        return this.delegate.search(parametersMap);
+        this.uri.search(parametersMap);
+        return this;
       }
       return this._search;
     }
 
     url(newValue: string = null):any {
       if (newValue) {
-        return this.delegate.url(newValue).search('tab', null);
+        this.uri = new URI(newValue);
+        return this;
       }
       return this.absUrl();
     }

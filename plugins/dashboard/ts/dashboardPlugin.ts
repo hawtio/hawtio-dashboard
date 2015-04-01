@@ -17,8 +17,10 @@ module Dashboard {
       $delegate['getAddLink'] = (title?:string, size_x?:number, size_y?:number) => {
         var target = new URI('/dashboard/add');
         var currentUri = new URI();
+        /*
         currentUri.removeQuery('main-tab');
         currentUri.removeQuery('sub-tab');
+        */
         var widgetUri = new URI(currentUri.path());
         widgetUri.query(currentUri.query(true));
         target.query((query) => {
