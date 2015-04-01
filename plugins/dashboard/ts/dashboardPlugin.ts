@@ -10,7 +10,24 @@ module Dashboard {
   
   export var _module = angular.module(pluginName, []);
 
-  _module.config(["$routeProvider", ($routeProvider) => {
+  _module.config(["$routeProvider", "$provide", ($routeProvider, $provide) => {
+
+    $provide.decorator('HawtioDashboard', ['$delegate', ($delegate) => {
+      $delegate['getAddLink'] = () => {
+        var target = new URI('/dashboard/add');
+        var currentUri = new URI();
+        currentUri.removeQuery('main-tab');
+        currentUri.removeQuery('sub-tab');
+        var widgetUri = new URI(currentUri.path());
+        widgetUri.query(currentUri.query(true));
+        target.query({
+          href: widgetUri.toString().escapeURL()
+        });
+        return target.toString();
+      }
+      return $delegate;
+    }]);
+
     $routeProvider.
             when('/dashboard/add', {templateUrl: Dashboard.templatePath + 'addToDashboard.html'}).
             when('/dashboard/edit', {templateUrl: Dashboard.templatePath + 'editDashboards.html'}).
@@ -70,7 +87,7 @@ module Dashboard {
     Core.$apply($rootScope);
   }
 
-  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", "$timeout", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash, $timeout) => {
+  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", "$timeout", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash:DashboardService, $timeout) => {
     // special case here, we don't want to overwrite our stored tab!
     if (!dash.inDashboard) {
       var builder = nav.builder();

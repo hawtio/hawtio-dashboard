@@ -1,4 +1,8 @@
 declare module Dashboard {
+    interface DashboardService {
+        inDashboard: boolean;
+        getAddLink(): string;
+    }
     interface SearchMap {
         [name: string]: string;
     }

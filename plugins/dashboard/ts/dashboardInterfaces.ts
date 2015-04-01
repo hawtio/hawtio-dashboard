@@ -1,5 +1,10 @@
 module Dashboard {
 
+  export interface DashboardService {
+    inDashboard:boolean;
+    getAddLink():string;
+  }
+
   export interface SearchMap {
     [name: string]: string;
   }
