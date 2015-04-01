@@ -32,7 +32,7 @@ module Dashboard {
         {
           field: 'title',
           displayName: 'Dashboard',
-          cellTemplate: $templateCache.get('editDashboardTitleCell.html')
+          cellTemplate: $templateCache.get(UrlHelpers.join(templatePath, 'editDashboardTitleCell.html'))
         },
         {
           field: 'group',
@@ -40,6 +40,8 @@ module Dashboard {
         }
       ],
     };
+
+    var doUpdate = _.debounce(updateData, 10);
 
     // helpers so we can enable/disable parts of the UI depending on how
     // dashboard data is stored
@@ -70,9 +72,11 @@ module Dashboard {
     }
     */
 
+    $timeout(doUpdate, 10);
+
     $scope.$on("$routeChangeSuccess", function (event, current, previous) {
       // lets do this asynchronously to avoid Error: $digest already in progress
-      $timeout(updateData, 10);
+      $timeout(doUpdate, 10);
     });
 
     $scope.addViewToDashboard = () => {
@@ -85,6 +89,7 @@ module Dashboard {
       var type = 'href';
       if (href) {
         href = href.unescapeURL();
+        href = Core.trimLeading(href, '#');
       } else if (iframe) {
         iframe = iframe.unescapeURL();
         type = 'iframe';
@@ -126,6 +131,7 @@ module Dashboard {
         }
         var nextNumber = selectedItem.widgets.length + 1;
         widget.id = 'w' + nextNumber;
+        log.debug("widgetURI: ", widgetURI.toString());
 
         switch (type) {
           case 'iframe': 
@@ -241,8 +247,10 @@ module Dashboard {
       // now lets update the actual dashboard config
       var commitMessage = "Add widget";
       dashboardRepository.putDashboards(selected, commitMessage, (dashboards) => {
+        /*
         log.debug("Put dashboards: ", dashboards);
         log.debug("Next href: ", nextHref.toString());
+        */
         if (nextHref) {
           $location.path(nextHref.path()).search(nextHref.query(true));
           Core.$apply($scope);
