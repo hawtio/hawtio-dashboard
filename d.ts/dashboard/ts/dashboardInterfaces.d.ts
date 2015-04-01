@@ -1,5 +1,6 @@
 declare module Dashboard {
     interface DashboardService {
+        hasDashboard: boolean;
         inDashboard: boolean;
         getAddLink(): string;
     }

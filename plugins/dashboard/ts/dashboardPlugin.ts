@@ -13,6 +13,7 @@ module Dashboard {
   _module.config(["$routeProvider", "$provide", ($routeProvider, $provide) => {
 
     $provide.decorator('HawtioDashboard', ['$delegate', ($delegate) => {
+      $delegate['hasDashboard'] = true;
       $delegate['getAddLink'] = () => {
         var target = new URI('/dashboard/add');
         var currentUri = new URI();

@@ -1,6 +1,7 @@
 module Dashboard {
 
   export interface DashboardService {
+    hasDashboard:boolean;
     inDashboard:boolean;
     getAddLink():string;
   }
