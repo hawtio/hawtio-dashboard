@@ -739,9 +739,18 @@ var HawtioMainNav;
             subItem.oldHref = subItem.href;
             subItem.href = function() {
               var uri = new URI(subItem.oldHref());
-              uri.setSearch('main-tab', item.id);
-              uri.setSearch('sub-tab', subItem.id);
-              uri.search(_.merge(new URI().query(true), uri.query(true)));
+              if (uri.path() === "") {
+                return "";
+              }
+              uri.search(function(search) {
+                if (!search['main-tab']) {
+                  search['main-tab'] = item.id;
+                }
+                if (!search['sub-tab']) {
+                  search['sub-tab'] = subItem.id;
+                }
+                _.merge(search, uri.query(true));
+              });
               return uri.toString();
             };
           }
@@ -754,9 +763,19 @@ var HawtioMainNav;
         item.oldHref = item.href;
         item.href = function() {
           var uri = new URI(item.oldHref());
-          uri.setSearch('main-tab', item.id);
-          uri.search(_.merge(new URI().query(true), uri.query(true)));
-          uri.removeSearch('sub-tab');
+          if (uri.path() === "") {
+            return "";
+          }
+          uri.search(function(search) {
+            if (!search['main-tab']) {
+              search['main-tab'] = item.id;
+            }
+            _.merge(search, uri.query(true));
+            if (!search['sub-tab'] && item.tabs && item.tabs.length > 0) {
+              var sorted = sortByRank(item.tabs);
+              search['sub-tab'] = sorted[0].id;
+            }
+          });
           return uri.toString();
         };
       }
