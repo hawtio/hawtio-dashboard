@@ -14,15 +14,21 @@ module Dashboard {
 
     $provide.decorator('HawtioDashboard', ['$delegate', ($delegate) => {
       $delegate['hasDashboard'] = true;
-      $delegate['getAddLink'] = () => {
+      $delegate['getAddLink'] = (title?:string, size_x?:number, size_y?:number) => {
         var target = new URI('/dashboard/add');
         var currentUri = new URI();
         currentUri.removeQuery('main-tab');
         currentUri.removeQuery('sub-tab');
         var widgetUri = new URI(currentUri.path());
         widgetUri.query(currentUri.query(true));
-        target.query({
-          href: widgetUri.toString().escapeURL()
+        target.query((query) => {
+          query.href = widgetUri.toString().escapeURL()
+          if (title) {
+            query.title = title.escapeURL();
+          }
+          if (size_x && size_y) {
+            query.size = angular.toJson({size_x: size_x, size_y: size_y}).escapeURL();
+          }
         });
         return target.toString();
       }

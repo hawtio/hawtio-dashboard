@@ -2,7 +2,7 @@ declare module Dashboard {
     interface DashboardService {
         hasDashboard: boolean;
         inDashboard: boolean;
-        getAddLink(): string;
+        getAddLink(title?: string, width?: number, height?: number): string;
     }
     interface SearchMap {
         [name: string]: string;

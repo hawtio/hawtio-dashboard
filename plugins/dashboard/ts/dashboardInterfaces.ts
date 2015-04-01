@@ -3,7 +3,7 @@ module Dashboard {
   export interface DashboardService {
     hasDashboard:boolean;
     inDashboard:boolean;
-    getAddLink():string;
+    getAddLink(title?:string, width?:number, height?:number):string;
   }
 
   export interface SearchMap {
