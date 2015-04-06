@@ -215,18 +215,37 @@ var Forms;
         return rc;
     }
     Forms.getControlGroup = getControlGroup;
-    function getLabel(config, arg, label) {
-        return angular.element('<label class="' + config.labelclass + '">' + label + '</label>');
+    function getLabel(config, arg, label, required) {
+        if (required === void 0) { required = false; }
+        if (required) {
+            return angular.element('<label class="strong ' + config.labelclass + '">' + label + ': </label>');
+        }
+        else {
+            return angular.element('<label class="' + config.labelclass + '">' + label + ': </label>');
+        }
     }
     Forms.getLabel = getLabel;
     function getControlDiv(config) {
         return angular.element('<div class="' + config.controlclass + '"></div>');
     }
     Forms.getControlDiv = getControlDiv;
-    function getHelpSpan(config, arg, id) {
+    function getHelpSpan(config, arg, id, property) {
+        if (property === void 0) { property = null; }
         var help = Core.pathGet(config.data, ['properties', id, 'help']);
+        if (Core.isBlank(help)) {
+            // fallback and use description
+            help = Core.pathGet(config.data, ['properties', id, 'description']);
+        }
+        if (Core.isBlank(help) && angular.isDefined(property)) {
+            // fallback and get from property
+            help = Core.pathGet(property, ['help']);
+            if (Core.isBlank(help)) {
+                help = Core.pathGet(property, ['description']);
+            }
+        }
+        var show = config.showhelp || "true";
         if (!Core.isBlank(help)) {
-            return angular.element('<span class="help-block">' + help + '</span>');
+            return angular.element('<span class="help-block" ng-show="' + show + '">' + help + '</span>');
         }
         else {
             return angular.element('<span class="help-block"></span>');
@@ -274,6 +293,8 @@ var Forms;
             valueConverter: null
         };
         var safeId = Forms.safeIdentifier(id);
+        // mark as required
+        var required = property.required || false;
         var inputMarkup = createStandardWidgetMarkup(propTypeName, property, schema, config, options, safeId);
         if (inputMarkup) {
             input = angular.element(inputMarkup);
@@ -285,16 +306,13 @@ var Forms;
             }
             input.attr("ng-model", modelName);
             input.attr('name', id);
-            try {
-                if (config.isReadOnly()) {
-                    input.attr('readonly', 'true');
-                }
-            }
-            catch (e) {
-            }
-            var title = property.tooltip || property.label;
+            var title = property.title || property.tooltip || property.label;
             if (title) {
                 input.attr('title', title);
+            }
+            var tooltip = property.tooltip || property.description;
+            if (tooltip) {
+                input.attr('tooltip', tooltip);
             }
             var disableHumanizeLabelValue = disableHumanizeLabel || property.disableHumanizeLabel;
             // allow the prefix to be trimmed from the label if enabled
@@ -309,16 +327,32 @@ var Forms;
             if (input.attr("type") !== "hidden" && wrapInGroup) {
                 group = this.getControlGroup(config, config, id);
                 var labelText = property.title || property.label || (disableHumanizeLabelValue ? defaultLabel : Core.humanizeValue(defaultLabel));
-                var labelElement = Forms.getLabel(config, config, labelText);
-                if (title) {
+                var labelElement = Forms.getLabel(config, config, labelText, required);
+                if (tooltip) {
+                    // favor using the tooltip as the title so we get the long description when people hover the mouse over the label
+                    labelElement.attr('title', tooltip);
+                }
+                else if (title) {
                     labelElement.attr('title', title);
                 }
                 group.append(labelElement);
                 copyElementAttributes(labelElement, "label-attributes");
                 var controlDiv = Forms.getControlDiv(config);
                 controlDiv.append(input);
-                controlDiv.append(Forms.getHelpSpan(config, config, id));
+                controlDiv.append(Forms.getHelpSpan(config, config, id, property));
                 group.append(controlDiv);
+                // add logic to be able to hide empty values
+                var showEmpty = config.showempty;
+                if (angular.isDefined(showEmpty)) {
+                    var attValue = "true";
+                    if (showEmpty === "true" || showEmpty === "false") {
+                        attValue = showEmpty;
+                    }
+                    else if (angular.isString(id)) {
+                        attValue = showEmpty + '(\'' + id + '\')';
+                    }
+                    group.attr("ng-show", attValue);
+                }
                 // allow control level directives, such as ng-show / ng-hide
                 copyElementAttributes(controlDiv, "control-attributes");
                 copyElementAttributes(group, "control-group-attributes");
@@ -366,22 +400,22 @@ var Forms;
         if (label) {
             input.attr('title', label);
         }
-        // TODO check for id in the schema["required"] array too!
-        // as required can be specified either via either of these approaches
-        /*
-            var schema = {
-              required: ["foo", "bar"],
-              properties: {
-                something: {
-                  required: true,
-                  type: "string"
+        try {
+            if (config.isReadOnly()) {
+                input.attr('readonly', 'true');
+                // for checkbox in read-only mode, need to be disabled otherwise ppl can change the values in the selectbox
+                if (input[0].localName === "select" || (input[0].localName === "input" && input.attr("type") === "checkbox")) {
+                    input.attr('disabled', 'true');
                 }
-              }
             }
-        */
-        if (property.required) {
+        }
+        catch (e) {
+        }
+        if (required) {
             // don't mark checkboxes as required
-            if (input[0].localName === "input" && input.attr("type") === "checkbox") {
+            if (input[0].localName === "select" || (input[0].localName === "input" && input.attr("type") === "checkbox")) {
+                // lets not set required on a checkbox, it doesn't make any sense ;)
+                input.removeAttr('required');
             }
             else {
                 input.attr('required', 'true');
@@ -404,7 +438,7 @@ var Forms;
         // lets try use standard widgets first...
         var type = Forms.resolveTypeNameAlias(propTypeName, schema);
         if (!type) {
-            return '<input type="text" class="form-group"/>';
+            return '<input type="text"/>';
         }
         var custom = Core.pathGet(property, ["formTemplate"]);
         if (custom) {
@@ -440,6 +474,11 @@ var Forms;
                         }
                     });
                     var values = Core.pathGet(property, ["enum"]);
+                    // if the bit ugly properites hunt didnt work, then use the enumValues as-is
+                    // as they are already the values we want
+                    if (angular.isUndefined(values)) {
+                        values = enumValues;
+                    }
                     valuesScopeName = "$values_" + id.replace(/\./g, "_");
                     scope[valuesScopeName] = values;
                 }
@@ -458,13 +497,13 @@ var Forms;
             return null;
         }
         var defaultValueConverter = null;
-        var defaultValue = property.default;
+        var defaultValue = property.default || property.defaultValue;
         if (defaultValue) {
             // lets add a default value
             defaultValueConverter = function (scope, modelName) {
                 var value = Core.pathGet(scope, modelName);
                 if (!value) {
-                    Core.pathSet(scope, modelName, property.default);
+                    Core.pathSet(scope, modelName, defaultValue);
                 }
             };
             options.valueConverter = defaultValueConverter;
@@ -472,7 +511,7 @@ var Forms;
         function getModelValueOrDefault(scope, modelName) {
             var value = Core.pathGet(scope, modelName);
             if (!value) {
-                var defaultValue = property.default;
+                var defaultValue = property.default || property.defaultValue;
                 if (defaultValue) {
                     value = defaultValue;
                     Core.pathSet(scope, modelName, value);
@@ -1173,6 +1212,8 @@ var Forms;
             this.controlclass = 'col-sm-10';
             this.labelclass = 'col-sm-2 control-label';
             this.showtypes = 'false';
+            this.showhelp = 'true';
+            this.showempty = 'true';
             this.onsubmit = 'onSubmit';
         }
         SimpleFormConfig.prototype.getMode = function () {
@@ -1422,6 +1463,33 @@ var Forms;
                 if (property.hidden) {
                     return;
                 }
+                // special for expression (Apache Camel)
+                if (property.kind === "expression") {
+                    propSchema = Forms.lookupDefinition("expression", fullSchema);
+                    // create 2 inputs, the 1st is the drop down with the languages
+                    // and then merge the 2 inputs together, which is a hack
+                    // but easier to do than change the complicated Forms.createWidget to do a widget with a selectbox + input
+                    var childId = id + ".language";
+                    var childId2 = id + ".expression";
+                    // for the 2nd input we need to use the information from the original property for title, description, required etc.
+                    var adjustedProperty = jQuery.extend(true, {}, propSchema.properties.expression);
+                    adjustedProperty.description = property.description;
+                    adjustedProperty.title = property.title;
+                    adjustedProperty.required = property.required;
+                    var input = Forms.createWidget(propTypeName, propSchema.properties.language, schema, config, childId, ignorePrefixInLabel, configScopeName, true, disableHumanizeLabel);
+                    var input2 = Forms.createWidget(propTypeName, adjustedProperty, schema, config, childId2, ignorePrefixInLabel, configScopeName, true, disableHumanizeLabel);
+                    // move the selectbox from input to input2 as we want it to be on the same line
+                    var selectWidget = input.find("select");
+                    var inputWidget = input2.find("input");
+                    if (selectWidget && inputWidget) {
+                        // adjust the widght so the two inputs can be on the same line and have same combined length as the others (600px)
+                        selectWidget.attr("style", "width: 120px; margin-right: 10px");
+                        inputWidget.attr("style", "width: 470px");
+                        inputWidget.before(selectWidget);
+                    }
+                    fieldset.append(input2);
+                    return;
+                }
                 var nestedProperties = null;
                 if (!propSchema && "object" === propTypeName && property.properties) {
                     // if we've no type name but have nested properties on an object type use those
@@ -1429,7 +1497,6 @@ var Forms;
                 }
                 else if (propSchema && Forms.isObjectType(propSchema)) {
                     // otherwise use the nested properties from the related schema type
-                    //console.log("type name " + propTypeName + " has nested object type " + JSON.stringify(propSchema, null, "  "));
                     nestedProperties = propSchema.properties;
                 }
                 if (nestedProperties) {

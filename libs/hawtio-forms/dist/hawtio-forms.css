@@ -23,3 +23,8 @@
 .hawtio-form-2 legend {
   border: none;
 }
+
+.modal-body .form-group {
+  margin-left: auto;
+  margin-right: auto;
+}

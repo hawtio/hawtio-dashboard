@@ -743,13 +743,11 @@ var HawtioMainNav;
                 return "";
               }
               uri.search(function(search) {
+                _.merge(search, uri.query(true));
                 if (!search['main-tab']) {
                   search['main-tab'] = item.id;
                 }
-                if (!search['sub-tab']) {
-                  search['sub-tab'] = subItem.id;
-                }
-                _.merge(search, uri.query(true));
+                search['sub-tab'] = subItem.id;
               });
               return uri.toString();
             };

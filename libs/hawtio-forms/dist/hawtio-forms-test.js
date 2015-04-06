@@ -3395,8 +3395,11 @@ var Forms2Tests;
             title: function () {
                 return 'github';
             },
-            click: function () {
-                window.location.href = 'https://github.com/hawtio/hawtio-forms';
+            attributes: {
+                class: 'pull-right'
+            },
+            linkAttributes: {
+                target: '_blank'
             },
             href: function () {
                 return 'https://github.com/hawtio/hawtio-forms';
@@ -3410,8 +3413,11 @@ var Forms2Tests;
             title: function () {
                 return 'hawtio';
             },
-            click: function () {
-                window.location.href = 'http://hawt.io';
+            attributes: {
+                class: 'pull-right'
+            },
+            linkAttributes: {
+                target: '_blank'
             },
             href: function () {
                 return 'http://hawt.io';
