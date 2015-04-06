@@ -260,6 +260,40 @@ module Dashboard {
     };
 
     $scope.create = () => {
+
+      var counter = dashboards().length + 1;
+      var title = "Untitled" + counter;
+
+      var modal = $modal.open({
+        templateUrl: UrlHelpers.join(templatePath, 'createDashboardModal.html'),
+        controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+          $scope.entity = {
+            title: title
+          }
+          $scope.config = {
+            properties: {
+              'title': {
+                type: 'string',
+              }
+            }
+          };
+          $scope.ok = () => {
+            modal.close();
+            var title = $scope.entity.title
+            var newDash = dashboardRepository.createDashboard({ title: title });
+            dashboardRepository.putDashboards([newDash], "Created new dashboard: " + title, (dashboards) => {
+              // let's just be safe and ensure there's no selections
+              deselectAll();
+              setSubTabs(nav.builder(), dashboards, $rootScope);
+              dashboardLoaded(null, dashboards);
+            });
+          }
+          $scope.cancel = () => {
+            modal.dismiss();
+          }
+        }]
+      });
+      /*
       var counter = dashboards().length + 1;
       var title = "Untitled" + counter;
       var newDash = dashboardRepository.createDashboard({title: title});
@@ -270,6 +304,7 @@ module Dashboard {
         setSubTabs(nav.builder(), dashboards, $rootScope);
         dashboardLoaded(null, dashboards);
       });
+      */
 
     };
 
