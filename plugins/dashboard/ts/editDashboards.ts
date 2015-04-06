@@ -115,7 +115,7 @@ module Dashboard {
       var size = angular.fromJson(sizeStr) || { size_x: 1, size_y: 1 };
       var title = (config['title'] || '').unescapeURL();
       var templateWidget = {
-        id: undefined,
+        id: Core.getUUID(),
         row: 1,
         col: 1,
         size_x: size.size_x,
@@ -129,9 +129,6 @@ module Dashboard {
         if (!selectedItem.widgets) {
           selectedItem.widgets = [];
         }
-        var nextNumber = selectedItem.widgets.length + 1;
-        widget.id = 'w' + nextNumber;
-        log.debug("widgetURI: ", widgetURI.toString());
 
         switch (type) {
           case 'iframe': 
