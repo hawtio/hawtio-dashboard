@@ -36,8 +36,31 @@ var UITestPages;
 
   UITestPages._module.run(['HawtioNav', function(nav) {
     nav.add(tab);
+    nav.add({
+      id: 'project-link',
+      isSelected: function() { return false; },
+      title: function() { return 'github'; },
+      attributes: {
+        class: 'pull-right'
+      },
+      linkAttributes: {
+        target: '_blank'
+      },
+      href: function() { return 'https://github.com/hawtio/hawtio-ui'; }
+    });
+    nav.add({
+      id: 'hawtio-link',
+      isSelected: function() { return false; },
+      title: function() { return 'hawtio'; },
+      attributes: {
+        class: 'pull-right'
+      },
+      linkAttributes: {
+        target: '_blank'
+      },
+      href: function() { return 'http://hawt.io'; }
+    });
   }]);
-
 
   hawtioPluginLoader.addModule(UITestPages.pluginName);
 
@@ -91,7 +114,10 @@ var Test;
     }]);
     Test._module.run(["HawtioNav", function (HawtioNav) {
         Test.log.debug('loaded');
+
+        /*
         HawtioNav.add(tab);
+
         HawtioNav.add(tab2);
         tabs.forEach(function(tab) { HawtioNav.add(tab); });
 
@@ -114,6 +140,7 @@ var Test;
                           .build();
         
         HawtioNav.add(tab3);
+        */
 
 
         

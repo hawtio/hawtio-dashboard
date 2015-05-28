@@ -527,18 +527,19 @@ var HawtioEditor;
                         $scope.options = [];
                     }
                 };
-                $scope.$watch('doc', function () {
-                    if ($scope.doc) {
+                $scope.$watch(_.debounce(function () {
+                    if ($scope.codeMirror) {
+                        $scope.codeMirror.refresh();
+                    }
+                }, 100, { trailing: true }));
+                $scope.$watch('codeMirror', function () {
+                    if ($scope.codeMirror) {
+                        $scope.doc = $scope.codeMirror.getDoc();
                         $scope.codeMirror.on('change', function (changeObj) {
                             $scope.text = $scope.doc.getValue();
                             $scope.dirty = !$scope.doc.isClean();
                             Core.$apply($scope);
                         });
-                    }
-                });
-                $scope.$watch('codeMirror', function () {
-                    if ($scope.codeMirror) {
-                        $scope.doc = $scope.codeMirror.getDoc();
                     }
                 });
                 $scope.$watch('text', function (oldValue, newValue) {
@@ -611,13 +612,13 @@ var HawtioEditor;
                         $scope.$parent[$scope.dirtyTarget] = $scope.dirty;
                     }
                 });
-                $scope.$watch(function () {
-                    return $element.is(':visible');
-                }, function (newValue, oldValue) {
-                    if (newValue !== oldValue && $scope.codeMirror) {
-                        $scope.codeMirror.refresh();
-                    }
+                /*
+                $scope.$watch(() => { return $element.is(':visible'); }, (newValue, oldValue) => {
+                  if (newValue !== oldValue && $scope.codeMirror) {
+                      $scope.codeMirror.refresh();
+                  }
                 });
+                */
                 $scope.$watch('text', function () {
                     if (!$scope.codeMirror) {
                         var options = {
@@ -984,17 +985,6 @@ var Core;
     }
     Core.clearNotifications = clearNotifications;
 })(Core || (Core = {}));
-
-/// <reference path="../../includes.ts"/>
-var UIBootstrap;
-(function (UIBootstrap) {
-    var pluginName = "hawtio-ui-bootstrap";
-    angular.module(pluginName, ["ui.bootstrap"]);
-    hawtioPluginLoader.addModule(pluginName);
-    hawtioPluginLoader.addModule("hawtio-compat.transition");
-    hawtioPluginLoader.addModule("hawtio-compat.dialog");
-    hawtioPluginLoader.addModule("hawtio-compat.modal");
-})(UIBootstrap || (UIBootstrap = {}));
 
 /**
  * @module UI
@@ -4081,6 +4071,17 @@ var UI;
     }
     UI.ZeroClipboardDirective = ZeroClipboardDirective;
 })(UI || (UI = {}));
+
+/// <reference path="../../includes.ts"/>
+var UIBootstrap;
+(function (UIBootstrap) {
+    var pluginName = "hawtio-ui-bootstrap";
+    angular.module(pluginName, ["ui.bootstrap"]);
+    hawtioPluginLoader.addModule(pluginName);
+    hawtioPluginLoader.addModule("hawtio-compat.transition");
+    hawtioPluginLoader.addModule("hawtio-compat.dialog");
+    hawtioPluginLoader.addModule("hawtio-compat.modal");
+})(UIBootstrap || (UIBootstrap = {}));
 
 angular.module("hawtio-ui-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("plugins/datatable/html/test.html","<div ng-controller=\"DataTable.SimpleTableTestController\">\n  <div class=\"row\">\n    <div class=\"section-header\">\n\n      <div class=\"section-filter\">\n        <input type=\"text\" class=\"search-query\" placeholder=\"Filter...\" ng-model=\"mygrid.filterOptions.filterText\">\n        <i class=\"fa fa-remove clickable\" title=\"Clear filter\" ng-click=\"mygrid.filterOptions.filterText = \'\'\"></i>\n      </div>\n\n    </div>\n  </div>\n\n  <h3>hawtio-simple-table example</h3>\n\n  <table class=\"table table-striped\" hawtio-simple-table=\"mygrid\"></table>\n\n  <div class=\"row\">\n    <p>Selected folks:</p>\n    <ul>\n      <li ng-repeat=\"person in selectedItems\">{{person.name}}</li>\n    </ul>\n\n    <p>\n       <a class=\"btn\" href=\"#/datatable/test?multi={{!mygrid.multiSelect}}\">multi select is: {{mygrid.multiSelect}}</a>\n    </p>\n  </div>\n</div>\n");
 $templateCache.put("plugins/editor/html/editor.html","<div class=\"editor-autoresize\">\n  <textarea name=\"{{name}}\" ng-model=\"text\"></textarea>\n</div>\n");

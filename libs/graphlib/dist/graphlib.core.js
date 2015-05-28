@@ -218,7 +218,9 @@ var _ = require("../lodash"),
 module.exports = findCycles;
 
 function findCycles(g) {
-  return _.filter(tarjan(g), function(cmpt) { return cmpt.length > 1; });
+  return _.filter(tarjan(g), function(cmpt) {
+    return cmpt.length > 1 || (cmpt.length === 1 && g.hasEdge(cmpt[0], cmpt[0]));
+  });
 }
 
 },{"../lodash":20,"./tarjan":14}],8:[function(require,module,exports){
@@ -817,6 +819,8 @@ Graph.prototype.setParent = function(v, parent) {
   if (_.isUndefined(parent)) {
     parent = GRAPH_NODE;
   } else {
+    // Coerce parent to string
+    parent += "";
     for (var ancestor = parent;
          !_.isUndefined(ancestor);
          ancestor = this.parent(ancestor)) {
@@ -1166,7 +1170,7 @@ function read(json) {
 
 var lodash;
 
-if (require) {
+if (typeof require === "function") {
   try {
     lodash = require("lodash");
   } catch (e) {}
@@ -1179,6 +1183,6 @@ if (!lodash) {
 module.exports = lodash;
 
 },{"lodash":undefined}],21:[function(require,module,exports){
-module.exports = '1.0.1';
+module.exports = '1.0.4';
 
 },{}]},{},[1]);

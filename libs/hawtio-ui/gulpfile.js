@@ -6,7 +6,6 @@ var gulp = require('gulp'),
     fs = require('fs'),
     path = require('path'),
     s = require('underscore.string'),
-    base64 = require('base64'),
     glob = require('glob');
 
 var plugins = gulpLoadPlugins({});
@@ -163,7 +162,7 @@ gulp.task('embed-images', ['concat'], function() {
       break;
     }
     var buf = fs.readFileSync(filename);
-    return 'data:' + mime + ';base64,' + base64.encode(buf);
+    return 'data:' + mime + ';base64,' + buf.toString('base64');
   }
 
   files.forEach(function(file) {
