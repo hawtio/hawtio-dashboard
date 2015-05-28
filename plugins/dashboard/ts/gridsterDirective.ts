@@ -19,19 +19,19 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", "$modal", "$sce", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate, $modal, $sce) => {
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", "$modal", "$sce", "$timeout", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate, $modal, $sce, $timeout) => {
 
       var gridSize = 150;
       var gridMargin = 6;
       var gridHeight;
 
-      $scope.gridX = gridSize;
-      $scope.gridY = gridSize;
+      var gridX = gridSize;
+      var gridY = gridSize;
 
-      $scope.widgetMap = {};
+      var widgetMap = {};
 
       $scope.$on('$destroy', () => {
-        angular.forEach($scope.widgetMap, (value, key) => {
+        angular.forEach(widgetMap, (value, key) => {
           if ('scope' in value) {
             var scope = value['scope'];
             scope.$destroy();
@@ -46,14 +46,14 @@ module Dashboard {
         var widgetElem = null;
 
         // lets destroy the widgets's scope
-        var widgetData = $scope.widgetMap[widget.id];
+        var widgetData = widgetMap[widget.id];
         if (widgetData) {
-          delete $scope.widgetMap[widget.id];
+          delete widgetMap[widget.id];
           widgetElem = widgetData.widget;
         }
         if (!widgetElem) {
           // lets get the li parent element of the template
-          widgetElem = $("div").find("[data-widgetId='" + widget.id + "']").parent();
+          widgetElem = $element.find("[data-widgetId='" + widget.id + "']").parent();
         }
         if (gridster && widgetElem) {
           gridster.remove_widget(widgetElem);
@@ -75,13 +75,13 @@ module Dashboard {
           return;
         }
         var gridster = getGridster();
-        log.debug("Widget ID: ", widget.id, " widgetMap: ", $scope.widgetMap);
-        var entry = $scope.widgetMap[widget.id];
+        log.debug("Widget ID: ", widget.id, " widgetMap: ", widgetMap);
+        var entry = widgetMap[widget.id];
         var w = entry.widget;
         sizefunc(entry);
         gridster.resize_widget(w, entry.size_x, entry.size_y);
         gridster.set_dom_grid_height();
-        setTimeout(function() {
+        setTimeout(() => {
           savefunc(widget);
         }, 50);
       }
@@ -142,7 +142,7 @@ module Dashboard {
 
         var gridster = $element.gridster({
           widget_margins: [gridMargin, gridMargin],
-          widget_base_dimensions: [$scope.gridX, $scope.gridY],
+          widget_base_dimensions: [gridX, gridY],
           extra_rows: minHeight,
           extra_cols: minWidth,
           max_size_x: minWidth,
@@ -217,6 +217,7 @@ module Dashboard {
           }
           switch (type) {
             case 'external':
+              log.debug("Rendering external (iframe) widget: ", widget.title || widget.id);
               var scope = $scope.$new();
               scope.widget = widget;
               scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
@@ -226,12 +227,13 @@ module Dashboard {
               widgetBody.find('iframe').attr('src', widget.iframe);
               outerDiv.append($compile(widgetBody)(scope));
               var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
-              $scope.widgetMap[widget.id] = {
+              widgetMap[widget.id] = {
                 widget: w
               };
               maybeFinishUp();
               break;
             case 'internal': 
+              log.debug("Rendering internal widget: ", widget.title || widget.id);
               var path = widget.path;
               var search = null;
               if (widget.search) {
@@ -279,18 +281,18 @@ module Dashboard {
               var div:any = $(template);
               div.attr({ 'data-widgetId': widget.id });
               var body = div.find('.widget-body');
-              var widgetBody = $templateRequest(widget.include);
-              widgetBody.then((widgetBody) => {
+              log.debug("include: ", widget.include);
+              var widgetBody = $templateCache.get(widget.include);
+              $timeout(() => {
                 var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
                 body.html(widgetBody);
                 outerDiv.html(div);
                 angular.bootstrap(div, [tmpModuleName]);
-                var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
-                $scope.widgetMap[widget.id] = {
-                  widget: w
+                widgetMap[widget.id] = {
+                  widget: gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row)
                 };
                 maybeFinishUp();
-              });
+              }, 50);
               break;
           }
         });
