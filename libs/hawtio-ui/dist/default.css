@@ -573,10 +573,15 @@ div.hawtio-form-tabs ul.nav-tabs li.active a {
 }
 
 .selected, 
+.selected > td,
 .box.selected {
-  color: normal;
+  color: normal !important;
   background-color: #f0f0ff !important;
   text-shadow: none;
+}
+
+.selected .ngCellText a:not(.badge) {
+  background: inherit !important;
 }
 
 .box.selected .box-right i {
@@ -1037,12 +1042,14 @@ i.expandable-indicator.folder {
   fill: #346789;
 }
 
+/*
 tr.selected,
 tr.selected .ngCell,
 tr.selected .ngCellText a,
 .table-striped tbody tr.selected:nth-child(odd) td {
   background-color: #c9dde1;
 }
+*/
 
 input.ng-invalid-pattern {
   border-color: #e9322d;

@@ -6,7 +6,11 @@ var gulp = require('gulp'),
     fs = require('fs'),
     path = require('path'),
     s = require('underscore.string'),
-    glob = require('glob');
+    glob = require('glob'),
+    path = require('path'),
+    size = require('gulp-size'),
+    uri = require('URIjs'),
+    s = require('underscore.string');
 
 var plugins = gulpLoadPlugins({});
 var pkg = require('./package.json');
@@ -14,16 +18,27 @@ var pkg = require('./package.json');
 var config = {
   main: '.',
   ts: ['plugins/**/*.ts'],
+  testTs: ['test-plugins/**/*.ts'],
   templates: ['plugins/**/*.html'],
+  testTemplates: ['test-plugins/**/*.html'],
   templateModule: pkg.name + '-templates',
+  testTemplateModule: pkg.name + '-test-templates',
   dist: './dist/',
   js: pkg.name + '.js',
+  testJs: pkg.name + '-test.js',
+  css: pkg.name + '.css',
   tsProject: plugins.typescript.createProject({
     target: 'ES5',
     module: 'commonjs',
     declarationFiles: true,
     noExternalResolve: false
-  })
+  }),
+  testTsProject: plugins.typescript.createProject({
+    target: 'ES5',
+    module: 'commonjs',
+    declarationFiles: false,
+    noExternalResolve: false
+  }),
 };
 
 gulp.task('bower', function() {
@@ -46,6 +61,42 @@ gulp.task('path-adjust', function() {
 
 gulp.task('clean-defs', function() {
   return gulp.src('defs.d.ts', { read: false })
+    .pipe(plugins.clean());
+});
+
+gulp.task('example-tsc', ['tsc'], function() {
+  var tsResult = gulp.src(config.testTs)
+    .pipe(plugins.typescript(config.testTsProject))
+    .on('error', plugins.notify.onError({
+      message: '#{ error.message }',
+      title: 'Typescript compilation error - test'
+    }));
+
+    return tsResult.js
+        .pipe(plugins.concat('test-compiled.js'))
+        .pipe(gulp.dest('.'));
+});
+
+gulp.task('example-template', ['example-tsc'], function() {
+  return gulp.src(config.testTemplates)
+    .pipe(plugins.angularTemplatecache({
+      filename: 'test-templates.js',
+      root: 'test-plugins/',
+      standalone: true,
+      module: config.testTemplateModule,
+      templateFooter: '}]); hawtioPluginLoader.addModule("' + config.testTemplateModule + '");'
+    }))
+    .pipe(gulp.dest('.'));
+});
+
+gulp.task('example-concat', ['example-template'], function() {
+  return gulp.src(['test-compiled.js', 'test-templates.js'])
+    .pipe(plugins.concat(config.testJs))
+    .pipe(gulp.dest(config.dist));
+});
+
+gulp.task('example-clean', ['example-concat'], function() {
+  return gulp.src(['test-templates.js', 'test-compiled.js'], { read: false })
     .pipe(plugins.clean());
 });
 
@@ -97,12 +148,15 @@ gulp.task('clean', ['concat'], function() {
     .pipe(plugins.clean());
 });
 
-gulp.task('watch', ['build'], function() {
-  plugins.watch(['hawtio-nav-example.js', 'dist/*.css', 'libs/**/*.js', 'libs/**/*.css', 'index.html', config.dist + '/' + config.js], function() {
-    gulp.start('reload');
-  });
+gulp.task('watch', ['build', 'build-example'], function() {
   plugins.watch(['libs/**/*.d.ts', config.ts, config.templates], function() {
-    gulp.start(['tsc', 'template', 'concat', 'clean', 'embed-images']);
+    gulp.start(['tsc', 'template', 'concat', 'clean']);
+  });
+  plugins.watch([config.testTs, config.testTemplates], function() {
+    gulp.start([ 'example-template', 'example-concat', 'example-clean']);
+  });
+  plugins.watch(['libs/**/*.js', 'libs/**/*.css', 'index.html', config.dist + '/' + '*'], function() {
+    gulp.start('reload');
   });
 });
 
@@ -123,7 +177,7 @@ gulp.task('connect', ['watch'], function() {
             res.end();
             return;
           } else {
-            console.log("allowing: ", path);
+            //console.log("allowing: ", path);
             next();
           }
         }];
@@ -179,7 +233,7 @@ gulp.task('embed-images', ['concat'], function() {
   .pipe(gulp.dest(config.dist));
 });
 
-gulp.task('site', ['build'], function() {
+gulp.task('site', ['build', 'build-example'], function() {
   gulp.src('website/.gitignore')
     .pipe(gulp.dest('site'));
   gulp.src('website/*')
@@ -214,6 +268,8 @@ gulp.task('deploy', function() {
 });
 
 gulp.task('build', ['bower', 'path-adjust', 'tsc', 'template', 'concat', 'clean', 'embed-images']);
+
+gulp.task('build-example', ['example-tsc', 'example-template', 'example-concat', 'example-clean']);
 
 gulp.task('default', ['connect']);
 

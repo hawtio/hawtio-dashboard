@@ -140,9 +140,15 @@ var HawtioMainNav;
       this.items.forEach(iterator);
     };
     RegistryImpl.prototype.selected = function() {
-      return _.find(this.items, function(item) {
-        return item.isSelected && item.isSelected();
+      var answer = _.find(this.items, function(item) {
+        var answer = false;
+        if (!item.isSelected) {
+          return answer;
+        }
+        var answer = item.isSelected();
+        return answer;
       });
+      return answer;
     };
     RegistryImpl.prototype.on = function(action, key, fn) {
       var _this = this;
@@ -635,48 +641,50 @@ var HawtioMainNav;
     return false;
   }
 
+  // Construct once and share between invocations to avoid memory leaks
+  var tmpLink = $('<a>');
   function addIsSelected($location, item) {
     if (!('isSelected' in item) && 'href' in item) {
       item.isSelected = function() {
         // item.href() might be relative, in which
         // case we should let the browser resolve
         // what the full path should be
-        var tmpLink = $('<a>')
-          .attr("href", item.href());
+        tmpLink.attr("href", item.href());
         var href = new URI(tmpLink[0].href);
         var itemPath = trimLeading(href.path(), '/');
-
+        if (itemPath === '') {
+          log.debug("nav item: ", item.id, " returning empty href, can't be selected");
+          return false;
+        }
         var current = new URI();
         var path = trimLeading(current.path(), '/');
         var query = current.query(true);
         var mainTab = query['main-tab'];
         var subTab = query['sub-tab'];
-
         if (itemPath !== '' && !mainTab && !subTab) {
           if (item.isSubTab && _.startsWith(path, itemPath)) {
             return true;
           }
           if (item.tabs) {
-            var answer = _.any(item.tabs, function(item) {
-              return item.isSelected();
+            var answer = _.any(item.tabs, function(subTab) {
+              var answer = subTab.isSelected();
+              return answer;
             });
             if (answer) {
               return true;
             }
           }
         }
-
         var answer = false;
-
         if (item.isSubTab) {
           if (!subTab) {
-            answer = _.startsWith(path, href.path());
+            answer = _.startsWith(path, itemPath);
           } else {
             answer = subTab === item.id;
           }
         } else {
           if (!mainTab) {
-            answer = _.startsWith(path, href.path());
+            answer = _.startsWith(path, itemPath);
           } else {
             answer = mainTab === item.id;
           }
@@ -743,47 +751,35 @@ var HawtioMainNav;
   HawtioMainNav._module.directive('hawtioSubTabs', ['HawtioNav', '$templateCache', '$compile', '$location', '$rootScope', function(HawtioNav, $templateCache, $compile, $location, $rootScope) {
     return {
       restrict: 'A',
-      controller: ['$scope', function($scope) {
-        $scope.redraw = true;
-        $scope.$watch(function() {
-          if ($scope.redraw) {
-            return;
-          }
-          var selected = HawtioNav.selected();
-          if (selected) {
-            var tabs = selected.tabs;
-            if (tabs) {
-              var tabsJson = angular.toJson(tabs);
-              if (tabsJson !== $scope.tabsJson) {
-                $scope.redraw = true;
-              }
-            } 
-          }
-        });
-        $scope.$on('hawtio-nav-redraw', function() {
-          log.debug("got event, redrawing sub-tabs");
-          $scope.redraw = true;
-        });
-      }],
       link: function(scope, element, attrs) {
-        scope.$watch('redraw', function() {
+
+        scope.$watch(_.debounce(function() {
+          var selected = HawtioNav.selected();
+          if (scope.selected !== selected) {
+            scope.selected = selected;
+            scope.$broadcast('hawtio-nav-subtab-redraw');
+            scope.$apply();
+          }
+        }, 100, { trailing: true }));
+
+        scope.$on('hawtio-nav-subtab-redraw', function() {
           log.debug("Redrawing sub-tabs");
           element.empty();
-          var selectedNav = HawtioNav.selected();
-          if (selectedNav && selectedNav.tabs) {
-            scope.tabsJson = angular.toJson(selectedNav.tabs);
-            if (attrs['showHeading']) {
-              var heading = angular.extend({}, selectedNav, {
-                template: function() { return $templateCache.get('templates/main-nav/subTabHeader.html'); }});
-                drawNavItem($templateCache, $compile, scope, element, heading);
-            }
-            var rankedTabs = sortByRank(selectedNav.tabs);
-            rankedTabs.forEach(function(item) {
-              drawNavItem($templateCache, $compile, scope, element, item);
-            });
+          var selectedNav = scope.selected
+          if (!selectedNav || !selectedNav.tabs) {
+            return;
           }
-          scope.redraw = false;
+          if (attrs['showHeading']) {
+            var heading = angular.extend({}, selectedNav, {
+              template: function() { return $templateCache.get('templates/main-nav/subTabHeader.html'); }});
+              drawNavItem($templateCache, $compile, scope, element, heading);
+          }
+          var rankedTabs = sortByRank(selectedNav.tabs);
+          rankedTabs.forEach(function(item) {
+            drawNavItem($templateCache, $compile, scope, element, item);
+          });
         });
+        scope.$broadcast('hawtio-nav-subtab-redraw');
       }
     };
   }]);
@@ -873,66 +869,50 @@ var HawtioMainNav;
       replace: false,
       controller: ["$scope", "$element", "$attrs", function($scope, $element, $attrs) {
         $scope.config = config;
-        $scope.redraw = true;
-        $scope.$watch('config.numKeys', function(newValue, oldValue) {
-          if (newValue !== oldValue) {
-            $scope.redraw = true;
-          }
-        });
-        $scope.$watch('config.numValid', function(newValue, oldValue) {
-          if (newValue !== oldValue) {
-            $scope.redraw = true;
-          }
-        });
         $scope.$on('hawtio-nav-redraw', function() {
-          $scope.redraw = true;
+          log.debug("Redrawing main nav");
+          $element.empty();
+
+          var rankedContexts = [];
+          // first add any contextual menus (like perspectives)
+          HawtioNav.iterate(function(item) {
+            if (!('context' in item)) {
+              return;
+            }
+            if (!item.context) {
+              return;
+            }
+            rankItem(item, rankedContexts);
+          });
+          rankedContexts.forEach(function (item) {
+            drawNavItem($templateCache, $compile, $scope, $element, item);
+          });
+          // then add the rest of the nav items
+          var rankedTabs = [];
+          HawtioNav.iterate(function(item) {
+            if (item.context) {
+              return;
+            }
+            rankItem(item, rankedTabs);
+          });
+          rankedTabs.forEach(function (item) {
+            drawNavItem($templateCache, $compile, $scope, $element, item);
+          });
         });
       }],
       link: function(scope, element, attr) {
-        scope.$watch(function() {
+        scope.$watch(_.debounce(function() {
           var oldValid = config.numValid;
+          var oldKeys = config.numKeys;
           config.numValid = 0;
+          config.numKeys = 0;
           HawtioNav.iterate(iterationFunc);
-          if (config.numValid !== oldValid) {
-            scope.redraw = true;
+          if (config.numValid !== oldValid || config.numKeys !== oldKeys) {
+            scope.$broadcast('hawtio-nav-redraw');
+            scope.$apply();
           }
-          if (!scope.redraw) {
-            // log.debug("not redrawing");
-            config.numValid = 0;
-            HawtioNav.iterate(iterationFunc);
-          } else {
-            // log.debug("redrawing");
-            scope.redraw = false;
-            element.empty();
-
-
-            var rankedContexts = [];
-            // first add any contextual menus (like perspectives)
-            HawtioNav.iterate(function(item) {
-              if (!('context' in item)) {
-                return;
-              }
-              if (!item.context) {
-                return;
-              }
-              rankItem(item, rankedContexts);
-            });
-            rankedContexts.forEach(function (item) {
-              drawNavItem($templateCache, $compile, scope, element, item);
-            });
-            // then add the rest of the nav items
-            var rankedTabs = [];
-            HawtioNav.iterate(function(item) {
-              if (item.context) {
-                return;
-              }
-              rankItem(item, rankedTabs);
-            });
-            rankedTabs.forEach(function (item) {
-              drawNavItem($templateCache, $compile, scope, element, item);
-            });
-          }
-        });
+        }, 500, { trailing: true }));
+        scope.$broadcast('hawtio-nav-redraw');
       }
     };
   }]);

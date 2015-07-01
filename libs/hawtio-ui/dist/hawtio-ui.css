@@ -122,7 +122,7 @@ table .ep.editing {
 /* slideout directive stuff */
 .slideout {
   position: fixed;
-  z-index: 3000;
+  z-index: 120;
   width: 75%;
   top: 110px;
   bottom: 10px;
@@ -913,7 +913,7 @@ span.hawtio-dropdown .dropdown-menu {
 }
 
 .badge-info[href] {
-  background-color: #2d6987;
+  background-color: #0099d3;
 }
 
 .badge-inverse {
@@ -932,5 +932,4 @@ span.hawtio-dropdown .dropdown-menu {
   margin-left: 90px;
   width: 20em;
   min-height: 5em;
-
 }
