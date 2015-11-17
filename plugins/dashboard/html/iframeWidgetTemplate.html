@@ -1,0 +1,18 @@
+<div class="widget-area" data-widgetId="{{widget.id}}">
+  <div class="widget-title">
+    <div class="row-fluid">
+      <div class="pull-left">
+        {{widget.title}}
+      </div>
+      <div class="pull-right">
+        <i class="fa fa-pencil" title="Rename this widget" ng-click="renameWidget(widget)"></i>
+        <i class="fa fa-times" title="Removes this view from the dashboard" ng-click="removeWidget(widget)"></i>
+      </div>
+    </div>
+  </div>
+  <div class="widget-body">
+    <div class="iframe-holder">
+      <iframe seamless="true"></iframe>
+    </div>
+  </div>
+</div>

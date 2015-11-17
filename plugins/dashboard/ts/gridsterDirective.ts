@@ -162,7 +162,7 @@ module Dashboard {
           }
         }).data('gridster');
 
-        var template = $templateCache.get("widgetTemplate");
+        var template = $templateCache.get(UrlHelpers.join(templatePath, "widgetTemplate.html"));
         var remaining = widgets.length;
 
         function maybeFinishUp() {
@@ -228,8 +228,8 @@ module Dashboard {
               scope.widget = widget;
               scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
               scope.renameWidget = (widget) => doRenameWidget($modal, widget);
-              var widgetBody:any = angular.element($templateCache.get('iframeWidgetTemplate.html'));
-              var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
+              var widgetBody:any = angular.element($templateCache.get(UrlHelpers.join(templatePath, 'iframeWidgetTemplate.html')));
+              var outerDiv = angular.element($templateCache.get(UrlHelpers.join(templatePath, 'widgetBlockTemplate.html')));
               widgetBody.find('iframe').attr('src', widget.iframe);
               outerDiv.append($compile(widgetBody)(scope));
               var w = gridster.add_widget(outerDiv, widget.size_x, widget.size_y, widget.col, widget.row);
@@ -290,7 +290,7 @@ module Dashboard {
               log.debug("include: ", widget.include);
               var widgetBody = $templateCache.get(widget.include);
               $timeout(() => {
-                var outerDiv = angular.element($templateCache.get('widgetBlockTemplate.html'));
+                var outerDiv = angular.element($templateCache.get(UrlHelpers.join(templatePath, 'widgetBlockTemplate.html')));
                 body.html(widgetBody);
                 outerDiv.html(div);
                 angular.bootstrap(div, [tmpModuleName]);
