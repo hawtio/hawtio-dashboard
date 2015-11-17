@@ -30,6 +30,8 @@ module Dashboard {
 
       var widgetMap = {};
 
+      var dashboardRepository:DashboardRepository = $scope.$eval('dashboardRepository') || dashboardRepository;
+
       $scope.$on('$destroy', () => {
         angular.forEach(widgetMap, (value, key) => {
           if ('scope' in value) {
@@ -91,8 +93,8 @@ module Dashboard {
       };
 
       function updateWidgets() {
-        $scope.id = $routeParams["dashboardId"];
-        $scope.idx = $routeParams["dashboardIndex"];
+        $scope.id = $scope.$eval('dashboardId') || $routeParams["dashboardId"];
+        $scope.idx = $scope.$eval('dashboardIndex') || $routeParams["dashboardIndex"];
         if ($scope.id) {
           $scope.$emit('loadDashboards');
           dashboardRepository.getDashboard($scope.id, onDashboardLoad);
@@ -105,6 +107,10 @@ module Dashboard {
             if (dashboards.length > 0) {
               var dashboard = dashboards.length > idx ? dashboards[idx] : dashboard[0];
               id = dashboard.id;
+            }
+            if ($scope.$eval('dashboardEmbedded')) {
+              Core.$apply($scope);
+              return;
             }
             if (id) {
               $location.path("/dashboard/id/" + id);

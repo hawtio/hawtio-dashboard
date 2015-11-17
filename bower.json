@@ -5,6 +5,8 @@
     "hawtio"
   ],
   "main": [
+    "dist/jquery.gridster.css",
+    "dist/jquery.gridster.js",
     "dist/hawtio-dashboard.js",
     "dist/hawtio-dashboard.css"
   ],
