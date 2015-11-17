@@ -106,9 +106,12 @@ var directive = {};
 
   directive.tabPane = function() {
     return {
-      require: '^tabbable',
+      require: '?^tabbable',
       restrict: 'C',
       link: function(scope, element, attrs, tabsCtrl) {
+        if (!tabsCtrl) {
+          return;
+        }
         element.bind('$remove', tabsCtrl.addPane(element, attrs));
       }
     };

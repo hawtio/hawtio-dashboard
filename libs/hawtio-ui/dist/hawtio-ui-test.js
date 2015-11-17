@@ -7,12 +7,16 @@ var DatatableTest;
     DatatableTest.templatePath = "test-plugins/datatable/html";
     DatatableTest._module = angular.module(pluginName, []);
     DatatableTest._module.config(["$routeProvider", function ($routeProvider) {
-        $routeProvider.when('/datatable/test', { templateUrl: UrlHelpers.join(DatatableTest.templatePath, 'test.html') });
-    }]);
+            $routeProvider.
+                when('/datatable/test', { templateUrl: UrlHelpers.join(DatatableTest.templatePath, 'test.html') });
+        }]);
     DatatableTest._module.run(['HawtioNav', function (nav) {
-        var builder = nav.builder();
-        nav.add(builder.id(pluginName).href(function () { return '/datatable/test'; }).title(function () { return 'Tables'; }).build());
-    }]);
+            var builder = nav.builder();
+            nav.add(builder.id(pluginName)
+                .href(function () { return '/datatable/test'; })
+                .title(function () { return 'Tables'; })
+                .build());
+        }]);
     hawtioPluginLoader.addModule(pluginName);
 })(DatatableTest || (DatatableTest = {}));
 
@@ -20,39 +24,68 @@ var DatatableTest;
 var DatatableTest;
 (function (DatatableTest) {
     DatatableTest._module.controller('DatatableTest.SimpleTableTestController', ['$scope', '$location', function ($scope, $location) {
-        $scope.myData = [
-            { name: "James", twitter: "jstrachan" },
-            { name: "Stan", twitter: "gashcrumb" },
-            { name: "Claus", twitter: "davsclaus" }
-        ];
-        $scope.mygrid = {
-            data: 'myData',
-            showFilter: false,
-            showColumnMenu: false,
-            multiSelect: ($location.search()["multi"] || "").startsWith("f") ? false : true,
-            filterOptions: {
-                filterText: "",
-                useExternalFilter: false
-            },
-            selectedItems: [],
-            rowHeight: 32,
-            selectWithCheckboxOnly: true,
-            columnDefs: [
-                {
-                    field: 'name',
-                    displayName: 'Name',
-                    width: "***"
+            $scope.myData = [
+                { name: "James", twitter: "jstrachan", city: 'LONDON', ip: '172.17.0.11' },
+                { name: "Stan", twitter: "gashcrumb", city: 'boston', ip: '172.17.0.9' },
+                { name: "Claus", twitter: "davsclaus", city: 'Malmo', ip: '172.17.0.10' }
+            ];
+            $scope.mygrid = {
+                data: 'myData',
+                showFilter: false,
+                showColumnMenu: false,
+                multiSelect: ($location.search()["multi"] || "").startsWith("f") ? false : true,
+                filterOptions: {
+                    filterText: "",
+                    useExternalFilter: false
                 },
-                {
-                    field: 'twitter',
-                    displayName: 'Twitter',
-                    cellTemplate: '<div class="ngCellText">@{{row.entity.twitter}}</div>',
-                    //width: 400
-                    width: "***"
-                }
-            ]
-        };
-    }]);
+                selectedItems: [],
+                rowHeight: 32,
+                selectWithCheckboxOnly: true,
+                columnDefs: [
+                    {
+                        field: 'name',
+                        displayName: 'Name',
+                        width: "***"
+                    },
+                    {
+                        field: 'city',
+                        displayName: 'City',
+                        width: "***"
+                    },
+                    {
+                        field: 'twitter',
+                        displayName: 'Twitter',
+                        cellTemplate: '<div class="ngCellText">@{{row.entity.twitter}}</div>',
+                        //width: 400
+                        width: "***"
+                    },
+                    {
+                        field: 'ip',
+                        displayName: 'Pod IP',
+                        width: "***",
+                        customSortField: function (field) {
+                            // use a custom sort to sort ip address
+                            var ip = field.ip;
+                            // i guess there is maybe nicer ways of sort this without parsing and slicing
+                            var regex = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/;
+                            var groups = regex.exec(ip);
+                            if (angular.isDefined(groups)) {
+                                var g1 = ("00" + groups[1]).slice(-3);
+                                var g2 = ("00" + groups[2]).slice(-3);
+                                var g3 = ("00" + groups[3]).slice(-3);
+                                var g4 = ("00" + groups[4]).slice(-3);
+                                var answer = g1 + g2 + g3 + g4;
+                                console.log(answer);
+                                return answer;
+                            }
+                            else {
+                                return 0;
+                            }
+                        }
+                    }
+                ]
+            };
+        }]);
 })(DatatableTest || (DatatableTest = {}));
 
 /// <reference path="../../includes.ts"/>
@@ -66,62 +99,71 @@ var UITest;
     var tab2 = null;
     var editorTab = null;
     UITest._module.config(['$routeProvider', 'HawtioNavBuilderProvider', function ($routeProvider, builder) {
-        editorTab = builder.create().id(builder.join(UITest.pluginName, 'editor')).href(function () { return '/ui'; }).title(function () { return 'Editor'; }).subPath('Editor', 'editor', builder.join(path, 'editor.html')).build();
-        tab2 = builder.create().id(builder.join(UITest.pluginName, 'tab2')).href(function () {
-            return '/ui2';
-        }).title(function () {
-            return "UI Components 2";
-        }).subPath('Tags', 'tags', builder.join(path, 'tags.html')).subPath('Expandable', 'expandable', builder.join(path, 'expandable.html')).subPath('Auto Columns', 'auto-columns', builder.join(path, 'auto-columns.html')).subPath('Template Popover', 'template-popover', builder.join(path, 'template-popover.html')).subPath('Auto Dropdown', 'auto-dropdown', builder.join(path, 'auto-dropdown.html')).build();
-        tab1 = builder.create().id(builder.join(UITest.pluginName, 'tab1')).href(function () {
-            return '/ui1';
-        }).title(function () {
-            return "UI Components 1";
-        }).subPath('Icons', 'icons', builder.join(path, 'icon.html')).subPath('Breadcrumbs', 'breadcrumbs', builder.join(path, 'breadcrumbs.html')).subPath('Color Picker', 'color-picker', builder.join(path, 'color-picker.html')).subPath('Confirm Dialog', 'confirm-dialog', builder.join(path, 'confirm-dialog.html')).subPath('Drop Down', 'drop-down', builder.join(path, 'drop-down.html')).subPath('Editable Property', 'editable-property', builder.join(path, 'editable-property.html')).subPath('Expandable', 'expandable', builder.join(path, 'expandable.html')).subPath('JSPlumb', 'jsplumb', builder.join(path, 'jsplumb.html')).subPath('Pager', 'pager', builder.join(path, 'pager.html')).subPath('Slideout', 'slideout', builder.join(path, 'slideout.html')).subPath('Zero Clipboard', 'zero-clipboard', builder.join(path, 'zero-clipboard.html')).build();
-        builder.configureRouting($routeProvider, tab1);
-        builder.configureRouting($routeProvider, tab2);
-        builder.configureRouting($routeProvider, editorTab);
-    }]);
+            editorTab = builder.create()
+                .id(builder.join(UITest.pluginName, 'editor'))
+                .href(function () { return '/ui'; })
+                .title(function () { return 'Editor'; })
+                .subPath('Editor', 'editor', builder.join(path, 'editor.html'))
+                .build();
+            tab2 = builder.create()
+                .id(builder.join(UITest.pluginName, 'tab2'))
+                .href(function () { return '/ui2'; })
+                .title(function () { return "UI Components 2"; })
+                .subPath('Tags', 'tags', builder.join(path, 'tags.html'))
+                .subPath('Expandable', 'expandable', builder.join(path, 'expandable.html'))
+                .subPath('Auto Columns', 'auto-columns', builder.join(path, 'auto-columns.html'))
+                .subPath('Template Popover', 'template-popover', builder.join(path, 'template-popover.html'))
+                .subPath('Auto Dropdown', 'auto-dropdown', builder.join(path, 'auto-dropdown.html'))
+                .build();
+            tab1 = builder.create()
+                .id(builder.join(UITest.pluginName, 'tab1'))
+                .href(function () { return '/ui1'; })
+                .title(function () { return "UI Components 1"; })
+                .subPath('Icons', 'icons', builder.join(path, 'icon.html'))
+                .subPath('Breadcrumbs', 'breadcrumbs', builder.join(path, 'breadcrumbs.html'))
+                .subPath('Color Picker', 'color-picker', builder.join(path, 'color-picker.html'))
+                .subPath('Confirm Dialog', 'confirm-dialog', builder.join(path, 'confirm-dialog.html'))
+                .subPath('Drop Down', 'drop-down', builder.join(path, 'drop-down.html'))
+                .subPath('Editable Property', 'editable-property', builder.join(path, 'editable-property.html'))
+                .subPath('Expandable', 'expandable', builder.join(path, 'expandable.html'))
+                .subPath('JSPlumb', 'jsplumb', builder.join(path, 'jsplumb.html'))
+                .subPath('Pager', 'pager', builder.join(path, 'pager.html'))
+                .subPath('Slideout', 'slideout', builder.join(path, 'slideout.html'))
+                .subPath('Zero Clipboard', 'zero-clipboard', builder.join(path, 'zero-clipboard.html'))
+                .build();
+            builder.configureRouting($routeProvider, tab1);
+            builder.configureRouting($routeProvider, tab2);
+            builder.configureRouting($routeProvider, editorTab);
+        }]);
     UITest._module.run(['HawtioNav', function (nav) {
-        nav.add(tab1);
-        nav.add(tab2);
-        nav.add(editorTab);
-        nav.add({
-            id: 'project-link',
-            isSelected: function () {
-                return false;
-            },
-            title: function () {
-                return 'github';
-            },
-            attributes: {
-                class: 'pull-right'
-            },
-            linkAttributes: {
-                target: '_blank'
-            },
-            href: function () {
-                return 'https://github.com/hawtio/hawtio-ui';
-            }
-        });
-        nav.add({
-            id: 'hawtio-link',
-            isSelected: function () {
-                return false;
-            },
-            title: function () {
-                return 'hawtio';
-            },
-            attributes: {
-                class: 'pull-right'
-            },
-            linkAttributes: {
-                target: '_blank'
-            },
-            href: function () {
-                return 'http://hawt.io';
-            }
-        });
-    }]);
+            nav.add(tab1);
+            nav.add(tab2);
+            nav.add(editorTab);
+            nav.add({
+                id: 'project-link',
+                isSelected: function () { return false; },
+                title: function () { return 'github'; },
+                attributes: {
+                    class: 'pull-right'
+                },
+                linkAttributes: {
+                    target: '_blank'
+                },
+                href: function () { return 'https://github.com/hawtio/hawtio-ui'; }
+            });
+            nav.add({
+                id: 'hawtio-link',
+                isSelected: function () { return false; },
+                title: function () { return 'hawtio'; },
+                attributes: {
+                    class: 'pull-right'
+                },
+                linkAttributes: {
+                    target: '_blank'
+                },
+                href: function () { return 'http://hawt.io'; }
+            });
+        }]);
     hawtioPluginLoader.addModule(UITest.pluginName);
 })(UITest || (UITest = {}));
 
@@ -129,34 +171,34 @@ var UITest;
 var UITest;
 (function (UITest) {
     UITest._module.controller("UITest.TagsController", ["$scope", "$templateCache", function ($scope, $templateCache) {
-        $scope.toJson = angular.toJson;
-        $scope.tags = [];
-        $scope.selected = [];
-        var data = [
-            {
-                id: 'one',
-                tags: ['tag1', 'tag2', 'tag3']
-            },
-            {
-                id: 'two',
-                tags: ['tag2', 'tag3']
-            },
-            {
-                id: 'three',
-                tags: ['tag1', 'tag2']
-            },
-            {
-                id: 'four',
-                tags: ['tag1', 'tag3']
-            },
-            {
-                id: 'five',
-                tags: ['tag4']
-            }
-        ];
-        $scope.data = data;
-        $scope.template = $templateCache.get('tag-ex-template.html');
-    }]);
+            $scope.toJson = angular.toJson;
+            $scope.tags = [];
+            $scope.selected = [];
+            var data = [
+                {
+                    id: 'one',
+                    tags: ['tag1', 'tag2', 'tag3']
+                },
+                {
+                    id: 'two',
+                    tags: ['tag2', 'tag3']
+                },
+                {
+                    id: 'three',
+                    tags: ['tag1', 'tag2']
+                },
+                {
+                    id: 'four',
+                    tags: ['tag1', 'tag3']
+                },
+                {
+                    id: 'five',
+                    tags: ['tag4']
+                }
+            ];
+            $scope.data = data;
+            $scope.template = $templateCache.get('tag-ex-template.html');
+        }]);
 })(UITest || (UITest = {}));
 
 /// <reference path="uiTestPlugin.ts"/>
@@ -164,183 +206,254 @@ var UITest;
 var UITest;
 (function (UITest) {
     UITest._module.controller("UI.UITestController2", ["$scope", "$templateCache", function ($scope, $templateCache) {
-        $scope.fileUploadExMode = 'text/html';
-        $scope.menuItems = [];
-        $scope.divs = [];
-        for (var i = 0; i < 20; i++) {
-            $scope.menuItems.push("Some Item " + i);
-        }
-        for (var i = 0; i < 20; i++) {
-            $scope.divs.push(i + 1);
-        }
-        $scope.things = [
-            {
-                'name': 'stuff1',
-                'foo1': 'bar1',
-                'foo2': 'bar2'
-            },
-            {
-                'name': 'stuff2',
-                'foo3': 'bar3',
-                'foo4': 'bar4'
+            $scope.fileUploadExMode = 'text/html';
+            $scope.menuItems = [];
+            $scope.divs = [];
+            for (var i = 0; i < 20; i++) {
+                $scope.menuItems.push("Some Item " + i);
             }
-        ];
-        $scope.someVal = 1;
-        $scope.dropDownConfig = {
-            icon: 'fa fa-cogs',
-            title: 'My Awesome Menu',
-            items: [{
-                title: 'Some Item',
-                action: 'someVal=2'
-            }, {
-                title: 'Some other stuff',
-                icon: 'fa fa-twitter',
-                action: 'someVal=3'
-            }, {
-                title: "I've got children",
-                icon: 'fa fa-file-text',
-                items: [{
-                    title: 'Hi!',
-                    action: 'someVal=4'
-                }, {
-                    title: 'Yo!',
-                    items: [{
-                        title: 'More!',
-                        action: 'someVal=5'
-                    }, {
-                        title: 'Child',
-                        action: 'someVal=6'
-                    }, {
-                        title: 'Menus!',
-                        action: 'someVal=7'
-                    }]
-                }]
-            }, {
-                title: "Call a function!",
-                action: function () {
-                    Core.notification("info", "Function called!");
+            for (var i = 0; i < 20; i++) {
+                $scope.divs.push(i + 1);
+            }
+            $scope.things = [
+                {
+                    'name': 'stuff1',
+                    'foo1': 'bar1',
+                    'foo2': 'bar2'
+                },
+                {
+                    'name': 'stuff2',
+                    'foo3': 'bar3',
+                    'foo4': 'bar4'
                 }
-            }]
-        };
-        $scope.dropDownConfigTxt = angular.toJson($scope.dropDownConfig, true);
-        $scope.$watch('dropDownConfigTxt', function (newValue, oldValue) {
-            if (newValue !== oldValue) {
-                $scope.dropDownConfig = angular.fromJson($scope.dropDownConfigTxt);
-            }
-        });
-        $scope.breadcrumbSelection = 1;
-        $scope.breadcrumbConfig = {
-            path: '/root/first child',
-            icon: 'fa fa-cogs',
-            title: 'root',
-            items: [{
-                title: 'first child',
-                icon: 'fa fa-folder-close-alt',
+            ];
+            $scope.someVal = 1;
+            $scope.dropDownConfig = {
+                icon: 'fa fa-cogs',
+                title: 'My Awesome Menu',
                 items: [{
-                    title: "first child's first child",
-                    icon: 'fa fa-file-text'
-                }]
-            }, {
-                title: 'second child',
-                icon: 'fa fa-file'
-            }, {
-                title: "third child",
-                icon: 'fa fa-folder-close-alt',
-                items: [{
-                    title: "third child's first child",
-                    icon: 'fa fa-file-text'
-                }, {
-                    title: "third child's second child",
-                    icon: 'fa fa-file-text'
-                }, {
-                    title: "third child's third child",
-                    icon: 'fa fa-folder-close-alt',
-                    items: [{
-                        title: 'More!',
-                        icon: 'fa fa-file-text'
+                        title: 'Some Item',
+                        action: 'someVal=2'
                     }, {
-                        title: 'Child',
-                        icon: 'fa fa-file-text'
+                        title: 'Some other stuff',
+                        icon: 'fa fa-twitter',
+                        action: 'someVal=3'
                     }, {
-                        title: 'Menus!',
-                        icon: 'fa fa-file-text'
+                        title: "I've got children",
+                        icon: 'fa fa-file-text',
+                        items: [{
+                                title: 'Hi!',
+                                action: 'someVal=4'
+                            }, {
+                                title: 'Yo!',
+                                items: [{
+                                        title: 'More!',
+                                        action: 'someVal=5'
+                                    }, {
+                                        title: 'Child',
+                                        action: 'someVal=6'
+                                    }, {
+                                        title: 'Menus!',
+                                        action: 'someVal=7'
+                                    }]
+                            }]
+                    }, {
+                        title: "Call a function!",
+                        action: function () {
+                            Core.notification("info", "Function called!");
+                        }
                     }]
-                }]
-            }]
-        };
-        $scope.breadcrumbConfigTxt = angular.toJson($scope.breadcrumbConfig, true);
-        $scope.$watch('breadcrumbConfigTxt', function (newValue, oldValue) {
-            if (newValue !== oldValue) {
-                $scope.breadcrumbconfig = angular.toJson($scope.breadcrumbConfigTxt);
-            }
-        });
-        $scope.breadcrumbEx = $templateCache.get("breadcrumbTemplate");
-        $scope.dropDownEx = $templateCache.get("dropDownTemplate");
-        $scope.autoDropDown = $templateCache.get("autoDropDownTemplate");
-        $scope.zeroClipboard = $templateCache.get("zeroClipboardTemplate");
-        $scope.popoverEx = $templateCache.get("myTemplate");
-        $scope.popoverUsageEx = $templateCache.get("popoverExTemplate");
-        $scope.autoColumnEx = $templateCache.get("autoColumnTemplate");
-    }]);
+            };
+            $scope.dropDownConfigTxt = angular.toJson($scope.dropDownConfig, true);
+            $scope.$watch('dropDownConfigTxt', function (newValue, oldValue) {
+                if (newValue !== oldValue) {
+                    $scope.dropDownConfig = angular.fromJson($scope.dropDownConfigTxt);
+                }
+            });
+            $scope.breadcrumbSelection = 1;
+            $scope.breadcrumbConfig = {
+                path: '/root/first child',
+                icon: 'fa fa-cogs',
+                title: 'root',
+                items: [{
+                        title: 'first child',
+                        icon: 'fa fa-folder-close-alt',
+                        items: [{
+                                title: "first child's first child",
+                                icon: 'fa fa-file-text'
+                            }]
+                    }, {
+                        title: 'second child',
+                        icon: 'fa fa-file'
+                    }, {
+                        title: "third child",
+                        icon: 'fa fa-folder-close-alt',
+                        items: [{
+                                title: "third child's first child",
+                                icon: 'fa fa-file-text'
+                            }, {
+                                title: "third child's second child",
+                                icon: 'fa fa-file-text'
+                            }, {
+                                title: "third child's third child",
+                                icon: 'fa fa-folder-close-alt',
+                                items: [{
+                                        title: 'More!',
+                                        icon: 'fa fa-file-text'
+                                    }, {
+                                        title: 'Child',
+                                        icon: 'fa fa-file-text'
+                                    }, {
+                                        title: 'Menus!',
+                                        icon: 'fa fa-file-text'
+                                    }]
+                            }]
+                    }]
+            };
+            $scope.breadcrumbConfigTxt = angular.toJson($scope.breadcrumbConfig, true);
+            $scope.$watch('breadcrumbConfigTxt', function (newValue, oldValue) {
+                if (newValue !== oldValue) {
+                    $scope.breadcrumbconfig = angular.toJson($scope.breadcrumbConfigTxt);
+                }
+            });
+            $scope.breadcrumbEx = $templateCache.get("breadcrumbTemplate");
+            $scope.dropDownEx = $templateCache.get("dropDownTemplate");
+            $scope.autoDropDown = $templateCache.get("autoDropDownTemplate");
+            $scope.zeroClipboard = $templateCache.get("zeroClipboardTemplate");
+            $scope.popoverEx = $templateCache.get("myTemplate");
+            $scope.popoverUsageEx = $templateCache.get("popoverExTemplate");
+            $scope.autoColumnEx = $templateCache.get("autoColumnTemplate");
+        }]);
     UITest._module.controller("UI.UITestController1", ["$scope", "$templateCache", function ($scope, $templateCache) {
-        $scope.jsplumbEx = $templateCache.get("jsplumbTemplate");
-        $scope.nodes = ["node1", "node2"];
-        $scope.otherNodes = ["node4", "node5", "node6"];
-        $scope.anchors = ["Top", "Right", "Bottom", "Left"];
-        $scope.createEndpoint = function (nodeId) {
-            var node = $scope.jsPlumbNodesById[nodeId];
-            if (node) {
-                var anchors = $scope.anchors.subtract(node.anchors);
-                console.log("anchors: ", anchors);
-                if (anchors && anchors.length > 0) {
-                    var anchor = anchors.first();
-                    node.anchors.push(anchor);
-                    node.endpoints.push($scope.jsPlumb.addEndpoint(node.el, {
-                        anchor: anchor,
-                        isSource: true,
-                        isTarget: true,
-                        maxConnections: -1
-                    }));
+            $scope.jsplumbEx = $templateCache.get("jsplumbTemplate");
+            $scope.nodes = ["node1", "node2"];
+            $scope.otherNodes = ["node4", "node5", "node6"];
+            $scope.anchors = ["Top", "Right", "Bottom", "Left"];
+            $scope.createEndpoint = function (nodeId) {
+                var node = $scope.jsPlumbNodesById[nodeId];
+                if (node) {
+                    var anchors = $scope.anchors.subtract(node.anchors);
+                    console.log("anchors: ", anchors);
+                    if (anchors && anchors.length > 0) {
+                        var anchor = anchors.first();
+                        node.anchors.push(anchor);
+                        node.endpoints.push($scope.jsPlumb.addEndpoint(node.el, {
+                            anchor: anchor,
+                            isSource: true,
+                            isTarget: true,
+                            maxConnections: -1
+                        }));
+                    }
                 }
-            }
-        };
-        $scope.expandableEx = '' + '<div class="expandable closed">\n' + '   <div title="The title" class="title">\n' + '     <i class="expandable-indicator"></i> Expandable title\n' + '   </div>\n' + '   <div class="expandable-body well">\n' + '     This is the expandable content...  Note that adding the "well" class isn\'t necessary but makes for a nice inset look\n' + '   </div>\n' + '</div>';
-        $scope.editablePropertyEx1 = '<editable-property ng-model="editablePropertyModelEx1" property="property"></editable-property>';
-        $scope.editablePropertyModelEx1 = {
-            property: "This is editable (hover to edit)"
-        };
-        $scope.showDeleteOne = new UI.Dialog();
-        $scope.showDeleteTwo = new UI.Dialog();
-        $scope.fileUploadEx1 = '<div hawtio-file-upload="files" target="test1"></div>';
-        $scope.fileUploadEx2 = '<div hawtio-file-upload="files" target="test2" show-files="false"></div>';
-        $scope.fileUploadExMode = 'text/html';
-        $scope.colorPickerEx = 'My Color ({{myColor}}): <div hawtio-color-picker="myColor"></div>';
-        $scope.confirmationEx1 = '' + '<button class="btn" ng-click="showDeleteOne.open()">Delete stuff</button>\n' + '\n' + '<div hawtio-confirm-dialog="showDeleteOne.show"\n' + 'title="Delete stuff?"\n' + 'ok-button-text="Yes, Delete the Stuff"\n' + 'cancel-button-text="No, Keep the Stuff"\n' + 'on-cancel="onCancelled(\'One\')"\n' + 'on-ok="onOk(\'One\')">\n' + '  <div class="dialog-body">\n' + '    <p>\n' + '        Are you sure you want to delete all the stuff?\n' + '    </p>\n' + '  </div>\n' + '</div>\n';
-        $scope.confirmationEx2 = '' + '<button class="btn" ng-click="showDeleteTwo.open()">Delete other stuff</button>\n' + '\n' + '<!-- Use more defaults -->\n' + '<div hawtio-confirm-dialog="showDeleteTwo.show\n"' + '  on-cancel="onCancelled(\'Two\')"\n' + '  on-ok="onOk(\'Two\')">\n' + '  <div class="dialog-body">\n' + '    <p>\n' + '      Are you sure you want to delete all the other stuff?\n' + '    </p>\n' + '  </div>\n' + '</div>';
-        $scope.sliderEx1 = '' + '<button class="btn" ng-click="showSlideoutRight = !showSlideoutRight">Show slideout right</button>\n' + '<div hawtio-slideout="showSlideoutRight" title="Hey look a slider!">\n' + '   <div class="dialog-body">\n' + '     <div>\n' + '       Here is some content or whatever {{transcludedValue}}\n' + '     </div>\n' + '   </div>\n' + '</div>';
-        $scope.sliderEx2 = '' + '<button class="btn" ng-click="showSlideoutLeft = !showSlideoutLeft">Show slideout left</button>\n' + '<div hawtio-slideout="showSlideoutLeft" direction="left" title="Hey, another slider!">\n' + '   <div class="dialog-body">\n' + '     <div hawtio-editor="someText" mode="javascript"></div>\n' + '   </div>\n' + '</div>\n';
-        $scope.editorEx1 = '' + 'Instance 1\n' + '<div class="row-fluid">\n' + '   <div hawtio-editor="someText" mode="mode" dirty="dirty"></div>\n' + '   <div>Text : {{someText}}</div>\n' + '</div>\n' + '\n' + 'Instance 2 (readonly)\n' + '<div class="row-fluid">\n' + '   <div hawtio-editor="someText" read-only="true" mode="mode" dirty="dirty"></div>\n' + '   <div>Text : {{someText}}</div>\n' + '</div>';
-        $scope.transcludedValue = "and this is transcluded";
-        $scope.onCancelled = function (number) {
-            Core.notification('info', 'cancelled ' + number);
-        };
-        $scope.onOk = function (number) {
-            Core.notification('info', number + ' ok!');
-        };
-        $scope.showSlideoutRight = false;
-        $scope.showSlideoutLeft = false;
-        $scope.dirty = false;
-        $scope.mode = 'javascript';
-        $scope.someText = "var someValue = 0;\n" + "var someFunc = function() {\n" + "  return \"Hello World!\";\n" + "}\n";
-        $scope.myColor = "#FF887C";
-        $scope.showColorDialog = false;
-        $scope.files = [];
-        $scope.$watch('files', function (newValue, oldValue) {
-            if (newValue !== oldValue) {
-                console.log("Files: ", $scope.files);
-            }
-        }, true);
-    }]);
+            };
+            $scope.expandableEx = '' +
+                '<div class="expandable closed">\n' +
+                '   <div title="The title" class="title">\n' +
+                '     <i class="expandable-indicator"></i> Expandable title\n' +
+                '   </div>\n' +
+                '   <div class="expandable-body well">\n' +
+                '     This is the expandable content...  Note that adding the "well" class isn\'t necessary but makes for a nice inset look\n' +
+                '   </div>\n' +
+                '</div>';
+            $scope.editablePropertyEx1 = '<editable-property ng-model="editablePropertyModelEx1" property="property"></editable-property>';
+            $scope.editablePropertyModelEx1 = {
+                property: "This is editable (hover to edit)"
+            };
+            $scope.showDeleteOne = new UI.Dialog();
+            $scope.showDeleteTwo = new UI.Dialog();
+            $scope.fileUploadEx1 = '<div hawtio-file-upload="files" target="test1"></div>';
+            $scope.fileUploadEx2 = '<div hawtio-file-upload="files" target="test2" show-files="false"></div>';
+            $scope.fileUploadExMode = 'text/html';
+            $scope.colorPickerEx = 'My Color ({{myColor}}): <div hawtio-color-picker="myColor"></div>';
+            $scope.confirmationEx1 = '' +
+                '<button class="btn" ng-click="showDeleteOne.open()">Delete stuff</button>\n' +
+                '\n' +
+                '<div hawtio-confirm-dialog="showDeleteOne.show"\n' +
+                'title="Delete stuff?"\n' +
+                'ok-button-text="Yes, Delete the Stuff"\n' +
+                'cancel-button-text="No, Keep the Stuff"\n' +
+                'on-cancel="onCancelled(\'One\')"\n' +
+                'on-ok="onOk(\'One\')">\n' +
+                '  <div class="dialog-body">\n' +
+                '    <p>\n' +
+                '        Are you sure you want to delete all the stuff?\n' +
+                '    </p>\n' +
+                '  </div>\n' +
+                '</div>\n';
+            $scope.confirmationEx2 = '' +
+                '<button class="btn" ng-click="showDeleteTwo.open()">Delete other stuff</button>\n' +
+                '\n' +
+                '<!-- Use more defaults -->\n' +
+                '<div hawtio-confirm-dialog="showDeleteTwo.show\n"' +
+                '  on-cancel="onCancelled(\'Two\')"\n' +
+                '  on-ok="onOk(\'Two\')">\n' +
+                '  <div class="dialog-body">\n' +
+                '    <p>\n' +
+                '      Are you sure you want to delete all the other stuff?\n' +
+                '    </p>\n' +
+                '  </div>\n' +
+                '</div>';
+            $scope.sliderEx1 = '' +
+                '<button class="btn" ng-click="showSlideoutRight = !showSlideoutRight">Show slideout right</button>\n' +
+                '<div hawtio-slideout="showSlideoutRight" title="Hey look a slider!">\n' +
+                '   <div class="dialog-body">\n' +
+                '     <div>\n' +
+                '       Here is some content or whatever {{transcludedValue}}\n' +
+                '     </div>\n' +
+                '   </div>\n' +
+                '</div>';
+            $scope.sliderEx2 = '' +
+                '<button class="btn" ng-click="showSlideoutLeft = !showSlideoutLeft">Show slideout left</button>\n' +
+                '<div hawtio-slideout="showSlideoutLeft" direction="left" title="Hey, another slider!">\n' +
+                '   <div class="dialog-body">\n' +
+                '     <div hawtio-editor="someText" mode="javascript"></div>\n' +
+                '   </div>\n' +
+                '</div>\n';
+            $scope.sliderEx3 = '' +
+                '<button class="btn" ng-click="showSlideoutRight = !showSlideoutRight">Show slideout right no close button</button>\n' +
+                '<div hawtio-slideout="showSlideoutRight" close="false" title="Hey look a slider with no close button!">\n' +
+                '   <div class="dialog-body">\n' +
+                '     <div>\n' +
+                '       Here is some content or whatever {{transcludedValue}}\n' +
+                '     </div>\n' +
+                '   </div>\n' +
+                '</div>';
+            $scope.editorEx1 = '' +
+                'Instance 1\n' +
+                '<div class="row-fluid">\n' +
+                '   <div hawtio-editor="someText" mode="mode" dirty="dirty"></div>\n' +
+                '   <div>Text : {{someText}}</div>\n' +
+                '</div>\n' +
+                '\n' +
+                'Instance 2 (readonly)\n' +
+                '<div class="row-fluid">\n' +
+                '   <div hawtio-editor="someText" read-only="true" mode="mode" dirty="dirty"></div>\n' +
+                '   <div>Text : {{someText}}</div>\n' +
+                '</div>';
+            $scope.transcludedValue = "and this is transcluded";
+            $scope.onCancelled = function (number) {
+                Core.notification('info', 'cancelled ' + number);
+            };
+            $scope.onOk = function (number) {
+                Core.notification('info', number + ' ok!');
+            };
+            $scope.showSlideoutRight = false;
+            $scope.showSlideoutLeft = false;
+            $scope.dirty = false;
+            $scope.mode = 'javascript';
+            $scope.someText = "var someValue = 0;\n" +
+                "var someFunc = function() {\n" +
+                "  return \"Hello World!\";\n" +
+                "}\n";
+            $scope.myColor = "#FF887C";
+            $scope.showColorDialog = false;
+            $scope.files = [];
+            $scope.$watch('files', function (newValue, oldValue) {
+                if (newValue !== oldValue) {
+                    console.log("Files: ", $scope.files);
+                }
+            }, true);
+        }]);
 })(UITest || (UITest = {}));
 
 angular.module("hawtio-ui-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/datatable/html/test.html","<div ng-controller=\"DatatableTest.SimpleTableTestController\">\n  <div class=\"row\">\n    <div class=\"section-header\">\n\n      <div class=\"section-filter\">\n        <input type=\"text\" class=\"search-query\" placeholder=\"Filter...\" ng-model=\"mygrid.filterOptions.filterText\">\n        <i class=\"fa fa-remove clickable\" title=\"Clear filter\" ng-click=\"mygrid.filterOptions.filterText = \'\'\"></i>\n      </div>\n\n    </div>\n  </div>\n\n  <h3>hawtio-simple-table example</h3>\n\n  <table class=\"table table-striped\" hawtio-simple-table=\"mygrid\"></table>\n\n  <div class=\"row\">\n    <p>Selected folks:</p>\n    <ul>\n      <li ng-repeat=\"person in mygrid.selectedItems\">{{person.name}}</li>\n    </ul>\n\n    <p>\n       <a class=\"btn\" href=\"\" ng-click=\"mygrid.multiSelect = !mygrid.multiSelect\">multi select is: {{mygrid.multiSelect}}</a>\n    </p>\n  </div>\n</div>\n");
@@ -357,7 +470,7 @@ $templateCache.put("test-plugins/ui/html/file-upload.html","<div ng-controller=\
 $templateCache.put("test-plugins/ui/html/icon.html","<div ng-controller=\"UI.IconTestController\">\n\n  <script type=\"text/ng-template\" id=\"example-html\">\n\n<style>\n\n/* Define icon sizes in CSS\n   use the \'class\' attribute\n   to handle icons that are\n   wider than they are tall */\n.fa fa-example i:before,\n.fa fa-example img {\n  vertical-align: middle;\n  line-height: 32px;\n  font-size: 32px;\n  height: 32px;\n  width: auto;\n}\n\n.fa fa-example img.girthy {\n  height: auto;\n  width: 32px;\n}\n</style>\n\n<!-- Here we turn an array of\n     simple objects into icons! -->\n<ul class=\"fa fa-example list-inline\">\n  <li ng-repeat=\"icon in icons\">\n    <hawtio-icon config=\"icon\"></hawtio-icon>\n  </li>\n</ul>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"example-config-json\">\n[{\n  \"title\": \"Awesome!\",\n  \"src\": \"fa fa-thumbs-up\"\n},\n{\n  \"title\": \"Apache Karaf\",\n  \"type\": \"icon\",\n  \"src\": \"fa fa-beaker\"\n},\n{\n  \"title\": \"Fabric8\",\n  \"type\": \"img\",\n  \"src\": \"img/icons/fabric8_icon.svg\"\n},\n{\n  \"title\": \"Apache Cassandra\",\n  \"src\": \"img/icons/cassandra.svg\",\n  \"class\": \"girthy\"\n}]\n  </script>\n\n\n  <div class=\"row\">\n    <h3>Icons</h3>\n    <p>A simple wrapper to handle arbitrarily using FontAwesome icons or images via a simple configuration</p>\n    <h5>HTML</h5>\n    <p>The icon sizes are specified in CSS, we can also pass a \'class\' field to the icon as well to handle icons that are wider than they are tall for certain layouts</p>\n    <div hawtio-editor=\"exampleHtml\" mode=\"html\"></div>\n    <h5>JSON</h5>\n    <p>Here we define the configuration for our icons, in this case we\'re just creating a simple array of icon definitions to show in a list</p>\n    <div hawtio-editor=\"exampleConfigJson\" mode=\"javascript\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"exampleHtml\"></div>\n    </div>\n  </div>\n\n\n</div>\n");
 $templateCache.put("test-plugins/ui/html/jsplumb.html","<div ng-controller=\"UI.UITestController1\">\n\n  <div>\n\n    <div class=\"row\">\n      <h3>JSPlumb</h3>\n      <p>Use to create an instance of JSPlumb</p>\n      <script type=\"text/ng-template\" id=\"jsplumbTemplate\">\n<div>\n  <div class=\"ex-node-container\" hawtio-jsplumb>\n    <!-- Nodes just need to have an ID and the jsplumb-node class -->\n    <div ng-repeat=\"node in nodes\"\n         id=\"{{node}}\"\n         anchors=\"AutoDefault\"\n         class=\"jsplumb-node ex-node\">\n      <i class=\"fa fa-plus clickable\" ng-click=\"createEndpoint(node)\"></i> Node: {{node}}\n    </div>\n    <!-- You can specify a connect-to attribute and a comma separated list of IDs to connect nodes -->\n    <div id=\"node3\"\n         class=\"jsplumb-node ex-node\"\n         anchors=\"Left,Right\"\n         connect-to=\"node1,node2\">\n      <i class=\"fa fa-plus clickable\" ng-click=\"createEndpoint(\'node3\')\"></i> Node 3\n    </div>\n    <!-- Expressions and stuff will work too -->\n    <div ng-repeat=\"node in otherNodes\"\n         id=\"{{node}}\"\n         class=\"jsplumb-node ex-node\"\n         anchors=\"Continuous\"\n         connect-to=\"{{otherNodes[$index - 1]}}\"><i class=\"fa fa-plus clickable\" ng-click=\"createEndpoint(node)\"></i> Node: {{node}}</div>\n  </div>\n\n</div>\n      </script>\n      <div hawtio-editor=\"jsplumbEx\" mode=\"fileUploadExMode\"></div>\n\n      <div class=\"directive-example\">\n        <div compile=\"jsplumbEx\"></div>\n      </div>\n    </div>\n</div>\n");
 $templateCache.put("test-plugins/ui/html/pager.html","<div ng-controller=\"UI.UITestController1\">\n\n  <div>\n    <div class=\"row\">\n      <h3>Pager</h3>\n      <hr>\n    </div>\n  </div>\n\n</div>\n");
-$templateCache.put("test-plugins/ui/html/slideout.html","<div ng-controller=\"UI.UITestController1\">\n\n  <div class=\"row\">\n    <h3>Slideout</h3>\n    <p>Displays a panel that slides out from either the left or right and immediately disappears when closed</p>\n\n    <div hawtio-editor=\"sliderEx1\" mode=\"fileUploadExMode\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"sliderEx1\"></div>\n    </div>\n\n    <div hawtio-editor=\"sliderEx2\" mode=\"fileUploadExMode\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"sliderEx2\"></div>\n    </div>\n    <hr>\n  </div>\n\n</div>\n");
+$templateCache.put("test-plugins/ui/html/slideout.html","<div ng-controller=\"UI.UITestController1\">\n\n  <div class=\"row\">\n    <h3>Slideout</h3>\n    <p>Displays a panel that slides out from either the left or right and immediately disappears when closed</p>\n\n    <div hawtio-editor=\"sliderEx1\" mode=\"fileUploadExMode\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"sliderEx1\"></div>\n    </div>\n\n    <div hawtio-editor=\"sliderEx2\" mode=\"fileUploadExMode\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"sliderEx2\"></div>\n    </div>\n\n    <div hawtio-editor=\"sliderEx3\" mode=\"fileUploadExMode\"></div>\n    <div class=\"directive-example\">\n      <div compile=\"sliderEx3\"></div>\n    </div>\n\n    <hr>\n  </div>\n\n</div>\n");
 $templateCache.put("test-plugins/ui/html/tags.html","<div class=\"row\">\n  <div class=\"col-md-12\">\n    <h2>Tags</h2>\n  </div>\n</div>\n<div class=\"row\" ng-controller=\"UITest.TagsController\">\n  <div class=\"col-md-4\">\n    <p>Directives that can be helpful for providing the user a way to narrow down the number of items in a list.  Tags are handled via 2 directives and a filter.  The hawtioTagList directive will will display a list of tags for an item, and provide click handlers to update a list of selected tabs.  The hawtioTagFilter directive builds an available list of tags, and manages the list of selected tags, providing the user a way of managing which tags are selectedTags.  Finally the selectedTags filter is used to hide list elements.</p>\n    <h5>Example Markup</h5>\n    <script type=\"text/ng-template\" id=\"tag-ex-template.html\">\n      <div class=\"row\">\n        <div class=\"col-md-6\">\n          <ul>\n            <li ng-repeat=\"item in data | selectedTags:\'tags\':selected\">\n              {{item.id}}\n              <hawtio-tag-list tags=\"item.tags\" selected=\"selected\"></hawtio-tag-list>\n            </li>\n          </ul>\n        </div>\n        <div class=\"col-md-6\">\n          <hawtio-tag-filter tags=\"tags\"\n                             selected=\"selected\"\n                             collection=\"data\"\n                             collection-property=\"tags\"></hawtio-tag-filter>\n         </div>\n      </div>\n    </script>\n    <div hawtio-editor=\"template\" mode=\"html\"></div>\n  </div>\n  <div class=\"col-md-4\">\n    <div class=\"row\">\n      <h5>Example Data</h5>\n      <div hawtio-editor=\"toJson(data, true)\" read-only=\"true\" mode=\"javascript\"></div>\n    </div>\n  </div>\n  <div class=\"col-md-4\">\n    <p>Click on any of the tags below to limit the visible items in the list</p>\n    <div class=\"directive-example\">\n      <div compile=\"template\"></div>\n    </div>\n  </div>\n</div>\n");
 $templateCache.put("test-plugins/ui/html/template-popover.html","<div ng-controller=\"UI.UITestController2\">\n\n  <div>\n    <div class=\"row\">\n      <h3>Template Popover</h3>\n      <p>Uses bootstrap popover but lets you supply an angular template to render as the popover body.  For example here\'s a simple template for the popover body:</p>\n      <script type=\"text/ng-template\" id=\"myTemplate\">\n<table>\n  <tbody>\n    <tr ng-repeat=\"(k, v) in stuff track by $index\">\n      <td>{{k}}</td>\n      <td>{{v}}</td>\n    </tr>\n  </tbody>\n</table>\n      </script>\n      <div hawtio-editor=\"popoverEx\" mode=\"fileUploadExMode\"></div>\n\n      <p>\n      You can then supply this template as an argument to hawtioTemplatePopover.  By default it will look for a template in $templateCache called \"popoverTemplate\", or specify a templte for the \"content\" argument.  You can specify \"placement\" if you want the popover to appear on a certain side, or \"auto\" and the directive will calculate an appropriate side (\"right\" or \"left\") depending on where the element is in the window.\n      </p>\n\n      <script type=\"text/ng-template\" id=\"popoverExTemplate\">\n<ul>\n  <li ng-repeat=\"stuff in things\" hawtio-template-popover content=\"myTemplate\">{{stuff.name}}</li>\n</ul>\n      </script>\n      <div hawtio-editor=\"popoverUsageEx\" mode=\"fileUploadExMode\"></div>\n      <div class=\"directive-example\">\n        <div compile=\"popoverUsageEx\"></div>\n      </div>\n    </div>\n\n  </div>\n</div>\n");
 $templateCache.put("test-plugins/ui/html/zero-clipboard.html","<div ng-controller=\"UI.UITestController2\">\n\n  <div>\n    <div class=\"row\">\n      <h3>Zero Clipboard</h3>\n      <p>Directive that attaches a zero clipboard instance to an element so a user can click on a button to copy some text to the clipboard</p>\n      <p>Best way to use this is next to a readonly input that displays the same data to be copied, that way folks that have Flash disabled can still copy the text.</p>\n      <script type=\"text/ng-template\" id=\"zeroClipboardTemplate\">\n        <input type=\"text\" class=\"no-bottom-margin\" readonly value=\"Some Text!\">\n        <button class=\"btn\" zero-clipboard data-clipboard-text=\"Some Text!\" title=\"Click to copy!\">\n          <i class=\"fa fa-copy\"></i>\n        </button>\n      </script>\n      <div hawtio-editor=\"zeroClipboard\" mode=\"fileUploadExMode\"></div>\n      <div class=\"directive-example\">\n        <div compile=\"zeroClipboard\"></div>\n      </div>\n    </div>\n\n\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-ui-test-templates");

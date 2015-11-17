@@ -140,13 +140,17 @@ var HawtioMainNav;
       this.items.forEach(iterator);
     };
     RegistryImpl.prototype.selected = function() {
-      var answer = _.find(this.items, function(item) {
-        var answer = false;
-        if (!item.isSelected) {
-          return answer;
+      var valid = _.filter(this.items, function(item) {
+        if (!item.isValid) {
+          return true;
         }
-        var answer = item.isSelected();
-        return answer;
+        return item.isValid()
+      });
+      var answer = _.find(valid, function(item) {
+        if (!item.isSelected) {
+          return false;
+        }
+        return item.isSelected();
       });
       return answer;
     };

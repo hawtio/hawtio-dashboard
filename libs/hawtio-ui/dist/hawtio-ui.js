@@ -2,6 +2,302 @@
 
 /// <reference path="../../includes.ts"/>
 /**
+ * @module DataTable
+ * @main DataTable
+ */
+var DataTable;
+(function (DataTable) {
+    DataTable.pluginName = 'datatable';
+    DataTable.log = Logger.get("DataTable");
+    DataTable._module = angular.module(DataTable.pluginName, []);
+    hawtioPluginLoader.addModule(DataTable.pluginName);
+})(DataTable || (DataTable = {}));
+
+/// <reference path="datatablePlugin.ts"/>
+/**
+ * @module DataTable
+ */
+var DataTable;
+(function (DataTable) {
+    DataTable._module.directive('hawtioSimpleTable', ["$compile", function ($compile) {
+            return {
+                restrict: 'A',
+                scope: {
+                    config: '=hawtioSimpleTable'
+                },
+                link: function ($scope, $element, $attrs) {
+                    var defaultPrimaryKeyFn = function (entity, idx) {
+                        // default function to use id/_id/name as primary key, and fallback to use index
+                        return entity["id"] || entity["_id"] || entity["name"] || idx;
+                    };
+                    var config = $scope.config;
+                    var dataName = config.data || "data";
+                    // need to remember which rows has been selected as the config.data / config.selectedItems
+                    // so we can re-select them when data is changed/updated, and entity may be new instances
+                    // so we need a primary key function to generate a 'primary key' of the entity
+                    var primaryKeyFn = config.primaryKeyFn || defaultPrimaryKeyFn;
+                    $scope.rows = [];
+                    var scope = $scope.$parent || $scope;
+                    var listener = function () {
+                        var value = Core.pathGet(scope, dataName);
+                        if (value && !angular.isArray(value)) {
+                            value = [value];
+                            Core.pathSet(scope, dataName, value);
+                        }
+                        if (!('sortInfo' in config) && 'columnDefs' in config) {
+                            // an optional defaultSort can be used to indicate a column
+                            // should not automatic be the default sort
+                            var ds = config.columnDefs.first()['defaultSort'];
+                            var sortField;
+                            if (angular.isUndefined(ds) || ds === true) {
+                                sortField = config.columnDefs.first()['field'];
+                            }
+                            else {
+                                sortField = config.columnDefs.slice(1).first()['field'];
+                            }
+                            config['sortInfo'] = {
+                                sortBy: sortField,
+                                ascending: true
+                            };
+                        }
+                        // any custom sort function on the field?
+                        var customSort = config.columnDefs.find(function (e) {
+                            if (e['field'] === config['sortInfo'].sortBy) {
+                                return e;
+                            }
+                        });
+                        // the columnDefs may have a custom sort function in the key named customSortField
+                        if (angular.isDefined(customSort)) {
+                            customSort = customSort['customSortField'];
+                        }
+                        var sortInfo = $scope.config.sortInfo || { sortBy: '', ascending: true };
+                        // enrich the rows with information about their index
+                        var idx = -1;
+                        var rows = (value || []).sortBy(customSort || sortInfo.sortBy, !sortInfo.ascending).map(function (entity) {
+                            idx++;
+                            return {
+                                entity: entity,
+                                index: idx,
+                                getProperty: function (name) {
+                                    return entity[name];
+                                }
+                            };
+                        });
+                        // okay the data was changed/updated so we need to re-select previously selected items
+                        // and for that we need to evaluate the primary key function so we can match new data with old data.
+                        var reSelectedItems = [];
+                        rows.forEach(function (row, idx) {
+                            var rpk = primaryKeyFn(row.entity, row.index);
+                            var selected = config.selectedItems.some(function (s) {
+                                var spk = primaryKeyFn(s, s.index);
+                                return angular.equals(rpk, spk);
+                            });
+                            if (selected) {
+                                // need to enrich entity with index, as we push row.entity to the re-selected items
+                                row.entity.index = row.index;
+                                reSelectedItems.push(row.entity);
+                                DataTable.log.debug("Data changed so keep selecting row at index " + row.index);
+                            }
+                        });
+                        config.selectedItems = reSelectedItems;
+                        Core.pathSet(scope, ['hawtioSimpleTable', dataName, 'rows'], rows);
+                        $scope.rows = rows;
+                    };
+                    scope.$watchCollection(dataName, listener);
+                    // lets add a separate event so we can force updates
+                    // if we find cases where the delta logic doesn't work
+                    // (such as for nested hawtioinput-input-table)
+                    scope.$on("hawtio.datatable." + dataName, listener);
+                    function getSelectionArray() {
+                        var selectionArray = config.selectedItems;
+                        if (!selectionArray) {
+                            selectionArray = [];
+                            config.selectedItems = selectionArray;
+                        }
+                        if (angular.isString(selectionArray)) {
+                            var name = selectionArray;
+                            selectionArray = Core.pathGet(scope, name);
+                            if (!selectionArray) {
+                                selectionArray = [];
+                                scope[name] = selectionArray;
+                            }
+                        }
+                        return selectionArray;
+                    }
+                    function isMultiSelect() {
+                        var multiSelect = $scope.config.multiSelect;
+                        if (angular.isUndefined(multiSelect)) {
+                            multiSelect = true;
+                        }
+                        return multiSelect;
+                    }
+                    $scope.toggleAllSelections = function () {
+                        var allRowsSelected = $scope.config.allRowsSelected;
+                        var newFlag = allRowsSelected;
+                        var selectionArray = getSelectionArray();
+                        selectionArray.splice(0, selectionArray.length);
+                        angular.forEach($scope.rows, function (row) {
+                            row.selected = newFlag;
+                            if (allRowsSelected) {
+                                selectionArray.push(row.entity);
+                            }
+                        });
+                    };
+                    $scope.toggleRowSelection = function (row) {
+                        if (row) {
+                            var selectionArray = getSelectionArray();
+                            if (!isMultiSelect()) {
+                                // lets clear all other selections
+                                selectionArray.splice(0, selectionArray.length);
+                                angular.forEach($scope.rows, function (r) {
+                                    if (r !== row) {
+                                        r.selected = false;
+                                    }
+                                });
+                            }
+                            var entity = row.entity;
+                            if (entity) {
+                                var idx = selectionArray.indexOf(entity);
+                                if (row.selected) {
+                                    if (idx < 0) {
+                                        selectionArray.push(entity);
+                                    }
+                                }
+                                else {
+                                    // clear the all selected checkbox
+                                    $scope.config.allRowsSelected = false;
+                                    if (idx >= 0) {
+                                        selectionArray.splice(idx, 1);
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    $scope.sortBy = function (field) {
+                        if ($scope.config.sortInfo.sortBy === field) {
+                            $scope.config.sortInfo.ascending = !$scope.config.sortInfo.ascending;
+                        }
+                        else {
+                            $scope.config.sortInfo.sortBy = field;
+                            $scope.config.sortInfo.ascending = true;
+                        }
+                        scope.$broadcast("hawtio.datatable." + dataName);
+                    };
+                    $scope.getClass = function (field) {
+                        if ('sortInfo' in $scope.config) {
+                            if ($scope.config.sortInfo.sortBy === field) {
+                                if ($scope.config.sortInfo.ascending) {
+                                    return 'asc';
+                                }
+                                else {
+                                    return 'desc';
+                                }
+                            }
+                        }
+                        return '';
+                    };
+                    $scope.showRow = function (row) {
+                        var filter = Core.pathGet($scope, ['config', 'filterOptions', 'filterText']);
+                        if (Core.isBlank(filter)) {
+                            return true;
+                        }
+                        var data = null;
+                        // it may be a node selection (eg JMX plugin with Folder tree structure) then use the title
+                        try {
+                            data = row['entity']['title'];
+                        }
+                        catch (e) {
+                        }
+                        if (!data) {
+                            // use the row as-is
+                            data = row.entity;
+                        }
+                        var match = FilterHelpers.search(data, filter);
+                        return match;
+                    };
+                    $scope.isSelected = function (row) {
+                        return config.selectedItems.some(row.entity);
+                    };
+                    $scope.onRowSelected = function (row) {
+                        var idx = config.selectedItems.indexOf(row.entity);
+                        if (idx >= 0) {
+                            DataTable.log.debug("De-selecting row at index " + row.index);
+                            config.selectedItems.splice(idx, 1);
+                        }
+                        else {
+                            if (!config.multiSelect) {
+                                config.selectedItems.length = 0;
+                            }
+                            DataTable.log.debug("Selecting row at index " + row.index);
+                            // need to enrich entity with index, as we push row.entity to the selected items
+                            row.entity.index = row.index;
+                            config.selectedItems.push(row.entity);
+                        }
+                    };
+                    $scope.$watchCollection('rows', function () {
+                        // lets add the header and row cells
+                        var rootElement = $element;
+                        rootElement.empty();
+                        var showCheckBox = firstValueDefined(config, ["showSelectionCheckbox", "displaySelectionCheckbox"], true);
+                        var enableRowClickSelection = firstValueDefined(config, ["enableRowClickSelection"], false);
+                        var onMouseDown;
+                        if (enableRowClickSelection) {
+                            onMouseDown = "ng-mousedown='onRowSelected(row)' ";
+                        }
+                        else {
+                            onMouseDown = "";
+                        }
+                        var headHtml = "<thead><tr>";
+                        // use a function to check if a row is selected so the UI can be kept up to date asap
+                        var bodyHtml = "<tbody><tr ng-repeat='row in rows track by $index' ng-show='showRow(row)' " + onMouseDown + "ng-class=\"{'selected': isSelected(row)}\" >";
+                        var idx = 0;
+                        if (showCheckBox) {
+                            var toggleAllHtml = isMultiSelect() ?
+                                "<input type='checkbox' ng-show='rows.length' ng-model='config.allRowsSelected' ng-change='toggleAllSelections()'>" : "";
+                            headHtml += "\n<th class='simple-table-checkbox'>" +
+                                toggleAllHtml +
+                                "</th>";
+                            bodyHtml += "\n<td class='simple-table-checkbox'><input type='checkbox' ng-model='row.selected' ng-change='toggleRowSelection(row)'></td>";
+                        }
+                        angular.forEach(config.columnDefs, function (colDef) {
+                            var field = colDef.field;
+                            var cellTemplate = colDef.cellTemplate || '<div class="ngCellText" title="{{row.entity.' + field + '}}">{{row.entity.' + field + '}}</div>';
+                            headHtml += "\n<th class='clickable no-fade table-header' ng-click=\"sortBy('" + field + "')\" ng-class=\"getClass('" + field + "')\">{{config.columnDefs[" + idx + "].displayName}}<span class='indicator'></span></th>";
+                            bodyHtml += "\n<td>" + cellTemplate + "</td>";
+                            idx += 1;
+                        });
+                        var html = headHtml + "\n</tr></thead>\n" +
+                            bodyHtml + "\n</tr></tbody>";
+                        var newContent = $compile(html)($scope);
+                        rootElement.html(newContent);
+                    });
+                }
+            };
+        }]);
+    /**
+     * Returns the first property value defined in the given object or the default value if none are defined
+     *
+     * @param object the object to look for properties
+     * @param names the array of property names to look for
+     * @param defaultValue the value if no property values are defined
+     * @return {*} the first defined property value or the defaultValue if none are defined
+     */
+    function firstValueDefined(object, names, defaultValue) {
+        var answer = defaultValue;
+        var found = false;
+        angular.forEach(names, function (name) {
+            var value = object[name];
+            if (!found && angular.isDefined(value)) {
+                answer = value;
+                found = true;
+            }
+        });
+        return answer;
+    }
+})(DataTable || (DataTable = {}));
+
+/// <reference path="../../includes.ts"/>
+/**
  * Module that contains several helper functions related to hawtio's code editor
  *
  * @module CodeEditor
@@ -163,8 +459,8 @@ var HawtioEditor;
 var HawtioEditor;
 (function (HawtioEditor) {
     HawtioEditor._module.directive('hawtioEditor', ["$parse", function ($parse) {
-        return HawtioEditor.Editor($parse);
-    }]);
+            return HawtioEditor.Editor($parse);
+        }]);
     function Editor($parse) {
         return {
             restrict: 'A',
@@ -177,47 +473,47 @@ var HawtioEditor;
                 name: '@'
             },
             controller: ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {
-                $scope.codeMirror = null;
-                $scope.doc = null;
-                $scope.options = [];
-                UI.observe($scope, $attrs, 'name', 'editor');
-                $scope.applyOptions = function () {
-                    if ($scope.codeMirror) {
-                        $scope.options.each(function (option) {
-                            $scope.codeMirror.setOption(option.key, option['value']);
-                        });
-                        $scope.options = [];
-                    }
-                };
-                $scope.$watch(_.debounce(function () {
-                    if ($scope.codeMirror) {
-                        $scope.codeMirror.refresh();
-                    }
-                }, 100, { trailing: true }));
-                $scope.$watch('codeMirror', function () {
-                    if ($scope.codeMirror) {
-                        $scope.doc = $scope.codeMirror.getDoc();
-                        $scope.codeMirror.on('change', function (changeObj) {
-                            $scope.text = $scope.doc.getValue();
-                            $scope.dirty = !$scope.doc.isClean();
-                            Core.$apply($scope);
-                        });
-                    }
-                });
-                $scope.$watch('text', function (oldValue, newValue) {
-                    if ($scope.codeMirror && $scope.doc) {
-                        if (!$scope.codeMirror.hasFocus()) {
-                            var text = $scope.text || "";
-                            if (angular.isArray(text) || angular.isObject(text)) {
-                                text = JSON.stringify(text, null, "  ");
-                                $scope.mode = "javascript";
-                                $scope.codeMirror.setOption("mode", "javascript");
-                            }
-                            $scope.doc.setValue(text);
+                    $scope.codeMirror = null;
+                    $scope.doc = null;
+                    $scope.options = [];
+                    UI.observe($scope, $attrs, 'name', 'editor');
+                    $scope.applyOptions = function () {
+                        if ($scope.codeMirror) {
+                            $scope.options.each(function (option) {
+                                $scope.codeMirror.setOption(option.key, option['value']);
+                            });
+                            $scope.options = [];
                         }
-                    }
-                });
-            }],
+                    };
+                    $scope.$watch(_.debounce(function () {
+                        if ($scope.codeMirror) {
+                            $scope.codeMirror.refresh();
+                        }
+                    }, 100, { trailing: true }));
+                    $scope.$watch('codeMirror', function () {
+                        if ($scope.codeMirror) {
+                            $scope.doc = $scope.codeMirror.getDoc();
+                            $scope.codeMirror.on('change', function (changeObj) {
+                                $scope.text = $scope.doc.getValue();
+                                $scope.dirty = !$scope.doc.isClean();
+                                Core.$apply($scope);
+                            });
+                        }
+                    });
+                    $scope.$watch('text', function (oldValue, newValue) {
+                        if ($scope.codeMirror && $scope.doc) {
+                            if (!$scope.codeMirror.hasFocus()) {
+                                var text = $scope.text || "";
+                                if (angular.isArray(text) || angular.isObject(text)) {
+                                    text = JSON.stringify(text, null, "  ");
+                                    $scope.mode = "javascript";
+                                    $scope.codeMirror.setOption("mode", "javascript");
+                                }
+                                $scope.doc.setValue(text);
+                            }
+                        }
+                    });
+                }],
             link: function ($scope, $element, $attrs) {
                 if ('dirty' in $attrs) {
                     $scope.dirtyTarget = $attrs['dirty'];
@@ -363,9 +659,7 @@ var ForceGraph;
                     });
                     // Only run this in IE
                     if (Object.hasOwnProperty.call(window, "ActiveXObject") || !window.ActiveXObject) {
-                        $scope.svg.selectAll(".link").each(function () {
-                            this.parentNode.insertBefore(this, this);
-                        });
+                        $scope.svg.selectAll(".link").each(function () { this.parentNode.insertBefore(this, this); });
                     }
                 };
                 $scope.mover = function (d) {
@@ -405,7 +699,9 @@ var ForceGraph;
                     canvas.children("svg").remove();
                     // First we create the top level SVG object
                     // TODO maybe pass in the width/height
-                    $scope.svg = d3.select(canvas[0]).append("svg").attr("width", w).attr("height", h);
+                    $scope.svg = d3.select(canvas[0]).append("svg")
+                        .attr("width", w)
+                        .attr("height", h);
                     // The we add the markers for the arrow tips
                     var linkTypes = null;
                     if ($scope.graph) {
@@ -414,17 +710,42 @@ var ForceGraph;
                     if (!linkTypes) {
                         return;
                     }
-                    $scope.svg.append("svg:defs").selectAll("marker").data(linkTypes).enter().append("svg:marker").attr("id", String).attr("viewBox", "0 -5 10 10").attr("refX", 15).attr("refY", -1.5).attr("markerWidth", 6).attr("markerHeight", 6).attr("orient", "auto").append("svg:path").attr("d", "M0,-5L10,0L0,5");
+                    $scope.svg.append("svg:defs").selectAll("marker")
+                        .data(linkTypes)
+                        .enter().append("svg:marker")
+                        .attr("id", String)
+                        .attr("viewBox", "0 -5 10 10")
+                        .attr("refX", 15)
+                        .attr("refY", -1.5)
+                        .attr("markerWidth", 6)
+                        .attr("markerHeight", 6)
+                        .attr("orient", "auto")
+                        .append("svg:path")
+                        .attr("d", "M0,-5L10,0L0,5");
                     // The bounding box can't be zoomed or scaled at all
-                    $scope.svg.append("svg:g").append("svg:rect").attr("class", "graphbox.frame").attr('width', w).attr('height', h);
-                    $scope.viewport = $scope.svg.append("svg:g").call(d3.behavior.zoom().on("zoom", $scope.redraw)).append("svg:g");
-                    $scope.viewport.append("svg:rect").attr("width", 1000000).attr("height", 1000000).attr("class", "graphbox").attr("transform", "translate(-50000, -500000)");
+                    $scope.svg.append("svg:g")
+                        .append("svg:rect")
+                        .attr("class", "graphbox.frame")
+                        .attr('width', w)
+                        .attr('height', h);
+                    $scope.viewport = $scope.svg.append("svg:g")
+                        .call(d3.behavior.zoom().on("zoom", $scope.redraw))
+                        .append("svg:g");
+                    $scope.viewport.append("svg:rect")
+                        .attr("width", 1000000)
+                        .attr("height", 1000000)
+                        .attr("class", "graphbox")
+                        .attr("transform", "translate(-50000, -500000)");
                     // Only do this if we have a graph object
                     if ($scope.graph) {
                         var ownerScope = $scope.$parent || $scope;
                         var selectedModel = $scope.selectedModel || "selectedNode";
                         // kick off the d3 forced graph layout
-                        $scope.force = d3.layout.force().nodes($scope.graph.nodes).links($scope.graph.links).size([w, h]).on("tick", $scope.tick);
+                        $scope.force = d3.layout.force()
+                            .nodes($scope.graph.nodes)
+                            .links($scope.graph.links)
+                            .size([w, h])
+                            .on("tick", $scope.tick);
                         if (angular.isDefined($scope.linkDistance)) {
                             $scope.force.linkDistance($scope.linkDistance);
                         }
@@ -433,21 +754,31 @@ var ForceGraph;
                         }
                         var markerTypeName = $scope.markerKind || "marker-end";
                         // Add all edges to the viewport
-                        $scope.graphEdges = $scope.viewport.append("svg:g").selectAll("path").data($scope.force.links()).enter().append("svg:path").attr("class", function (d) {
+                        $scope.graphEdges = $scope.viewport.append("svg:g").selectAll("path")
+                            .data($scope.force.links())
+                            .enter().append("svg:path")
+                            .attr("class", function (d) {
                             return "link " + d.type;
-                        }).attr(markerTypeName, function (d) {
+                        })
+                            .attr(markerTypeName, function (d) {
                             return "url(#" + d.type + ")";
                         });
                         // add all nodes to the viewport
-                        $scope.graphNodes = $scope.viewport.append("svg:g").selectAll("circle").data($scope.force.nodes()).enter().append("a").attr("xlink:href", function (d) {
+                        $scope.graphNodes = $scope.viewport.append("svg:g").selectAll("circle")
+                            .data($scope.force.nodes())
+                            .enter()
+                            .append("a")
+                            .attr("xlink:href", function (d) {
                             return d.navUrl;
-                        }).on("mouseover.onLink", function (d, i) {
+                        })
+                            .on("mouseover.onLink", function (d, i) {
                             var sel = d3.select(d3.event.target);
                             sel.classed('selected', true);
                             ownerScope[selectedModel] = d;
                             Core.pathSet(ownerScope, selectedModel, d);
                             Core.$apply(ownerScope);
-                        }).on("mouseout.onLink", function (d, i) {
+                        })
+                            .on("mouseout.onLink", function (d, i) {
                             var sel = d3.select(d3.event.target);
                             sel.classed('selected', false);
                         });
@@ -457,35 +788,56 @@ var ForceGraph;
                         // Add the images if they are set
                         $scope.graphNodes.filter(function (d) {
                             return d.image != null;
-                        }).append("image").attr("xlink:href", function (d) {
+                        })
+                            .append("image")
+                            .attr("xlink:href", function (d) {
                             return d.image.url;
-                        }).attr("x", function (d) {
+                        })
+                            .attr("x", function (d) {
                             return -(d.image.width / 2);
-                        }).attr("y", function (d) {
+                        })
+                            .attr("y", function (d) {
                             return -(d.image.height / 2);
-                        }).attr("width", function (d) {
+                        })
+                            .attr("width", function (d) {
                             return d.image.width;
-                        }).attr("height", function (d) {
+                        })
+                            .attr("height", function (d) {
                             return d.image.height;
                         });
                         // if we don't have an image add a circle
-                        $scope.graphNodes.filter(function (d) { return !hasImage(d); }).append("circle").attr("class", function (d) {
+                        $scope.graphNodes.filter(function (d) { return !hasImage(d); })
+                            .append("circle")
+                            .attr("class", function (d) {
                             return d.type;
-                        }).attr("r", function (d) {
+                        })
+                            .attr("r", function (d) {
                             return d.size || $scope.nodesize;
                         });
                         // Add the labels to the viewport
-                        $scope.graphLabels = $scope.viewport.append("svg:g").selectAll("g").data($scope.force.nodes()).enter().append("svg:g");
+                        $scope.graphLabels = $scope.viewport.append("svg:g").selectAll("g")
+                            .data($scope.force.nodes())
+                            .enter().append("svg:g");
                         // A copy of the text with a thick white stroke for legibility.
-                        $scope.graphLabels.append("svg:text").attr("x", 8).attr("y", ".31em").attr("class", "shadow").text(function (d) {
+                        $scope.graphLabels.append("svg:text")
+                            .attr("x", 8)
+                            .attr("y", ".31em")
+                            .attr("class", "shadow")
+                            .text(function (d) {
                             return d.name;
                         });
-                        $scope.graphLabels.append("svg:text").attr("x", 8).attr("y", ".31em").text(function (d) {
+                        $scope.graphLabels.append("svg:text")
+                            .attr("x", 8)
+                            .attr("y", ".31em")
+                            .text(function (d) {
                             return d.name;
                         });
                         // animate, then stop
                         $scope.force.start();
-                        $scope.graphNodes.call($scope.force.drag).on("mouseover", $scope.mover).on("mouseout", $scope.mout);
+                        $scope.graphNodes
+                            .call($scope.force.drag)
+                            .on("mouseover", $scope.mover)
+                            .on("mouseout", $scope.mout);
                     }
                 };
             };
@@ -587,7 +939,10 @@ var ForceGraph;
                 }
             });
             this.links.forEach(function (link) {
-                if (_this.nodes[link.source.id] != null && _this.nodes[link.target.id] != null && _this.nodes[link.source.id].includeInGraph && _this.nodes[link.target.id].includeInGraph) {
+                if (_this.nodes[link.source.id] != null
+                    && _this.nodes[link.target.id] != null
+                    && _this.nodes[link.source.id].includeInGraph
+                    && _this.nodes[link.target.id].includeInGraph) {
                     graphLinks.push({
                         source: _this.nodeIndex(link.source.id, graphNodes),
                         target: _this.nodeIndex(link.target.id, graphNodes),
@@ -605,287 +960,6 @@ var ForceGraph;
     })();
     ForceGraph.GraphBuilder = GraphBuilder;
 })(ForceGraph || (ForceGraph = {}));
-
-/// <reference path="../../includes.ts"/>
-/**
- * @module DataTable
- * @main DataTable
- */
-var DataTable;
-(function (DataTable) {
-    DataTable.pluginName = 'datatable';
-    DataTable.log = Logger.get("DataTable");
-    DataTable._module = angular.module(DataTable.pluginName, []);
-    hawtioPluginLoader.addModule(DataTable.pluginName);
-})(DataTable || (DataTable = {}));
-
-/// <reference path="datatablePlugin.ts"/>
-/**
- * @module DataTable
- */
-var DataTable;
-(function (DataTable) {
-    DataTable._module.directive('hawtioSimpleTable', ["$compile", function ($compile) {
-        return {
-            restrict: 'A',
-            scope: {
-                config: '=hawtioSimpleTable'
-            },
-            link: function ($scope, $element, $attrs) {
-                var defaultPrimaryKeyFn = function (entity, idx) {
-                    // default function to use id/_id/name as primary key, and fallback to use index
-                    return entity["id"] || entity["_id"] || entity["name"] || idx;
-                };
-                var config = $scope.config;
-                var dataName = config.data || "data";
-                // need to remember which rows has been selected as the config.data / config.selectedItems
-                // so we can re-select them when data is changed/updated, and entity may be new instances
-                // so we need a primary key function to generate a 'primary key' of the entity
-                var primaryKeyFn = config.primaryKeyFn || defaultPrimaryKeyFn;
-                $scope.rows = [];
-                var scope = $scope.$parent || $scope;
-                var listener = function () {
-                    var value = Core.pathGet(scope, dataName);
-                    if (value && !angular.isArray(value)) {
-                        value = [value];
-                        Core.pathSet(scope, dataName, value);
-                    }
-                    if (!('sortInfo' in config) && 'columnDefs' in config) {
-                        // an optional defaultSort can be used to indicate a column
-                        // should not automatic be the default sort
-                        var ds = config.columnDefs.first()['defaultSort'];
-                        var sortField;
-                        if (angular.isUndefined(ds) || ds === true) {
-                            sortField = config.columnDefs.first()['field'];
-                        }
-                        else {
-                            sortField = config.columnDefs.slice(1).first()['field'];
-                        }
-                        config['sortInfo'] = {
-                            sortBy: sortField,
-                            ascending: true
-                        };
-                    }
-                    var sortInfo = $scope.config.sortInfo || { sortBy: '', ascending: true };
-                    // enrich the rows with information about their index
-                    var idx = -1;
-                    var rows = (value || []).sortBy(sortInfo.sortBy, !sortInfo.ascending).map(function (entity) {
-                        idx++;
-                        return {
-                            entity: entity,
-                            index: idx,
-                            getProperty: function (name) {
-                                return entity[name];
-                            }
-                        };
-                    });
-                    // okay the data was changed/updated so we need to re-select previously selected items
-                    // and for that we need to evaluate the primary key function so we can match new data with old data.
-                    var reSelectedItems = [];
-                    rows.forEach(function (row, idx) {
-                        var rpk = primaryKeyFn(row.entity, row.index);
-                        var selected = config.selectedItems.some(function (s) {
-                            var spk = primaryKeyFn(s, s.index);
-                            return angular.equals(rpk, spk);
-                        });
-                        if (selected) {
-                            // need to enrich entity with index, as we push row.entity to the re-selected items
-                            row.entity.index = row.index;
-                            reSelectedItems.push(row.entity);
-                            DataTable.log.debug("Data changed so keep selecting row at index " + row.index);
-                        }
-                    });
-                    config.selectedItems = reSelectedItems;
-                    Core.pathSet(scope, ['hawtioSimpleTable', dataName, 'rows'], rows);
-                    $scope.rows = rows;
-                };
-                scope.$watchCollection(dataName, listener);
-                // lets add a separate event so we can force updates
-                // if we find cases where the delta logic doesn't work
-                // (such as for nested hawtioinput-input-table)
-                scope.$on("hawtio.datatable." + dataName, listener);
-                function getSelectionArray() {
-                    var selectionArray = config.selectedItems;
-                    if (!selectionArray) {
-                        selectionArray = [];
-                        config.selectedItems = selectionArray;
-                    }
-                    if (angular.isString(selectionArray)) {
-                        var name = selectionArray;
-                        selectionArray = Core.pathGet(scope, name);
-                        if (!selectionArray) {
-                            selectionArray = [];
-                            scope[name] = selectionArray;
-                        }
-                    }
-                    return selectionArray;
-                }
-                function isMultiSelect() {
-                    var multiSelect = $scope.config.multiSelect;
-                    if (angular.isUndefined(multiSelect)) {
-                        multiSelect = true;
-                    }
-                    return multiSelect;
-                }
-                $scope.toggleAllSelections = function () {
-                    var allRowsSelected = $scope.config.allRowsSelected;
-                    var newFlag = allRowsSelected;
-                    var selectionArray = getSelectionArray();
-                    selectionArray.splice(0, selectionArray.length);
-                    angular.forEach($scope.rows, function (row) {
-                        row.selected = newFlag;
-                        if (allRowsSelected) {
-                            selectionArray.push(row.entity);
-                        }
-                    });
-                };
-                $scope.toggleRowSelection = function (row) {
-                    if (row) {
-                        var selectionArray = getSelectionArray();
-                        if (!isMultiSelect()) {
-                            // lets clear all other selections
-                            selectionArray.splice(0, selectionArray.length);
-                            angular.forEach($scope.rows, function (r) {
-                                if (r !== row) {
-                                    r.selected = false;
-                                }
-                            });
-                        }
-                        var entity = row.entity;
-                        if (entity) {
-                            var idx = selectionArray.indexOf(entity);
-                            if (row.selected) {
-                                if (idx < 0) {
-                                    selectionArray.push(entity);
-                                }
-                            }
-                            else {
-                                // clear the all selected checkbox
-                                $scope.config.allRowsSelected = false;
-                                if (idx >= 0) {
-                                    selectionArray.splice(idx, 1);
-                                }
-                            }
-                        }
-                    }
-                };
-                $scope.sortBy = function (field) {
-                    if ($scope.config.sortInfo.sortBy === field) {
-                        $scope.config.sortInfo.ascending = !$scope.config.sortInfo.ascending;
-                    }
-                    else {
-                        $scope.config.sortInfo.sortBy = field;
-                        $scope.config.sortInfo.ascending = true;
-                    }
-                    scope.$broadcast("hawtio.datatable." + dataName);
-                };
-                $scope.getClass = function (field) {
-                    if ('sortInfo' in $scope.config) {
-                        if ($scope.config.sortInfo.sortBy === field) {
-                            if ($scope.config.sortInfo.ascending) {
-                                return 'asc';
-                            }
-                            else {
-                                return 'desc';
-                            }
-                        }
-                    }
-                    return '';
-                };
-                $scope.showRow = function (row) {
-                    var filter = Core.pathGet($scope, ['config', 'filterOptions', 'filterText']);
-                    if (Core.isBlank(filter)) {
-                        return true;
-                    }
-                    var data = null;
-                    try {
-                        data = row['entity']['title'];
-                    }
-                    catch (e) {
-                    }
-                    if (!data) {
-                        // use the row as-is
-                        data = row.entity;
-                    }
-                    var match = FilterHelpers.search(data, filter);
-                    return match;
-                };
-                $scope.isSelected = function (row) {
-                    return config.selectedItems.some(row.entity);
-                };
-                $scope.onRowSelected = function (row) {
-                    var idx = config.selectedItems.indexOf(row.entity);
-                    if (idx >= 0) {
-                        DataTable.log.debug("De-selecting row at index " + row.index);
-                        config.selectedItems.splice(idx, 1);
-                    }
-                    else {
-                        if (!config.multiSelect) {
-                            config.selectedItems.length = 0;
-                        }
-                        DataTable.log.debug("Selecting row at index " + row.index);
-                        // need to enrich entity with index, as we push row.entity to the selected items
-                        row.entity.index = row.index;
-                        config.selectedItems.push(row.entity);
-                    }
-                };
-                $scope.$watchCollection('rows', function () {
-                    // lets add the header and row cells
-                    var rootElement = $element;
-                    rootElement.empty();
-                    var showCheckBox = firstValueDefined(config, ["showSelectionCheckbox", "displaySelectionCheckbox"], true);
-                    var enableRowClickSelection = firstValueDefined(config, ["enableRowClickSelection"], false);
-                    var onMouseDown;
-                    if (enableRowClickSelection) {
-                        onMouseDown = "ng-mousedown='onRowSelected(row)' ";
-                    }
-                    else {
-                        onMouseDown = "";
-                    }
-                    var headHtml = "<thead><tr>";
-                    // use a function to check if a row is selected so the UI can be kept up to date asap
-                    var bodyHtml = "<tbody><tr ng-repeat='row in rows track by $index' ng-show='showRow(row)' " + onMouseDown + "ng-class=\"{'selected': isSelected(row)}\" >";
-                    var idx = 0;
-                    if (showCheckBox) {
-                        var toggleAllHtml = isMultiSelect() ? "<input type='checkbox' ng-show='rows.length' ng-model='config.allRowsSelected' ng-change='toggleAllSelections()'>" : "";
-                        headHtml += "\n<th class='simple-table-checkbox'>" + toggleAllHtml + "</th>";
-                        bodyHtml += "\n<td class='simple-table-checkbox'><input type='checkbox' ng-model='row.selected' ng-change='toggleRowSelection(row)'></td>";
-                    }
-                    angular.forEach(config.columnDefs, function (colDef) {
-                        var field = colDef.field;
-                        var cellTemplate = colDef.cellTemplate || '<div class="ngCellText" title="{{row.entity.' + field + '}}">{{row.entity.' + field + '}}</div>';
-                        headHtml += "\n<th class='clickable no-fade table-header' ng-click=\"sortBy('" + field + "')\" ng-class=\"getClass('" + field + "')\">{{config.columnDefs[" + idx + "].displayName}}<span class='indicator'></span></th>";
-                        bodyHtml += "\n<td>" + cellTemplate + "</td>";
-                        idx += 1;
-                    });
-                    var html = headHtml + "\n</tr></thead>\n" + bodyHtml + "\n</tr></tbody>";
-                    var newContent = $compile(html)($scope);
-                    rootElement.html(newContent);
-                });
-            }
-        };
-    }]);
-    /**
-     * Returns the first property value defined in the given object or the default value if none are defined
-     *
-     * @param object the object to look for properties
-     * @param names the array of property names to look for
-     * @param defaultValue the value if no property values are defined
-     * @return {*} the first defined property value or the defaultValue if none are defined
-     */
-    function firstValueDefined(object, names, defaultValue) {
-        var answer = defaultValue;
-        var found = false;
-        angular.forEach(names, function (name) {
-            var value = object[name];
-            if (!found && angular.isDefined(value)) {
-                answer = value;
-                found = true;
-            }
-        });
-        return answer;
-    }
-})(DataTable || (DataTable = {}));
 
 /// <reference path="../../includes.ts"/>
 var Toastr;
@@ -929,17 +1003,6 @@ var Core;
     Core.clearNotifications = clearNotifications;
 })(Core || (Core = {}));
 
-/// <reference path="../../includes.ts"/>
-var UIBootstrap;
-(function (UIBootstrap) {
-    var pluginName = "hawtio-ui-bootstrap";
-    angular.module(pluginName, ["ui.bootstrap"]);
-    hawtioPluginLoader.addModule(pluginName);
-    hawtioPluginLoader.addModule("hawtio-compat.transition");
-    hawtioPluginLoader.addModule("hawtio-compat.dialog");
-    hawtioPluginLoader.addModule("hawtio-compat.modal");
-})(UIBootstrap || (UIBootstrap = {}));
-
 /**
  * @module UI
  */
@@ -979,22 +1042,22 @@ var UI;
         return marked;
     });
     UI._module.directive('compile', ['$compile', function ($compile) {
-        return function (scope, element, attrs) {
-            scope.$watch(function (scope) {
-                // watch the 'compile' expression for changes
-                return scope.$eval(attrs.compile);
-            }, function (value) {
-                // when the 'compile' expression changes
-                // assign it into the current DOM
-                element.html(value);
-                // compile the new DOM and link it to the current
-                // scope.
-                // NOTE: we only compile .childNodes so that
-                // we don't get into infinite loop compiling ourselves
-                $compile(element.contents())(scope);
-            });
-        };
-    }]);
+            return function (scope, element, attrs) {
+                scope.$watch(function (scope) {
+                    // watch the 'compile' expression for changes
+                    return scope.$eval(attrs.compile);
+                }, function (value) {
+                    // when the 'compile' expression changes
+                    // assign it into the current DOM
+                    element.html(value);
+                    // compile the new DOM and link it to the current
+                    // scope.
+                    // NOTE: we only compile .childNodes so that
+                    // we don't get into infinite loop compiling ourselves
+                    $compile(element.contents())(scope);
+                });
+            };
+        }]);
     /*
     UI._module.controller("CodeEditor.PreferencesController", ["$scope", "localStorage", "$templateCache", ($scope, localStorage, $templateCache) => {
       $scope.exampleText = $templateCache.get("exampleText");
@@ -1015,15 +1078,15 @@ var UI;
     }]);
     */
     UI._module.run([function () {
-        UI.log.debug("loaded");
-        /*
-        var opts = localStorage['CodeMirrorOptions'];
-        if (opts) {
-          opts = angular.fromJson(opts);
-          CodeEditor.GlobalCodeMirrorOptions = angular.extend(CodeEditor.GlobalCodeMirrorOptions, opts);
-        }
-        */
-    }]);
+            UI.log.debug("loaded");
+            /*
+            var opts = localStorage['CodeMirrorOptions'];
+            if (opts) {
+              opts = angular.fromJson(opts);
+              CodeEditor.GlobalCodeMirrorOptions = angular.extend(CodeEditor.GlobalCodeMirrorOptions, opts);
+            }
+            */
+        }]);
     hawtioPluginLoader.addModule(UI.pluginName);
 })(UI || (UI = {}));
 
@@ -1195,117 +1258,115 @@ var UI;
                 config: '='
             },
             controller: ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {
-                $scope.action = "itemClicked(config, $event)";
-                $scope.levels = {};
-                $scope.itemClicked = function (config, $event) {
-                    //log.debug("Item clicked: ", config);
-                    if (config.level && angular.isNumber(config.level)) {
-                        $scope.levels[config.level] = config;
-                        var keys = _.keys($scope.levels).sortBy("");
-                        var toRemove = keys.from(config.level + 1);
-                        toRemove.forEach(function (i) {
-                            if (i in $scope.levels) {
-                                $scope.levels[i] = {};
-                                delete $scope.levels[i];
-                            }
-                        });
-                        // reset any previously deleted action
-                        angular.forEach($scope.levels, function (value, key) {
-                            if (value.items && value.items.length > 0) {
-                                value.items.forEach(function (i) {
-                                    //log.debug("Resetting action: ", i);
+                    $scope.action = "itemClicked(config, $event)";
+                    $scope.levels = {};
+                    $scope.itemClicked = function (config, $event) {
+                        //log.debug("Item clicked: ", config);
+                        if (config.level && angular.isNumber(config.level)) {
+                            $scope.levels[config.level] = config;
+                            var keys = _.keys($scope.levels).sortBy("");
+                            var toRemove = keys.from(config.level + 1);
+                            toRemove.forEach(function (i) {
+                                if (i in $scope.levels) {
+                                    $scope.levels[i] = {};
+                                    delete $scope.levels[i];
+                                }
+                            });
+                            // reset any previously deleted action
+                            angular.forEach($scope.levels, function (value, key) {
+                                if (value.items && value.items.length > 0) {
+                                    value.items.forEach(function (i) {
+                                        //log.debug("Resetting action: ", i);
+                                        i['action'] = $scope.action;
+                                    });
+                                }
+                            });
+                            if (config.items) {
+                                config.open = true;
+                                config.items.forEach(function (i) {
                                     i['action'] = $scope.action;
                                 });
+                                delete config.action;
                             }
-                        });
+                            else {
+                                //ooh we picked a thing!
+                                var keys = _.keys($scope.levels).keys().sortBy("");
+                                var path = [];
+                                keys.forEach(function (key) {
+                                    path.push($scope.levels[key]['title']);
+                                });
+                                var pathString = '/' + path.join("/");
+                                $scope.config.path = pathString;
+                            }
+                            // for some reason levels > 1 get two click events :-S
+                            if (config.level > 1) {
+                                $event.preventDefault();
+                                $event.stopPropagation();
+                            }
+                        }
+                    };
+                    function addAction(config, level) {
+                        config.level = level;
+                        if (level > 0) {
+                            config.breadcrumbAction = config.action;
+                            config.action = $scope.action;
+                        }
                         if (config.items) {
-                            config.open = true;
-                            config.items.forEach(function (i) {
-                                i['action'] = $scope.action;
+                            config.items.forEach(function (item) {
+                                addAction(item, level + 1);
                             });
-                            delete config.action;
-                        }
-                        else {
-                            //ooh we picked a thing!
-                            var keys = _.keys($scope.levels).keys().sortBy("");
-                            var path = [];
-                            keys.forEach(function (key) {
-                                path.push($scope.levels[key]['title']);
-                            });
-                            var pathString = '/' + path.join("/");
-                            $scope.config.path = pathString;
-                        }
-                        // for some reason levels > 1 get two click events :-S
-                        if (config.level > 1) {
-                            $event.preventDefault();
-                            $event.stopPropagation();
                         }
                     }
-                };
-                function addAction(config, level) {
-                    config.level = level;
-                    if (level > 0) {
-                        config.breadcrumbAction = config.action;
-                        config.action = $scope.action;
-                    }
-                    if (config.items) {
-                        config.items.forEach(function (item) {
-                            addAction(item, level + 1);
-                        });
-                    }
-                }
-                function setLevels(config, pathParts, level) {
-                    if (pathParts.length === 0) {
-                        return;
-                    }
-                    var part = pathParts.removeAt(0)[0];
-                    //log.debug("config: ", config, " checking part: ", part, " pathParts: ", pathParts);
-                    if (config && config.items) {
-                        var matched = false;
-                        config.items.forEach(function (item) {
-                            //log.debug("checking item: ", item, " against part: ", part);
-                            if (!matched && item['title'] === part) {
-                                //log.debug("Found match");
-                                matched = true;
-                                $scope.levels[level] = item;
-                                setLevels(item, pathParts, level + 1);
-                            }
-                        });
-                    }
-                }
-                // watch to see if the parent scope changes the path
-                $scope.$watch('config.path', function (newValue, oldValue) {
-                    if (!Core.isBlank(newValue)) {
-                        var pathParts = newValue.split('/').exclude(function (p) {
-                            return Core.isBlank(p);
-                        });
-                        //log.debug("path: ", newValue);
-                        //log.debug("pathParts: ", pathParts);
-                        var matches = true;
-                        pathParts.forEach(function (part, index) {
-                            //log.debug("Checking part: ", part, " index: ", index)
-                            if (!matches) {
-                                return;
-                            }
-                            if (!$scope.levels[index] || Core.isBlank($scope.levels[index]['title']) || $scope.levels[index]['title'] !== part) {
-                                matches = false;
-                            }
-                        });
-                        //log.debug("matches: ", matches);
-                        if (matches) {
+                    function setLevels(config, pathParts, level) {
+                        if (pathParts.length === 0) {
                             return;
                         }
-                        // adjust $scope.levels to match the path
-                        $scope.levels = [];
-                        $scope.levels['0'] = $scope.config;
-                        setLevels($scope.config, pathParts.from(0), 1);
+                        var part = pathParts.removeAt(0)[0];
+                        //log.debug("config: ", config, " checking part: ", part, " pathParts: ", pathParts);
+                        if (config && config.items) {
+                            var matched = false;
+                            config.items.forEach(function (item) {
+                                //log.debug("checking item: ", item, " against part: ", part);
+                                if (!matched && item['title'] === part) {
+                                    //log.debug("Found match");
+                                    matched = true;
+                                    $scope.levels[level] = item;
+                                    setLevels(item, pathParts, level + 1);
+                                }
+                            });
+                        }
                     }
-                });
-                $scope.$watch('config', function (newValue, oldValue) {
-                    addAction($scope.config, 0);
-                    $scope.levels['0'] = $scope.config;
-                });
-            }]
+                    // watch to see if the parent scope changes the path
+                    $scope.$watch('config.path', function (newValue, oldValue) {
+                        if (!Core.isBlank(newValue)) {
+                            var pathParts = newValue.split('/').exclude(function (p) { return Core.isBlank(p); });
+                            //log.debug("path: ", newValue);
+                            //log.debug("pathParts: ", pathParts);
+                            var matches = true;
+                            pathParts.forEach(function (part, index) {
+                                //log.debug("Checking part: ", part, " index: ", index)
+                                if (!matches) {
+                                    return;
+                                }
+                                if (!$scope.levels[index] || Core.isBlank($scope.levels[index]['title']) || $scope.levels[index]['title'] !== part) {
+                                    matches = false;
+                                }
+                            });
+                            //log.debug("matches: ", matches);
+                            if (matches) {
+                                return;
+                            }
+                            // adjust $scope.levels to match the path
+                            $scope.levels = [];
+                            $scope.levels['0'] = $scope.config;
+                            setLevels($scope.config, pathParts.from(0), 1);
+                        }
+                    });
+                    $scope.$watch('config', function (newValue, oldValue) {
+                        addAction($scope.config, 0);
+                        $scope.levels['0'] = $scope.config;
+                    });
+                }]
         };
     }
     UI.hawtioBreadcrumbs = hawtioBreadcrumbs;
@@ -1320,7 +1381,9 @@ var UI;
      * @for UI
      * @type Array
      */
-    UI.colors = ["#5484ED", "#A4BDFC", "#46D6DB", "#7AE7BF", "#51B749", "#FBD75B", "#FFB878", "#FF887C", "#DC2127", "#DBADFF", "#E1E1E1"];
+    UI.colors = ["#5484ED", "#A4BDFC", "#46D6DB", "#7AE7BF",
+        "#51B749", "#FBD75B", "#FFB878", "#FF887C", "#DC2127",
+        "#DBADFF", "#E1E1E1"];
 })(UI || (UI = {}));
 
 /**
@@ -1374,20 +1437,20 @@ var UI;
                 };
             };
             this.controller = ["$scope", "$element", "$timeout", function ($scope, $element, $timeout) {
-                $scope.popout = false;
-                $scope.$watch('popout', function () {
-                    $element.find('.color-picker-popout').toggleClass('popout-open', $scope.popout);
-                });
-                $scope.selectColor = function (color) {
-                    for (var i = 0; i < $scope.colorList.length; i++) {
-                        $scope.colorList[i].select = UI.unselected;
-                        if ($scope.colorList[i] === color) {
-                            $scope.property = color.color;
-                            $scope.colorList[i].select = UI.selected;
+                    $scope.popout = false;
+                    $scope.$watch('popout', function () {
+                        $element.find('.color-picker-popout').toggleClass('popout-open', $scope.popout);
+                    });
+                    $scope.selectColor = function (color) {
+                        for (var i = 0; i < $scope.colorList.length; i++) {
+                            $scope.colorList[i].select = UI.unselected;
+                            if ($scope.colorList[i] === color) {
+                                $scope.property = color.color;
+                                $scope.colorList[i].select = UI.selected;
+                            }
                         }
-                    }
-                };
-            }];
+                    };
+                }];
         }
         return ColorPicker;
     })();
@@ -1430,59 +1493,59 @@ var UI;
                 onClose: '&?'
             };
             this.controller = ["$scope", "$element", "$attrs", "$transclude", "$compile", function ($scope, $element, $attrs, $transclude, $compile) {
-                $scope.clone = null;
-                $transclude(function (clone) {
-                    $scope.clone = $(clone).filter('.dialog-body');
-                });
-                $scope.$watch('show', function () {
-                    if ($scope.show) {
-                        setTimeout(function () {
-                            $scope.body = $('.modal-body');
-                            $scope.body.html($compile($scope.clone.html())($scope.$parent));
-                            Core.$apply($scope);
-                        }, 50);
-                    }
-                });
-                $attrs.$observe('okButtonText', function (value) {
-                    if (!angular.isDefined(value)) {
-                        $scope.okButtonText = "OK";
-                    }
-                });
-                $attrs.$observe('cancelButtonText', function (value) {
-                    if (!angular.isDefined(value)) {
-                        $scope.cancelButtonText = "Cancel";
-                    }
-                });
-                $attrs.$observe('title', function (value) {
-                    if (!angular.isDefined(value)) {
-                        $scope.title = "Are you sure?";
-                    }
-                });
-                function checkClosed() {
-                    setTimeout(function () {
-                        // lets make sure we don't have a modal-backdrop hanging around!
-                        var backdrop = $("div.modal-backdrop");
-                        if (backdrop && backdrop.length) {
-                            Logger.get("ConfirmDialog").debug("Removing the backdrop div! " + backdrop);
-                            backdrop.remove();
+                    $scope.clone = null;
+                    $transclude(function (clone) {
+                        $scope.clone = $(clone).filter('.dialog-body');
+                    });
+                    $scope.$watch('show', function () {
+                        if ($scope.show) {
+                            setTimeout(function () {
+                                $scope.body = $('.modal-body');
+                                $scope.body.html($compile($scope.clone.html())($scope.$parent));
+                                Core.$apply($scope);
+                            }, 50);
                         }
-                    }, 200);
-                }
-                $scope.cancel = function () {
-                    $scope.show = false;
-                    $scope.$parent.$eval($scope.onCancel);
-                    checkClosed();
-                };
-                $scope.submit = function () {
-                    $scope.show = false;
-                    $scope.$parent.$eval($scope.onOk);
-                    checkClosed();
-                };
-                $scope.close = function () {
-                    $scope.$parent.$eval($scope.onClose);
-                    checkClosed();
-                };
-            }];
+                    });
+                    $attrs.$observe('okButtonText', function (value) {
+                        if (!angular.isDefined(value)) {
+                            $scope.okButtonText = "OK";
+                        }
+                    });
+                    $attrs.$observe('cancelButtonText', function (value) {
+                        if (!angular.isDefined(value)) {
+                            $scope.cancelButtonText = "Cancel";
+                        }
+                    });
+                    $attrs.$observe('title', function (value) {
+                        if (!angular.isDefined(value)) {
+                            $scope.title = "Are you sure?";
+                        }
+                    });
+                    function checkClosed() {
+                        setTimeout(function () {
+                            // lets make sure we don't have a modal-backdrop hanging around!
+                            var backdrop = $("div.modal-backdrop");
+                            if (backdrop && backdrop.length) {
+                                Logger.get("ConfirmDialog").debug("Removing the backdrop div! " + backdrop);
+                                backdrop.remove();
+                            }
+                        }, 200);
+                    }
+                    $scope.cancel = function () {
+                        $scope.show = false;
+                        $scope.$parent.$eval($scope.onCancel);
+                        checkClosed();
+                    };
+                    $scope.submit = function () {
+                        $scope.show = false;
+                        $scope.$parent.$eval($scope.onOk);
+                        checkClosed();
+                    };
+                    $scope.close = function () {
+                        $scope.$parent.$eval($scope.onClose);
+                        checkClosed();
+                    };
+                }];
         }
         return ConfirmDialog;
     })();
@@ -1496,15 +1559,17 @@ var UI;
 var UI;
 (function (UI) {
     UI._module.controller("UI.DeveloperPageController", ["$scope", "$http", function ($scope, $http) {
-        $scope.getContents = function (filename, cb) {
-            var fullUrl = UrlHelpers.join(UI.templatePath, "test", filename);
-            $http({ method: 'GET', url: fullUrl }).success(function (data, status, headers, config) {
-                cb(data);
-            }).error(function (data, status, headers, config) {
-                cb("Failed to fetch " + filename + ": " + data);
-            });
-        };
-    }]);
+            $scope.getContents = function (filename, cb) {
+                var fullUrl = UrlHelpers.join(UI.templatePath, "test", filename);
+                $http({ method: 'GET', url: fullUrl })
+                    .success(function (data, status, headers, config) {
+                    cb(data);
+                })
+                    .error(function (data, status, headers, config) {
+                    cb("Failed to fetch " + filename + ": " + data);
+                });
+            };
+        }]);
 })(UI || (UI = {}));
 
 /// <reference path="../../includes.ts"/>
@@ -1553,21 +1618,19 @@ var UI;
         var $dialog = HawtioCore.injector.get("$dialog");
         return $dialog.dialog({
             resolve: {
-                options: function () {
-                    return options;
-                }
+                options: function () { return options; }
             },
             templateUrl: UrlHelpers.join(UI.templatePath, 'multiItemConfirmActionDialog.html'),
             controller: ["$scope", "dialog", "options", function ($scope, dialog, options) {
-                $scope.options = options;
-                $scope.close = function (result) {
-                    dialog.close();
-                    options.onClose(result);
-                };
-                $scope.getName = function (item) {
-                    return Core.pathGet(item, options.index.split('.'));
-                };
-            }]
+                    $scope.options = options;
+                    $scope.close = function (result) {
+                        dialog.close();
+                        options.onClose(result);
+                    };
+                    $scope.getName = function (item) {
+                        return Core.pathGet(item, options.index.split('.'));
+                    };
+                }]
         });
     }
     UI.multiItemConfirmActionDialog = multiItemConfirmActionDialog;
@@ -1577,92 +1640,92 @@ var UI;
 var UI;
 (function (UI) {
     UI.hawtioDrag = UI._module.directive("hawtioDrag", [function () {
-        return {
-            replace: false,
-            transclude: true,
-            restrict: 'A',
-            template: '<span ng-transclude></span>',
-            scope: {
-                data: '=hawtioDrag'
-            },
-            link: function (scope, element, attrs) {
-                element.attr({
-                    draggable: 'true'
-                });
-                //log.debug("hawtioDrag, data: ", scope.data);
-                var el = element[0];
-                el.draggable = true;
-                el.addEventListener('dragstart', function (event) {
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.dataTransfer.setData('data', scope.data);
-                    element.addClass('drag-started');
-                    return false;
-                }, false);
-                el.addEventListener('dragend', function (event) {
-                    element.removeClass('drag-started');
-                }, false);
-            }
-        };
-    }]);
+            return {
+                replace: false,
+                transclude: true,
+                restrict: 'A',
+                template: '<span ng-transclude></span>',
+                scope: {
+                    data: '=hawtioDrag'
+                },
+                link: function (scope, element, attrs) {
+                    element.attr({
+                        draggable: 'true'
+                    });
+                    //log.debug("hawtioDrag, data: ", scope.data);
+                    var el = element[0];
+                    el.draggable = true;
+                    el.addEventListener('dragstart', function (event) {
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('data', scope.data);
+                        element.addClass('drag-started');
+                        return false;
+                    }, false);
+                    el.addEventListener('dragend', function (event) {
+                        element.removeClass('drag-started');
+                    }, false);
+                }
+            };
+        }]);
     UI.hawtioDrop = UI._module.directive("hawtioDrop", [function () {
-        return {
-            replace: false,
-            transclude: true,
-            restrict: 'A',
-            template: '<span ng-transclude></span>',
-            scope: {
-                onDrop: '&?hawtioDrop',
-                ngModel: '=',
-                property: '@',
-                prefix: '@'
-            },
-            link: function (scope, element, attrs) {
-                //log.debug("hawtioDrop, onDrop: ", scope.onDrop);
-                //log.debug("hawtioDrop, ngModel: ", scope.ngModel);
-                //log.debug("hawtioDrop, property: ", scope.property);
-                var dragEnter = function (event) {
-                    if (event.preventDefault) {
-                        event.preventDefault();
-                    }
-                    element.addClass('drag-over');
-                    return false;
-                };
-                var el = element[0];
-                el.addEventListener('dragenter', dragEnter, false);
-                el.addEventListener('dragover', dragEnter, false);
-                el.addEventListener('dragleave', function (event) {
-                    element.removeClass('drag-over');
-                    return false;
-                }, false);
-                el.addEventListener('drop', function (event) {
-                    if (event.stopPropagation) {
-                        event.stopPropagation();
-                    }
-                    element.removeClass('drag-over');
-                    var data = event.dataTransfer.getData('data');
-                    if (scope.onDrop) {
-                        scope.$eval(scope.onDrop, {
+            return {
+                replace: false,
+                transclude: true,
+                restrict: 'A',
+                template: '<span ng-transclude></span>',
+                scope: {
+                    onDrop: '&?hawtioDrop',
+                    ngModel: '=',
+                    property: '@',
+                    prefix: '@'
+                },
+                link: function (scope, element, attrs) {
+                    //log.debug("hawtioDrop, onDrop: ", scope.onDrop);
+                    //log.debug("hawtioDrop, ngModel: ", scope.ngModel);
+                    //log.debug("hawtioDrop, property: ", scope.property);
+                    var dragEnter = function (event) {
+                        if (event.preventDefault) {
+                            event.preventDefault();
+                        }
+                        element.addClass('drag-over');
+                        return false;
+                    };
+                    var el = element[0];
+                    el.addEventListener('dragenter', dragEnter, false);
+                    el.addEventListener('dragover', dragEnter, false);
+                    el.addEventListener('dragleave', function (event) {
+                        element.removeClass('drag-over');
+                        return false;
+                    }, false);
+                    el.addEventListener('drop', function (event) {
+                        if (event.stopPropagation) {
+                            event.stopPropagation();
+                        }
+                        element.removeClass('drag-over');
+                        var data = event.dataTransfer.getData('data');
+                        if (scope.onDrop) {
+                            scope.$eval(scope.onDrop, {
+                                data: data,
+                                model: scope.ngModel,
+                                property: scope.property
+                            });
+                        }
+                        var eventName = 'hawtio-drop';
+                        if (!Core.isBlank(scope.prefix)) {
+                            eventName = scope.prefix + '-' + eventName;
+                        }
+                        // let's emit this too so parent scopes can watch for the data
+                        scope.$emit(eventName, {
                             data: data,
                             model: scope.ngModel,
                             property: scope.property
                         });
-                    }
-                    var eventName = 'hawtio-drop';
-                    if (!Core.isBlank(scope.prefix)) {
-                        eventName = scope.prefix + '-' + eventName;
-                    }
-                    // let's emit this too so parent scopes can watch for the data
-                    scope.$emit(eventName, {
-                        data: data,
-                        model: scope.ngModel,
-                        property: scope.property
-                    });
-                    Core.$apply(scope);
-                    return false;
-                }, false);
-            }
-        };
-    }]);
+                        Core.$apply(scope);
+                        return false;
+                    }, false);
+                }
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -1680,60 +1743,60 @@ var UI;
                 config: '=hawtioDropDown'
             },
             controller: ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {
-                if (!$scope.config) {
-                    $scope.config = {};
-                }
-                if (!('open' in $scope.config)) {
-                    $scope.config['open'] = false;
-                }
-                $scope.action = function (config, $event) {
-                    //log.debug("doAction on : ", config, "event: ", $event);
-                    if ('items' in config && !('action' in config)) {
-                        config.open = !config.open;
-                        $event.preventDefault();
-                        $event.stopPropagation();
+                    if (!$scope.config) {
+                        $scope.config = {};
                     }
-                    else if ('action' in config) {
-                        //log.debug("executing action: ", config.action);
-                        var action = config['action'];
-                        if (angular.isFunction(action)) {
-                            action();
+                    if (!('open' in $scope.config)) {
+                        $scope.config['open'] = false;
+                    }
+                    $scope.action = function (config, $event) {
+                        //log.debug("doAction on : ", config, "event: ", $event);
+                        if ('items' in config && !('action' in config)) {
+                            config.open = !config.open;
+                            $event.preventDefault();
+                            $event.stopPropagation();
                         }
-                        else if (angular.isString(action)) {
-                            $scope.$parent.$eval(action, {
-                                config: config,
-                                '$event': $event
-                            });
+                        else if ('action' in config) {
+                            //log.debug("executing action: ", config.action);
+                            var action = config['action'];
+                            if (angular.isFunction(action)) {
+                                action();
+                            }
+                            else if (angular.isString(action)) {
+                                $scope.$parent.$eval(action, {
+                                    config: config,
+                                    '$event': $event
+                                });
+                            }
                         }
-                    }
-                };
-                $scope.$watch('config.items', function (newValue, oldValue) {
-                    if (newValue !== oldValue) {
-                        // just add some space to force a redraw
-                        $scope.menuStyle = $scope.menuStyle + " ";
-                    }
-                }, true);
-                $scope.submenu = function (config) {
-                    if (config && config.submenu) {
-                        return "sub-menu";
-                    }
-                    return "";
-                };
-                $scope.icon = function (config) {
-                    if (config && !Core.isBlank(config.icon)) {
-                        return config.icon;
-                    }
-                    else {
-                        return 'fa fa-spacer';
-                    }
-                };
-                $scope.open = function (config) {
-                    if (config && !config.open) {
-                        return '';
-                    }
-                    return 'open';
-                };
-            }],
+                    };
+                    $scope.$watch('config.items', function (newValue, oldValue) {
+                        if (newValue !== oldValue) {
+                            // just add some space to force a redraw
+                            $scope.menuStyle = $scope.menuStyle + " ";
+                        }
+                    }, true);
+                    $scope.submenu = function (config) {
+                        if (config && config.submenu) {
+                            return "sub-menu";
+                        }
+                        return "";
+                    };
+                    $scope.icon = function (config) {
+                        if (config && !Core.isBlank(config.icon)) {
+                            return config.icon;
+                        }
+                        else {
+                            return 'fa fa-spacer';
+                        }
+                    };
+                    $scope.open = function (config) {
+                        if (config && !config.open) {
+                            return '';
+                        }
+                        return 'open';
+                    };
+                }],
             link: function ($scope, $element, $attrs) {
                 $scope.menuStyle = $templateCache.get("withsubmenus.html");
                 if ('processSubmenus' in $attrs) {
@@ -1755,8 +1818,8 @@ var UI;
 var UI;
 (function (UI) {
     UI._module.directive('editableProperty', ["$parse", function ($parse) {
-        return new UI.EditableProperty($parse);
-    }]);
+            return new UI.EditableProperty($parse);
+        }]);
     var EditableProperty = (function () {
         function EditableProperty($parse) {
             this.$parse = $parse;
@@ -1976,37 +2039,37 @@ var UI;
 var UI;
 (function (UI) {
     var hawtioFileDrop = UI._module.directive("hawtioFileDrop", [function () {
-        return {
-            restrict: 'A',
-            replace: false,
-            link: function (scope, element, attr) {
-                var fileName = attr['hawtioFileDrop'];
-                var downloadURL = attr['downloadUrl'];
-                var mimeType = attr['mimeType'] || 'application/octet-stream';
-                if (Core.isBlank(fileName) || Core.isBlank(downloadURL)) {
-                    return;
-                }
-                // DownloadURL needs an absolute URL
-                if (!downloadURL.startsWith("http")) {
-                    var uri = new URI();
-                    downloadURL = uri.path(downloadURL).toString();
-                }
-                var fileDetails = mimeType + ":" + fileName + ":" + downloadURL;
-                element.attr({
-                    draggable: true
-                });
-                element[0].addEventListener("dragstart", function (event) {
-                    if (event.dataTransfer) {
-                        UI.log.debug("Drag started, event: ", event, "File details: ", fileDetails);
-                        event.dataTransfer.setData("DownloadURL", fileDetails);
+            return {
+                restrict: 'A',
+                replace: false,
+                link: function (scope, element, attr) {
+                    var fileName = attr['hawtioFileDrop'];
+                    var downloadURL = attr['downloadUrl'];
+                    var mimeType = attr['mimeType'] || 'application/octet-stream';
+                    if (Core.isBlank(fileName) || Core.isBlank(downloadURL)) {
+                        return;
                     }
-                    else {
-                        UI.log.debug("Drag event object doesn't contain data transfer: ", event);
+                    // DownloadURL needs an absolute URL
+                    if (!downloadURL.startsWith("http")) {
+                        var uri = new URI();
+                        downloadURL = uri.path(downloadURL).toString();
                     }
-                });
-            }
-        };
-    }]);
+                    var fileDetails = mimeType + ":" + fileName + ":" + downloadURL;
+                    element.attr({
+                        draggable: true
+                    });
+                    element[0].addEventListener("dragstart", function (event) {
+                        if (event.dataTransfer) {
+                            UI.log.debug("Drag started, event: ", event, "File details: ", fileDetails);
+                            event.dataTransfer.setData("DownloadURL", fileDetails);
+                        }
+                        else {
+                            UI.log.debug("Drag event object doesn't contain data transfer: ", event);
+                        }
+                    });
+                }
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -2016,59 +2079,59 @@ var UI;
 var UI;
 (function (UI) {
     UI.hawtioFilter = UI._module.directive("hawtioFilter", [function () {
-        return {
-            restrict: 'E',
-            replace: true,
-            transclude: true,
-            templateUrl: UI.templatePath + 'filter.html',
-            scope: {
-                placeholder: '@',
-                cssClass: '@',
-                saveAs: '@?',
-                ngModel: '='
-            },
-            controller: ["$scope", "localStorage", "$location", "$element", function ($scope, localStorage, $location, $element) {
-                $scope.getClass = function () {
-                    var answer = [];
-                    if (!Core.isBlank($scope.cssClass)) {
-                        answer.push($scope.cssClass);
-                    }
-                    if (!Core.isBlank($scope.ngModel)) {
-                        answer.push("has-text");
-                    }
-                    return answer.join(' ');
-                };
-                // sync with local storage and the location bar, maybe could refactor this into a helper function
-                if (!Core.isBlank($scope.saveAs)) {
-                    if ($scope.saveAs in localStorage) {
-                        var val = localStorage[$scope.saveAs];
-                        if (!Core.isBlank(val)) {
-                            $scope.ngModel = val;
+            return {
+                restrict: 'E',
+                replace: true,
+                transclude: true,
+                templateUrl: UI.templatePath + 'filter.html',
+                scope: {
+                    placeholder: '@',
+                    cssClass: '@',
+                    saveAs: '@?',
+                    ngModel: '='
+                },
+                controller: ["$scope", "localStorage", "$location", "$element", function ($scope, localStorage, $location, $element) {
+                        $scope.getClass = function () {
+                            var answer = [];
+                            if (!Core.isBlank($scope.cssClass)) {
+                                answer.push($scope.cssClass);
+                            }
+                            if (!Core.isBlank($scope.ngModel)) {
+                                answer.push("has-text");
+                            }
+                            return answer.join(' ');
+                        };
+                        // sync with local storage and the location bar, maybe could refactor this into a helper function
+                        if (!Core.isBlank($scope.saveAs)) {
+                            if ($scope.saveAs in localStorage) {
+                                var val = localStorage[$scope.saveAs];
+                                if (!Core.isBlank(val)) {
+                                    $scope.ngModel = val;
+                                }
+                                else {
+                                    $scope.ngModel = '';
+                                }
+                            }
+                            else {
+                                $scope.ngModel = '';
+                            }
+                            /*
+                             // input loses focus when we muck with the search, at least on firefox
+                            var search = $location.search();
+                            if ($scope.saveAs in search) {
+                              $scope.ngModel = search[$scope.saveAs];
+                            }
+                            */
+                            var updateFunc = function () {
+                                localStorage[$scope.saveAs] = $scope.ngModel;
+                                // input loses focus when we do this
+                                //$location.search($scope.saveAs, $scope.ngModel);
+                            };
+                            $scope.$watch('ngModel', updateFunc);
                         }
-                        else {
-                            $scope.ngModel = '';
-                        }
-                    }
-                    else {
-                        $scope.ngModel = '';
-                    }
-                    /*
-                     // input loses focus when we muck with the search, at least on firefox
-                    var search = $location.search();
-                    if ($scope.saveAs in search) {
-                      $scope.ngModel = search[$scope.saveAs];
-                    }
-                    */
-                    var updateFunc = function () {
-                        localStorage[$scope.saveAs] = $scope.ngModel;
-                        // input loses focus when we do this
-                        //$location.search($scope.saveAs, $scope.ngModel);
-                    };
-                    $scope.$watch('ngModel', updateFunc);
-                }
-            }]
-        };
-    }]);
+                    }]
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -2085,7 +2148,7 @@ var UI;
             this.restrict = 'A';
             this.replace = true;
             this.controller = ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {
-            }];
+                }];
             this.link = function ($scope, $element, $attrs) {
                 var widgetMargins = [6, 6];
                 var widgetBaseDimensions = [150, 150];
@@ -2173,9 +2236,7 @@ var UI;
                         else {
                             createGroup = false;
                             targetGroup.forEach(function (item) {
-                                if (!createGroup && !currentGroup.any(function (i) {
-                                    return i === item;
-                                })) {
+                                if (!createGroup && !currentGroup.any(function (i) { return i === item; })) {
                                     createGroup = true;
                                 }
                             });
@@ -2209,13 +2270,13 @@ var UI;
      * @constructor
      */
     UI.IconTestController = UI._module.controller("UI.IconTestController", ["$scope", "$templateCache", function ($scope, $templateCache) {
-        $scope.exampleHtml = $templateCache.get('example-html');
-        $scope.exampleConfigJson = $templateCache.get('example-config-json');
-        $scope.$watch('exampleConfigJson', function (newValue, oldValue) {
-            $scope.icons = angular.fromJson($scope.exampleConfigJson);
-            //log.debug("Icons: ", $scope.icons);
-        });
-    }]);
+            $scope.exampleHtml = $templateCache.get('example-html');
+            $scope.exampleConfigJson = $templateCache.get('example-config-json');
+            $scope.$watch('exampleConfigJson', function (newValue, oldValue) {
+                $scope.icons = angular.fromJson($scope.exampleConfigJson);
+                //log.debug("Icons: ", $scope.icons);
+            });
+        }]);
     /**
      * The hawtio-icon directive
      * @returns {{}}
@@ -2256,239 +2317,244 @@ var UI;
 var UI;
 (function (UI) {
     UI._module.directive('hawtioJsplumb', ["$timeout", "$window", function ($timeout, $window) {
-        return {
-            restrict: 'A',
-            link: function ($scope, $element, $attrs) {
-                $window.addEventListener("resize", function () {
-                    if ($scope.jsPlumb) {
-                        $scope.jsPlumb.recalculateOffsets($element);
-                        $scope.jsPlumb.repaintEverything();
-                    }
-                });
-                // Whether or not each node in the graph can be dragged around
-                var enableDragging = true;
-                if (angular.isDefined($attrs['draggable'])) {
-                    enableDragging = Core.parseBooleanValue($attrs['draggable']);
-                }
-                var useLayout = true;
-                if (angular.isDefined($attrs['layout'])) {
-                    useLayout = Core.parseBooleanValue($attrs['layout']);
-                }
-                var direction = 'TB';
-                if (angular.isDefined($attrs['direction'])) {
-                    switch ($attrs['direction']) {
-                        case 'down':
-                            direction = 'LR';
-                            break;
-                        default:
-                            direction = 'TB';
-                    }
-                }
-                var nodeSep = 50;
-                var edgeSep = 10;
-                var rankSep = 50;
-                if (angular.isDefined($attrs['nodeSep'])) {
-                    nodeSep = Core.parseIntValue($attrs['nodeSep']);
-                }
-                if (angular.isDefined($attrs['edgeSep'])) {
-                    edgeSep = Core.parseIntValue($attrs['edgeSep']);
-                }
-                if (angular.isDefined($attrs['rankSep'])) {
-                    rankSep = Core.parseIntValue($attrs['rankSep']);
-                }
-                var timeout = 100;
-                if (angular.isDefined($attrs['timeout'])) {
-                    timeout = Core.parseIntValue($attrs['timeout'], "timeout");
-                }
-                var endpointStyle = ["Dot", { radius: 10, cssClass: 'jsplumb-circle', hoverClass: 'jsplumb-circle-hover' }];
-                var labelStyles = ["Label"];
-                var arrowStyles = ["Arrow", {
-                    location: 1,
-                    id: "arrow",
-                    length: 8,
-                    width: 8,
-                    foldback: 0.8
-                }];
-                var connectorStyle = ["Flowchart", { cornerRadius: 4, gap: 8 }];
-                if (angular.isDefined($scope.connectorStyle)) {
-                    connectorStyle = $scope.connectorStyle;
-                }
-                // Given an element, create a node data structure
-                function createNode(nodeEl) {
-                    var el = $(nodeEl);
-                    var id = el.attr('id');
-                    var anchors = el.attr('anchors');
-                    if (!Core.isBlank(anchors) && (anchors.has("{{") || anchors.has("}}"))) {
-                        // we don't want to add this yet...
-                        return null;
-                    }
-                    if (!Core.isBlank(anchors)) {
-                        anchors = anchors.split(',').map(function (anchor) {
-                            return anchor.trim();
-                        });
-                    }
-                    else {
-                        anchors = ["Continuous"];
-                    }
-                    var node = {
-                        id: id,
-                        label: 'node ' + id,
-                        el: el,
-                        width: el.outerWidth(),
-                        height: el.outerHeight(),
-                        edges: [],
-                        connections: [],
-                        endpoints: [],
-                        anchors: anchors
-                    };
-                    return node;
-                }
-                ;
-                function createEndpoint(jsPlumb, node) {
-                    var options = {
-                        isSource: true,
-                        isTarget: true,
-                        anchor: node.anchors,
-                        connector: connectorStyle,
-                        maxConnections: -1
-                    };
-                    if (angular.isFunction($scope.customizeEndpointOptions)) {
-                        $scope.customizeEndpointOptions(jsPlumb, node, options);
-                    }
-                    var endpoint = jsPlumb.addEndpoint(node.el, options);
-                    node.endpoints.push(endpoint);
-                    //$scope.jsPlumbEndpoints[node.id] = endpoint
-                    if (enableDragging) {
-                        jsPlumb.draggable(node.el, {
-                            containment: $element
-                        });
-                    }
-                }
-                ;
-                var nodes = [];
-                var transitions = [];
-                var nodesById = {};
-                function gatherElements() {
-                    var nodeEls = $element.find('.jsplumb-node');
-                    if (nodes.length > 0) {
-                    }
-                    angular.forEach(nodeEls, function (nodeEl) {
-                        if (!nodesById[nodeEl.id]) {
-                            var node = createNode(nodeEl);
-                            if (node) {
-                                nodes.push(node);
-                                nodesById[node.id] = node;
-                            }
+            return {
+                restrict: 'A',
+                link: function ($scope, $element, $attrs) {
+                    $window.addEventListener("resize", function () {
+                        if ($scope.jsPlumb) {
+                            $scope.jsPlumb.recalculateOffsets($element);
+                            $scope.jsPlumb.repaintEverything();
                         }
                     });
-                    angular.forEach(nodes, function (sourceNode) {
-                        var targets = sourceNode.el.attr('connect-to');
-                        if (targets) {
-                            targets = targets.split(',');
-                            angular.forEach(targets, function (target) {
-                                var targetNode = nodesById[target.trim()];
-                                if (targetNode) {
-                                    var edge = {
-                                        source: sourceNode,
-                                        target: targetNode
-                                    };
-                                    transitions.push(edge);
-                                    sourceNode.edges.push(edge);
-                                    targetNode.edges.push(edge);
-                                }
-                            });
-                        }
-                    });
-                }
-                ;
-                $scope.$on('jsplumbDoWhileSuspended', function (event, op) {
-                    if ($scope.jsPlumb) {
-                        var jsPlumb = $scope.jsPlumb;
-                        jsPlumb.doWhileSuspended(function () {
-                            UI.log.debug("Suspended jsplumb");
-                            $scope.jsPlumb.reset();
-                            op();
-                            nodes = [];
-                            nodesById = {};
-                            transitions = [];
-                            go();
-                        });
+                    // Whether or not each node in the graph can be dragged around
+                    var enableDragging = true;
+                    if (angular.isDefined($attrs['draggable'])) {
+                        enableDragging = Core.parseBooleanValue($attrs['draggable']);
                     }
-                });
-                function go() {
-                    if (!$scope.jsPlumb) {
-                        $scope.jsPlumb = jsPlumb.getInstance({
-                            Container: $element
-                        });
-                        var defaultOptions = {
-                            Anchor: "AutoDefault",
-                            Connector: "Flowchart",
-                            ConnectorStyle: connectorStyle,
-                            DragOptions: { cursor: "pointer", zIndex: 2000 },
-                            Endpoint: endpointStyle,
-                            PaintStyle: { strokeStyle: "#42a62c", lineWidth: 4 },
-                            HoverPaintStyle: { strokeStyle: "#42a62c", lineWidth: 4 },
-                            ConnectionOverlays: [
-                                arrowStyles,
-                                labelStyles
-                            ]
+                    var useLayout = true;
+                    if (angular.isDefined($attrs['layout'])) {
+                        useLayout = Core.parseBooleanValue($attrs['layout']);
+                    }
+                    var direction = 'TB';
+                    if (angular.isDefined($attrs['direction'])) {
+                        switch ($attrs['direction']) {
+                            case 'down':
+                                direction = 'LR';
+                                break;
+                            default:
+                                direction = 'TB';
+                        }
+                    }
+                    var nodeSep = 50;
+                    var edgeSep = 10;
+                    var rankSep = 50;
+                    if (angular.isDefined($attrs['nodeSep'])) {
+                        nodeSep = Core.parseIntValue($attrs['nodeSep']);
+                    }
+                    if (angular.isDefined($attrs['edgeSep'])) {
+                        edgeSep = Core.parseIntValue($attrs['edgeSep']);
+                    }
+                    if (angular.isDefined($attrs['rankSep'])) {
+                        rankSep = Core.parseIntValue($attrs['rankSep']);
+                    }
+                    var timeout = 100;
+                    if (angular.isDefined($attrs['timeout'])) {
+                        timeout = Core.parseIntValue($attrs['timeout'], "timeout");
+                    }
+                    var endpointStyle = ["Dot", { radius: 10, cssClass: 'jsplumb-circle', hoverClass: 'jsplumb-circle-hover' }];
+                    var labelStyles = ["Label"];
+                    var arrowStyles = ["Arrow", {
+                            location: 1,
+                            id: "arrow",
+                            length: 8,
+                            width: 8,
+                            foldback: 0.8
+                        }];
+                    var connectorStyle = ["Flowchart", { cornerRadius: 4, gap: 8 }];
+                    if (angular.isDefined($scope.connectorStyle)) {
+                        connectorStyle = $scope.connectorStyle;
+                    }
+                    // Given an element, create a node data structure
+                    function createNode(nodeEl) {
+                        var el = $(nodeEl);
+                        var id = el.attr('id');
+                        var anchors = el.attr('anchors');
+                        if (!Core.isBlank(anchors) && (anchors.has("{{") || anchors.has("}}"))) {
+                            // we don't want to add this yet...
+                            return null;
+                        }
+                        if (!Core.isBlank(anchors)) {
+                            anchors = anchors.split(',').map(function (anchor) { return anchor.trim(); });
+                        }
+                        else {
+                            anchors = ["Continuous"];
+                        }
+                        var node = {
+                            id: id,
+                            label: 'node ' + id,
+                            el: el,
+                            width: el.outerWidth(),
+                            height: el.outerHeight(),
+                            edges: [],
+                            connections: [],
+                            endpoints: [],
+                            anchors: anchors
                         };
-                        if (!enableDragging) {
-                            defaultOptions['ConnectionsDetachable'] = false;
-                        }
-                        if (angular.isFunction($scope.customizeDefaultOptions)) {
-                            $scope.customizeDefaultOptions(defaultOptions);
-                        }
-                        $scope.jsPlumb.importDefaults(defaultOptions);
+                        return node;
                     }
-                    gatherElements();
-                    $scope.jsPlumbNodes = nodes;
-                    $scope.jsPlumbNodesById = nodesById;
-                    $scope.jsPlumbTransitions = transitions;
-                    // First we'll lay out the graph and then later apply jsplumb to all
-                    // of the nodes and connections
-                    if (useLayout) {
-                        $scope.layout = dagre.layout().nodeSep(nodeSep).edgeSep(edgeSep).rankSep(rankSep).rankDir(direction).nodes(nodes).edges(transitions).run();
-                    }
-                    angular.forEach($scope.jsPlumbNodes, function (node) {
-                        if (useLayout) {
-                            var divWidth = node.el.width();
-                            var divHeight = node.el.height();
-                            var y = node.dagre.y - (divHeight / 2);
-                            var x = node.dagre.x - (divWidth / 2);
-                            node.el.css({ top: y, left: x });
-                        }
-                        createEndpoint($scope.jsPlumb, node);
-                    });
-                    angular.forEach($scope.jsPlumbTransitions, function (edge) {
+                    ;
+                    function createEndpoint(jsPlumb, node) {
                         var options = {
+                            isSource: true,
+                            isTarget: true,
+                            anchor: node.anchors,
                             connector: connectorStyle,
                             maxConnections: -1
                         };
-                        var params = {
-                            source: edge.source.el,
-                            target: edge.target.el
-                        };
-                        if (angular.isFunction($scope.customizeConnectionOptions)) {
-                            $scope.customizeConnectionOptions($scope.jsPlumb, edge, params, options);
+                        if (angular.isFunction($scope.customizeEndpointOptions)) {
+                            $scope.customizeEndpointOptions(jsPlumb, node, options);
                         }
-                        var connection = $scope.jsPlumb.connect(params, options);
-                        edge.source.connections.push(connection);
-                        edge.target.connections.push(connection);
+                        var endpoint = jsPlumb.addEndpoint(node.el, options);
+                        node.endpoints.push(endpoint);
+                        //$scope.jsPlumbEndpoints[node.id] = endpoint
+                        if (enableDragging) {
+                            jsPlumb.draggable(node.el, {
+                                containment: $element
+                            });
+                        }
+                    }
+                    ;
+                    var nodes = [];
+                    var transitions = [];
+                    var nodesById = {};
+                    function gatherElements() {
+                        var nodeEls = $element.find('.jsplumb-node');
+                        if (nodes.length > 0) {
+                        }
+                        angular.forEach(nodeEls, function (nodeEl) {
+                            if (!nodesById[nodeEl.id]) {
+                                var node = createNode(nodeEl);
+                                if (node) {
+                                    nodes.push(node);
+                                    nodesById[node.id] = node;
+                                }
+                            }
+                        });
+                        angular.forEach(nodes, function (sourceNode) {
+                            var targets = sourceNode.el.attr('connect-to');
+                            if (targets) {
+                                targets = targets.split(',');
+                                angular.forEach(targets, function (target) {
+                                    var targetNode = nodesById[target.trim()];
+                                    if (targetNode) {
+                                        var edge = {
+                                            source: sourceNode,
+                                            target: targetNode
+                                        };
+                                        transitions.push(edge);
+                                        sourceNode.edges.push(edge);
+                                        targetNode.edges.push(edge);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    ;
+                    $scope.$on('jsplumbDoWhileSuspended', function (event, op) {
+                        if ($scope.jsPlumb) {
+                            var jsPlumb = $scope.jsPlumb;
+                            jsPlumb.doWhileSuspended(function () {
+                                UI.log.debug("Suspended jsplumb");
+                                $scope.jsPlumb.reset();
+                                op();
+                                nodes = [];
+                                nodesById = {};
+                                transitions = [];
+                                go();
+                            });
+                        }
                     });
-                    $scope.jsPlumb.recalculateOffsets($element);
-                    if (!$scope.jsPlumb.isSuspendDrawing()) {
-                        $scope.jsPlumb.repaintEverything();
+                    function go() {
+                        if (!$scope.jsPlumb) {
+                            $scope.jsPlumb = jsPlumb.getInstance({
+                                Container: $element
+                            });
+                            var defaultOptions = {
+                                Anchor: "AutoDefault",
+                                Connector: "Flowchart",
+                                ConnectorStyle: connectorStyle,
+                                DragOptions: { cursor: "pointer", zIndex: 2000 },
+                                Endpoint: endpointStyle,
+                                PaintStyle: { strokeStyle: "#42a62c", lineWidth: 4 },
+                                HoverPaintStyle: { strokeStyle: "#42a62c", lineWidth: 4 },
+                                ConnectionOverlays: [
+                                    arrowStyles,
+                                    labelStyles
+                                ]
+                            };
+                            if (!enableDragging) {
+                                defaultOptions['ConnectionsDetachable'] = false;
+                            }
+                            if (angular.isFunction($scope.customizeDefaultOptions)) {
+                                $scope.customizeDefaultOptions(defaultOptions);
+                            }
+                            $scope.jsPlumb.importDefaults(defaultOptions);
+                        }
+                        gatherElements();
+                        $scope.jsPlumbNodes = nodes;
+                        $scope.jsPlumbNodesById = nodesById;
+                        $scope.jsPlumbTransitions = transitions;
+                        // First we'll lay out the graph and then later apply jsplumb to all
+                        // of the nodes and connections
+                        if (useLayout) {
+                            $scope.layout = dagre.layout()
+                                .nodeSep(nodeSep)
+                                .edgeSep(edgeSep)
+                                .rankSep(rankSep)
+                                .rankDir(direction)
+                                .nodes(nodes)
+                                .edges(transitions)
+                                .run();
+                        }
+                        angular.forEach($scope.jsPlumbNodes, function (node) {
+                            if (useLayout) {
+                                var divWidth = node.el.width();
+                                var divHeight = node.el.height();
+                                var y = node.dagre.y - (divHeight / 2);
+                                var x = node.dagre.x - (divWidth / 2);
+                                node.el.css({ top: y, left: x });
+                            }
+                            createEndpoint($scope.jsPlumb, node);
+                        });
+                        angular.forEach($scope.jsPlumbTransitions, function (edge) {
+                            var options = {
+                                connector: connectorStyle,
+                                maxConnections: -1
+                            };
+                            var params = {
+                                source: edge.source.el,
+                                target: edge.target.el
+                            };
+                            if (angular.isFunction($scope.customizeConnectionOptions)) {
+                                $scope.customizeConnectionOptions($scope.jsPlumb, edge, params, options);
+                            }
+                            var connection = $scope.jsPlumb.connect(params, options);
+                            edge.source.connections.push(connection);
+                            edge.target.connections.push(connection);
+                        });
+                        $scope.jsPlumb.recalculateOffsets($element);
+                        if (!$scope.jsPlumb.isSuspendDrawing()) {
+                            $scope.jsPlumb.repaintEverything();
+                        }
+                        if (angular.isDefined($scope.jsPlumbCallback) && angular.isFunction($scope.jsPlumbCallback)) {
+                            $scope.jsPlumbCallback($scope.jsPlumb, $scope.jsPlumbNodes, $scope.jsPlumbNodesById, $scope.jsPlumbTransitions);
+                        }
                     }
-                    if (angular.isDefined($scope.jsPlumbCallback) && angular.isFunction($scope.jsPlumbCallback)) {
-                        $scope.jsPlumbCallback($scope.jsPlumb, $scope.jsPlumbNodes, $scope.jsPlumbNodesById, $scope.jsPlumbTransitions);
-                    }
+                    // Kick off the initial layout of elements in the container
+                    $timeout(go, timeout);
                 }
-                // Kick off the initial layout of elements in the container
-                $timeout(go, timeout);
-            }
-        };
-    }]);
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -2595,262 +2661,260 @@ var UI;
 var UI;
 (function (UI) {
     var objectView = UI._module.directive("hawtioObject", ["$templateCache", "$interpolate", "$compile", function ($templateCache, $interpolate, $compile) {
-        return {
-            restrict: "A",
-            replace: true,
-            templateUrl: UI.templatePath + "object.html",
-            scope: {
-                "entity": "=?hawtioObject",
-                "config": "=?",
-                "path": "=?",
-                "row": "=?"
-            },
-            link: function ($scope, $element, $attr) {
-                function interpolate(template, path, key, value) {
-                    var interpolateFunc = $interpolate(template);
-                    if (!key) {
-                        return interpolateFunc({
-                            data: value,
-                            path: path
-                        });
-                    }
-                    else {
-                        return interpolateFunc({
-                            key: key.titleize(),
-                            data: value,
-                            path: path
-                        });
-                    }
-                }
-                function getEntityConfig(path, config) {
-                    var answer = undefined;
-                    var properties = Core.pathGet(config, ['properties']);
-                    if (!answer && properties) {
-                        angular.forEach(properties, function (config, propertySelector) {
-                            var regex = new RegExp(propertySelector);
-                            if (regex.test(path)) {
-                                // log.debug("Matched selector: ", propertySelector, " for path: ", path);
-                                if (answer && !answer.override && !config.override) {
-                                    // log.debug("Merged config");
-                                    answer = _.merge(answer, config);
-                                }
-                                else {
-                                    // log.debug("Set config");
-                                    answer = _.clone(config, true);
-                                }
-                            }
-                        });
-                    }
-                    // log.debug("Answer for path: ", path, " : ", answer);
-                    return answer;
-                }
-                function getTemplate(path, config, def) {
-                    var answer = def;
-                    var config = getEntityConfig(path, config);
-                    if (config && config.template) {
-                        answer = config.template;
-                    }
-                    return answer;
-                }
-                function compile(template, path, key, value, config) {
-                    var config = getEntityConfig(path, config);
-                    if (config && config.hidden) {
-                        return;
-                    }
-                    var interpolated = null;
-                    // avoid interpolating custom templates
-                    if (config && config.template) {
-                        interpolated = config.template;
-                    }
-                    else {
-                        interpolated = interpolate(template, path, key, value);
-                    }
-                    var scope = $scope.$new();
-                    scope.row = $scope.row;
-                    scope.entityConfig = config;
-                    scope.data = value;
-                    scope.path = path;
-                    return $compile(interpolated)(scope);
-                }
-                function renderPrimitiveValue(path, entity, config) {
-                    var template = getTemplate(path, config, $templateCache.get('primitiveValueTemplate.html'));
-                    return compile(template, path, undefined, entity, config);
-                }
-                function renderDateValue(path, entity, config) {
-                    var template = getTemplate(path, config, $templateCache.get('dateValueTemplate.html'));
-                    return compile(template, path, undefined, entity, config);
-                }
-                function renderObjectValue(path, entity, config) {
-                    var isArray = false;
-                    var el = undefined;
-                    angular.forEach(entity, function (value, key) {
-                        if (angular.isNumber(key) && "length" in entity) {
-                            isArray = true;
-                        }
-                        if (isArray) {
-                            return;
-                        }
-                        if (key.startsWith("$")) {
-                            return;
-                        }
-                        if (!el) {
-                            el = angular.element('<span></span>');
-                        }
-                        if (angular.isArray(value)) {
-                            el.append(renderArrayAttribute(path + '/' + key, key, value, config));
-                        }
-                        else if (angular.isObject(value)) {
-                            if (_.size(value) === 0) {
-                                el.append(renderPrimitiveAttribute(path + '/' + key, key, 'empty', config));
-                            }
-                            else {
-                                el.append(renderObjectAttribute(path + '/' + key, key, value, config));
-                            }
-                        }
-                        else if (StringHelpers.isDate(value)) {
-                            el.append(renderDateAttribute(path + '/' + key, key, Date.create(value), config));
+            return {
+                restrict: "A",
+                replace: true,
+                templateUrl: UI.templatePath + "object.html",
+                scope: {
+                    "entity": "=?hawtioObject",
+                    "config": "=?",
+                    "path": "=?",
+                    "row": "=?"
+                },
+                link: function ($scope, $element, $attr) {
+                    function interpolate(template, path, key, value) {
+                        var interpolateFunc = $interpolate(template);
+                        if (!key) {
+                            return interpolateFunc({
+                                data: value,
+                                path: path
+                            });
                         }
                         else {
-                            el.append(renderPrimitiveAttribute(path + '/' + key, key, value, config));
+                            return interpolateFunc({
+                                key: key.titleize(),
+                                data: value,
+                                path: path
+                            });
                         }
-                    });
-                    if (el) {
-                        return el.children();
                     }
-                    else {
-                        return el;
-                    }
-                }
-                function getColumnHeaders(path, entity, config) {
-                    var answer = undefined;
-                    if (!entity) {
+                    function getEntityConfig(path, config) {
+                        var answer = undefined;
+                        var properties = Core.pathGet(config, ['properties']);
+                        if (!answer && properties) {
+                            angular.forEach(properties, function (config, propertySelector) {
+                                var regex = new RegExp(propertySelector);
+                                if (regex.test(path)) {
+                                    // log.debug("Matched selector: ", propertySelector, " for path: ", path);
+                                    if (answer && !answer.override && !config.override) {
+                                        // log.debug("Merged config");
+                                        answer = _.merge(answer, config);
+                                    }
+                                    else {
+                                        // log.debug("Set config");
+                                        answer = _.clone(config, true);
+                                    }
+                                }
+                            });
+                        }
+                        // log.debug("Answer for path: ", path, " : ", answer);
                         return answer;
                     }
-                    var hasPrimitive = false;
-                    entity.forEach(function (item) {
-                        if (!hasPrimitive && angular.isObject(item)) {
-                            if (!answer) {
-                                answer = [];
-                            }
-                            answer = _.keys(item).filter(function (key) {
-                                return !angular.isFunction(item[key]);
-                            }).filter(function (key) {
-                                var conf = getEntityConfig(path + '/' + key, config);
-                                if (conf && conf.hidden) {
-                                    return false;
-                                }
-                                return true;
-                            }).union(answer);
+                    function getTemplate(path, config, def) {
+                        var answer = def;
+                        var config = getEntityConfig(path, config);
+                        if (config && config.template) {
+                            answer = config.template;
+                        }
+                        return answer;
+                    }
+                    function compile(template, path, key, value, config) {
+                        var config = getEntityConfig(path, config);
+                        if (config && config.hidden) {
+                            return;
+                        }
+                        var interpolated = null;
+                        // avoid interpolating custom templates
+                        if (config && config.template) {
+                            interpolated = config.template;
                         }
                         else {
-                            answer = undefined;
-                            hasPrimitive = true;
+                            interpolated = interpolate(template, path, key, value);
                         }
-                    });
-                    if (answer) {
-                        answer = answer.exclude(function (item) {
-                            return ("" + item).startsWith('$');
-                        });
+                        var scope = $scope.$new();
+                        scope.row = $scope.row;
+                        scope.entityConfig = config;
+                        scope.data = value;
+                        scope.path = path;
+                        return $compile(interpolated)(scope);
                     }
-                    //log.debug("Column headers: ", answer);
-                    return answer;
-                }
-                function renderTable(template, path, key, value, headers, config) {
-                    var el = angular.element(interpolate(template, path, key, value));
-                    var thead = el.find('thead');
-                    var tbody = el.find('tbody');
-                    var headerTemplate = $templateCache.get('headerTemplate.html');
-                    var cellTemplate = $templateCache.get('cellTemplate.html');
-                    var rowTemplate = $templateCache.get('rowTemplate.html');
-                    var headerRow = angular.element(interpolate(rowTemplate, path, undefined, undefined));
-                    headers.forEach(function (header) {
-                        headerRow.append(interpolate(headerTemplate, path + '/' + header, header, undefined));
-                    });
-                    thead.append(headerRow);
-                    value.forEach(function (item, index) {
-                        var tr = angular.element(interpolate(rowTemplate, path + '/' + index, undefined, undefined));
-                        headers.forEach(function (header) {
-                            var td = angular.element(interpolate(cellTemplate, path + '/' + index + '/' + header, undefined, undefined));
-                            td.append(renderThing(path + '/' + index + '/' + header, item[header], config));
-                            tr.append(td);
-                        });
-                        tbody.append(tr);
-                    });
-                    return el;
-                }
-                function renderArrayValue(path, entity, config) {
-                    var headers = getColumnHeaders(path, entity, config);
-                    if (!headers) {
-                        var template = getTemplate(path, config, $templateCache.get('arrayValueListTemplate.html'));
+                    function renderPrimitiveValue(path, entity, config) {
+                        var template = getTemplate(path, config, $templateCache.get('primitiveValueTemplate.html'));
                         return compile(template, path, undefined, entity, config);
                     }
-                    else {
-                        var template = getTemplate(path, config, $templateCache.get('arrayValueTableTemplate.html'));
-                        return renderTable(template, path, undefined, entity, headers, config);
+                    function renderDateValue(path, entity, config) {
+                        var template = getTemplate(path, config, $templateCache.get('dateValueTemplate.html'));
+                        return compile(template, path, undefined, entity, config);
                     }
-                }
-                function renderPrimitiveAttribute(path, key, value, config) {
-                    var template = getTemplate(path, config, $templateCache.get('primitiveAttributeTemplate.html'));
-                    return compile(template, path, key, value, config);
-                }
-                function renderDateAttribute(path, key, value, config) {
-                    var template = getTemplate(path, config, $templateCache.get('dateAttributeTemplate.html'));
-                    return compile(template, path, key, value, config);
-                }
-                function renderObjectAttribute(path, key, value, config) {
-                    var template = getTemplate(path, config, $templateCache.get('objectAttributeTemplate.html'));
-                    return compile(template, path, key, value, config);
-                }
-                function renderArrayAttribute(path, key, value, config) {
-                    var headers = getColumnHeaders(path, value, config);
-                    if (!headers) {
-                        var template = getTemplate(path, config, $templateCache.get('arrayAttributeListTemplate.html'));
+                    function renderObjectValue(path, entity, config) {
+                        var isArray = false;
+                        var el = undefined;
+                        angular.forEach(entity, function (value, key) {
+                            if (angular.isNumber(key) && "length" in entity) {
+                                isArray = true;
+                            }
+                            if (isArray) {
+                                return;
+                            }
+                            if (key.startsWith("$")) {
+                                return;
+                            }
+                            if (!el) {
+                                el = angular.element('<span></span>');
+                            }
+                            if (angular.isArray(value)) {
+                                el.append(renderArrayAttribute(path + '/' + key, key, value, config));
+                            }
+                            else if (angular.isObject(value)) {
+                                if (_.size(value) === 0) {
+                                    el.append(renderPrimitiveAttribute(path + '/' + key, key, 'empty', config));
+                                }
+                                else {
+                                    el.append(renderObjectAttribute(path + '/' + key, key, value, config));
+                                }
+                            }
+                            else if (StringHelpers.isDate(value)) {
+                                el.append(renderDateAttribute(path + '/' + key, key, Date.create(value), config));
+                            }
+                            else {
+                                el.append(renderPrimitiveAttribute(path + '/' + key, key, value, config));
+                            }
+                        });
+                        if (el) {
+                            return el.children();
+                        }
+                        else {
+                            return el;
+                        }
+                    }
+                    function getColumnHeaders(path, entity, config) {
+                        var answer = undefined;
+                        if (!entity) {
+                            return answer;
+                        }
+                        var hasPrimitive = false;
+                        entity.forEach(function (item) {
+                            if (!hasPrimitive && angular.isObject(item)) {
+                                if (!answer) {
+                                    answer = [];
+                                }
+                                answer = _.keys(item).filter(function (key) {
+                                    return !angular.isFunction(item[key]);
+                                }).filter(function (key) {
+                                    var conf = getEntityConfig(path + '/' + key, config);
+                                    if (conf && conf.hidden) {
+                                        return false;
+                                    }
+                                    return true;
+                                }).union(answer);
+                            }
+                            else {
+                                answer = undefined;
+                                hasPrimitive = true;
+                            }
+                        });
+                        if (answer) {
+                            answer = answer.exclude(function (item) { return ("" + item).startsWith('$'); });
+                        }
+                        //log.debug("Column headers: ", answer);
+                        return answer;
+                    }
+                    function renderTable(template, path, key, value, headers, config) {
+                        var el = angular.element(interpolate(template, path, key, value));
+                        var thead = el.find('thead');
+                        var tbody = el.find('tbody');
+                        var headerTemplate = $templateCache.get('headerTemplate.html');
+                        var cellTemplate = $templateCache.get('cellTemplate.html');
+                        var rowTemplate = $templateCache.get('rowTemplate.html');
+                        var headerRow = angular.element(interpolate(rowTemplate, path, undefined, undefined));
+                        headers.forEach(function (header) {
+                            headerRow.append(interpolate(headerTemplate, path + '/' + header, header, undefined));
+                        });
+                        thead.append(headerRow);
+                        value.forEach(function (item, index) {
+                            var tr = angular.element(interpolate(rowTemplate, path + '/' + index, undefined, undefined));
+                            headers.forEach(function (header) {
+                                var td = angular.element(interpolate(cellTemplate, path + '/' + index + '/' + header, undefined, undefined));
+                                td.append(renderThing(path + '/' + index + '/' + header, item[header], config));
+                                tr.append(td);
+                            });
+                            tbody.append(tr);
+                        });
+                        return el;
+                    }
+                    function renderArrayValue(path, entity, config) {
+                        var headers = getColumnHeaders(path, entity, config);
+                        if (!headers) {
+                            var template = getTemplate(path, config, $templateCache.get('arrayValueListTemplate.html'));
+                            return compile(template, path, undefined, entity, config);
+                        }
+                        else {
+                            var template = getTemplate(path, config, $templateCache.get('arrayValueTableTemplate.html'));
+                            return renderTable(template, path, undefined, entity, headers, config);
+                        }
+                    }
+                    function renderPrimitiveAttribute(path, key, value, config) {
+                        var template = getTemplate(path, config, $templateCache.get('primitiveAttributeTemplate.html'));
                         return compile(template, path, key, value, config);
                     }
-                    else {
-                        var template = getTemplate(path, config, $templateCache.get('arrayAttributeTableTemplate.html'));
-                        return renderTable(template, path, key, value, headers, config);
+                    function renderDateAttribute(path, key, value, config) {
+                        var template = getTemplate(path, config, $templateCache.get('dateAttributeTemplate.html'));
+                        return compile(template, path, key, value, config);
                     }
+                    function renderObjectAttribute(path, key, value, config) {
+                        var template = getTemplate(path, config, $templateCache.get('objectAttributeTemplate.html'));
+                        return compile(template, path, key, value, config);
+                    }
+                    function renderArrayAttribute(path, key, value, config) {
+                        var headers = getColumnHeaders(path, value, config);
+                        if (!headers) {
+                            var template = getTemplate(path, config, $templateCache.get('arrayAttributeListTemplate.html'));
+                            return compile(template, path, key, value, config);
+                        }
+                        else {
+                            var template = getTemplate(path, config, $templateCache.get('arrayAttributeTableTemplate.html'));
+                            return renderTable(template, path, key, value, headers, config);
+                        }
+                    }
+                    function renderThing(path, entity, config) {
+                        if (angular.isArray(entity)) {
+                            return renderArrayValue(path, entity, config);
+                        }
+                        else if (angular.isObject(entity)) {
+                            return renderObjectValue(path, entity, config);
+                        }
+                        else if (StringHelpers.isDate(entity)) {
+                            return renderDateValue(path, Date.create(entity), config);
+                        }
+                        else {
+                            return renderPrimitiveValue(path, entity, config);
+                        }
+                    }
+                    $scope.$watch('entity', function (entity) {
+                        if (!entity) {
+                            $element.empty();
+                            return;
+                        }
+                        if (!$scope.path) {
+                            // log.debug("Setting entity: ", $scope.entity, " as the root element");
+                            $scope.path = "";
+                        }
+                        /*
+                        if (angular.isDefined($scope.$index)) {
+                          log.debug("$scope.$index: ", $scope.$index);
+                        }
+                        */
+                        if (!angular.isDefined($scope.row)) {
+                            // log.debug("Setting entity: ", entity);
+                            $scope.row = {
+                                entity: entity
+                            };
+                        }
+                        $element.html(renderThing($scope.path, entity, $scope.config));
+                    }, true);
                 }
-                function renderThing(path, entity, config) {
-                    if (angular.isArray(entity)) {
-                        return renderArrayValue(path, entity, config);
-                    }
-                    else if (angular.isObject(entity)) {
-                        return renderObjectValue(path, entity, config);
-                    }
-                    else if (StringHelpers.isDate(entity)) {
-                        return renderDateValue(path, Date.create(entity), config);
-                    }
-                    else {
-                        return renderPrimitiveValue(path, entity, config);
-                    }
-                }
-                $scope.$watch('entity', function (entity) {
-                    if (!entity) {
-                        $element.empty();
-                        return;
-                    }
-                    if (!$scope.path) {
-                        // log.debug("Setting entity: ", $scope.entity, " as the root element");
-                        $scope.path = "";
-                    }
-                    /*
-                    if (angular.isDefined($scope.$index)) {
-                      log.debug("$scope.$index: ", $scope.$index);
-                    }
-                    */
-                    if (!angular.isDefined($scope.row)) {
-                        // log.debug("Setting entity: ", entity);
-                        $scope.row = {
-                            entity: entity
-                        };
-                    }
-                    $element.html(renderThing($scope.path, entity, $scope.config));
-                }, true);
-            }
-        };
-    }]);
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -2871,82 +2935,82 @@ var UI;
                 header: '@'
             },
             controller: ["$scope", "$element", "$attrs", "$transclude", "$document", "$timeout", "$compile", "$templateCache", "$window", function ($scope, $element, $attrs, $transclude, $document, $timeout, $compile, $templateCache, $window) {
-                $scope.moving = false;
-                $transclude(function (clone) {
-                    $element.find(".pane-content").append(clone);
-                    if (Core.isBlank($scope.header)) {
-                        return;
-                    }
-                    var headerTemplate = $templateCache.get($scope.header);
-                    var wrapper = $element.find(".pane-header-wrapper");
-                    wrapper.html($compile(headerTemplate)($scope));
-                    $timeout(function () {
-                        $element.find(".pane-viewport").css("top", wrapper.height());
-                    }, 500);
-                });
-                $scope.setViewportTop = function () {
-                    var wrapper = $element.find(".pane-header-wrapper");
-                    $timeout(function () {
-                        $element.find(".pane-viewport").css("top", wrapper.height());
-                    }, 10);
-                };
-                $scope.setWidth = function (width) {
-                    if (width < 6) {
-                        return;
-                    }
-                    $element.width(width);
-                    $element.parent().css($scope.padding, $element.width() + "px");
-                    $scope.setViewportTop();
-                };
-                $scope.open = function () {
-                    $scope.setWidth($scope.width);
-                };
-                $scope.close = function () {
-                    $scope.width = $element.width();
-                    $scope.setWidth(6);
-                };
-                $scope.$on('pane.close', $scope.close);
-                $scope.$on('pane.open', $scope.open);
-                $scope.toggle = function () {
-                    if ($scope.moving) {
-                        return;
-                    }
-                    if ($element.width() > 6) {
-                        $scope.close();
-                    }
-                    else {
-                        $scope.open();
-                    }
-                };
-                $scope.startMoving = function ($event) {
-                    $event.stopPropagation();
-                    $event.preventDefault();
-                    $event.stopImmediatePropagation();
-                    $document.on("mouseup.hawtio-pane", function ($event) {
+                    $scope.moving = false;
+                    $transclude(function (clone) {
+                        $element.find(".pane-content").append(clone);
+                        if (Core.isBlank($scope.header)) {
+                            return;
+                        }
+                        var headerTemplate = $templateCache.get($scope.header);
+                        var wrapper = $element.find(".pane-header-wrapper");
+                        wrapper.html($compile(headerTemplate)($scope));
                         $timeout(function () {
-                            $scope.moving = false;
-                        }, 250);
-                        $event.stopPropagation();
-                        $event.preventDefault();
-                        $event.stopImmediatePropagation();
-                        $document.off(".hawtio-pane");
-                        Core.$apply($scope);
+                            $element.find(".pane-viewport").css("top", wrapper.height());
+                        }, 500);
                     });
-                    $document.on("mousemove.hawtio-pane", function ($event) {
-                        $scope.moving = true;
-                        $event.stopPropagation();
-                        $event.preventDefault();
-                        $event.stopImmediatePropagation();
-                        if ($scope.position === 'left') {
-                            $scope.setWidth($event.pageX + 2);
+                    $scope.setViewportTop = function () {
+                        var wrapper = $element.find(".pane-header-wrapper");
+                        $timeout(function () {
+                            $element.find(".pane-viewport").css("top", wrapper.height());
+                        }, 10);
+                    };
+                    $scope.setWidth = function (width) {
+                        if (width < 6) {
+                            return;
+                        }
+                        $element.width(width);
+                        $element.parent().css($scope.padding, $element.width() + "px");
+                        $scope.setViewportTop();
+                    };
+                    $scope.open = function () {
+                        $scope.setWidth($scope.width);
+                    };
+                    $scope.close = function () {
+                        $scope.width = $element.width();
+                        $scope.setWidth(6);
+                    };
+                    $scope.$on('pane.close', $scope.close);
+                    $scope.$on('pane.open', $scope.open);
+                    $scope.toggle = function () {
+                        if ($scope.moving) {
+                            return;
+                        }
+                        if ($element.width() > 6) {
+                            $scope.close();
                         }
                         else {
-                            $scope.setWidth($window.innerWidth - $event.pageX + 2);
+                            $scope.open();
                         }
-                        Core.$apply($scope);
-                    });
-                };
-            }],
+                    };
+                    $scope.startMoving = function ($event) {
+                        $event.stopPropagation();
+                        $event.preventDefault();
+                        $event.stopImmediatePropagation();
+                        $document.on("mouseup.hawtio-pane", function ($event) {
+                            $timeout(function () {
+                                $scope.moving = false;
+                            }, 250);
+                            $event.stopPropagation();
+                            $event.preventDefault();
+                            $event.stopImmediatePropagation();
+                            $document.off(".hawtio-pane");
+                            Core.$apply($scope);
+                        });
+                        $document.on("mousemove.hawtio-pane", function ($event) {
+                            $scope.moving = true;
+                            $event.stopPropagation();
+                            $event.preventDefault();
+                            $event.stopImmediatePropagation();
+                            if ($scope.position === 'left') {
+                                $scope.setWidth($event.pageX + 2);
+                            }
+                            else {
+                                $scope.setWidth($window.innerWidth - $event.pageX + 2);
+                            }
+                            Core.$apply($scope);
+                        });
+                    };
+                }],
             link: function ($scope, $element, $attr) {
                 var parent = $element.parent();
                 var position = "left";
@@ -3153,32 +3217,34 @@ var UI;
                 direction: '@',
                 top: '@',
                 height: '@',
-                title: '@'
+                title: '@',
+                close: '@'
             };
             this.controller = ["$scope", "$element", "$attrs", "$transclude", "$compile", function ($scope, $element, $attrs, $transclude, $compile) {
-                $scope.clone = null;
-                $transclude(function (clone) {
-                    $scope.clone = $(clone).filter('.dialog-body');
-                });
-                UI.observe($scope, $attrs, 'direction', 'right');
-                UI.observe($scope, $attrs, 'top', '10%', function (value) {
-                    $element.css('top', value);
-                });
-                UI.observe($scope, $attrs, 'height', '80%', function (value) {
-                    $element.css('height', value);
-                });
-                UI.observe($scope, $attrs, 'title', '');
-                $scope.$watch('show', function () {
-                    if ($scope.show) {
-                        $scope.body = $element.find('.slideout-body');
-                        $scope.body.html($compile($scope.clone.html())($scope.$parent));
-                    }
-                });
-                $scope.hidePanel = function ($event) {
-                    UI.log.debug("Event: ", $event);
-                    $scope.show = false;
-                };
-            }];
+                    $scope.clone = null;
+                    $transclude(function (clone) {
+                        $scope.clone = $(clone).filter('.dialog-body');
+                    });
+                    UI.observe($scope, $attrs, 'direction', 'right');
+                    UI.observe($scope, $attrs, 'top', '10%', function (value) {
+                        $element.css('top', value);
+                    });
+                    UI.observe($scope, $attrs, 'height', '80%', function (value) {
+                        $element.css('height', value);
+                    });
+                    UI.observe($scope, $attrs, 'title', '');
+                    UI.observe($scope, $attrs, 'close', 'true');
+                    $scope.$watch('show', function () {
+                        if ($scope.show) {
+                            $scope.body = $element.find('.slideout-body');
+                            $scope.body.html($compile($scope.clone.html())($scope.$parent));
+                        }
+                    });
+                    $scope.hidePanel = function ($event) {
+                        UI.log.debug("Event: ", $event);
+                        $scope.show = false;
+                    };
+                }];
             this.link = function ($scope, $element, $attrs) {
                 $scope.$watch('show', function () {
                     if ($scope.show) {
@@ -3286,168 +3352,168 @@ var UI;
 var UI;
 (function (UI) {
     UI.selectedTags = UI._module.filter('selectedTags', ['$rootScope', function ($rootScope) {
-        return function (items, property, selected) {
-            if (selected.length === 0) {
-                return items;
-            }
-            var answer = [];
-            _.forEach(items, function (item) {
-                var itemTags = $rootScope.$eval(property, item);
-                if (_.intersection(itemTags, selected).length === selected.length) {
-                    answer.push(item);
+            return function (items, property, selected) {
+                if (selected.length === 0) {
+                    return items;
                 }
-            });
-            return answer;
-        };
-    }]);
+                var answer = [];
+                _.forEach(items, function (item) {
+                    var itemTags = $rootScope.$eval(property, item);
+                    if (_.intersection(itemTags, selected).length === selected.length) {
+                        answer.push(item);
+                    }
+                });
+                return answer;
+            };
+        }]);
     UI.hawtioTagFilter = UI._module.directive("hawtioTagFilter", ['localStorage', '$location', function (localStorage, $location) {
-        return {
-            restrict: 'E',
-            replace: true,
-            templateUrl: UI.templatePath + 'tagFilter.html',
-            scope: {
-                selected: '=',
-                tags: '=?',
-                collection: '=',
-                collectionProperty: '@',
-                saveAs: '@'
-            },
-            link: function ($scope, $element, $attr) {
-                SelectionHelpers.decorate($scope);
-                // TODO
-                /*
-                if (!Core.isBlank($scope.saveAs)) {
-                  var search = $location.search();
-                  if ($scope.saveAs in search) {
-                    $scope.selected.add(angular.fromJson(search[$scope.saveAs]));
-                  } else if ($scope.saveAs in localStorage) {
-                    var val = localStorage[$scope.saveAs];
-                    if (val === 'undefined') {
-                      delete localStorage[$scope.saveAs];
-                    } else {
-                      $scope.selected.add(angular.fromJson(val));
-                    }
-                  }
-                }
-                */
-                function maybeFilterVisibleTags() {
-                    if ($scope.collection && $scope.collectionProperty) {
-                        if (!$scope.selected.length) {
-                            $scope.visibleTags = $scope.tags;
-                            $scope.filteredCollection = $scope.collection;
-                        }
-                        else {
-                            filterVisibleTags();
-                        }
-                        $scope.visibleTags = $scope.visibleTags.map(function (t) {
-                            return {
-                                id: t,
-                                count: $scope.filteredCollection.map(function (c) {
-                                    return c[$scope.collectionProperty];
-                                }).reduce(function (count, c) {
-                                    if (c.any(t)) {
-                                        return count + 1;
-                                    }
-                                    return count;
-                                }, 0)
-                            };
-                        });
-                    }
-                    else {
-                        $scope.visibleTags = $scope.tags;
-                    }
-                }
-                function filterVisibleTags() {
-                    $scope.filteredCollection = $scope.collection.filter(function (c) {
-                        return SelectionHelpers.filterByGroup($scope.selected, c[$scope.collectionProperty]);
-                    });
-                    $scope.visibleTags = [];
-                    $scope.filteredCollection.forEach(function (c) {
-                        $scope.visibleTags = $scope.visibleTags.union(c[$scope.collectionProperty]);
-                    });
-                }
-                $scope.$watchCollection('collection', function (collection) {
-                    var tagValues = _.union(_.map(collection, function (item) { return $scope.$eval($scope.collectionProperty, item); }));
-                    var tags = [];
-                    _.forEach(tagValues, function (values) {
-                        tags = _.union(tags, values);
-                    });
-                    //log.debug("tags: ", tags);
-                    $scope.tags = tags;
-                });
-                $scope.$watchCollection('tags', function (newValue, oldValue) {
-                    if (newValue !== oldValue) {
-                        SelectionHelpers.syncGroupSelection($scope.selected, $scope.tags);
-                        maybeFilterVisibleTags();
-                    }
-                });
-                $scope.$watchCollection('selected', function (selected) {
-                    $scope.selected = _.uniq(selected);
-                    //log.debug("newValue: ", $scope.selected);
-                    //TODO
+            return {
+                restrict: 'E',
+                replace: true,
+                templateUrl: UI.templatePath + 'tagFilter.html',
+                scope: {
+                    selected: '=',
+                    tags: '=?',
+                    collection: '=',
+                    collectionProperty: '@',
+                    saveAs: '@'
+                },
+                link: function ($scope, $element, $attr) {
+                    SelectionHelpers.decorate($scope);
+                    // TODO
                     /*
                     if (!Core.isBlank($scope.saveAs)) {
-                      var saveAs = angular.toJson($scope.selected);
-                      localStorage[$scope.saveAs] = saveAs;
-                      $location.replace().search($scope.saveAs, saveAs);
+                      var search = $location.search();
+                      if ($scope.saveAs in search) {
+                        $scope.selected.add(angular.fromJson(search[$scope.saveAs]));
+                      } else if ($scope.saveAs in localStorage) {
+                        var val = localStorage[$scope.saveAs];
+                        if (val === 'undefined') {
+                          delete localStorage[$scope.saveAs];
+                        } else {
+                          $scope.selected.add(angular.fromJson(val));
+                        }
+                      }
                     }
                     */
-                    maybeFilterVisibleTags();
-                });
-            }
-        };
-    }]);
+                    function maybeFilterVisibleTags() {
+                        if ($scope.collection && $scope.collectionProperty) {
+                            if (!$scope.selected.length) {
+                                $scope.visibleTags = $scope.tags;
+                                $scope.filteredCollection = $scope.collection;
+                            }
+                            else {
+                                filterVisibleTags();
+                            }
+                            $scope.visibleTags = $scope.visibleTags.map(function (t) {
+                                return {
+                                    id: t,
+                                    count: $scope.filteredCollection.map(function (c) {
+                                        return c[$scope.collectionProperty];
+                                    }).reduce(function (count, c) {
+                                        if (c.any(t)) {
+                                            return count + 1;
+                                        }
+                                        return count;
+                                    }, 0)
+                                };
+                            });
+                        }
+                        else {
+                            $scope.visibleTags = $scope.tags;
+                        }
+                    }
+                    function filterVisibleTags() {
+                        $scope.filteredCollection = $scope.collection.filter(function (c) {
+                            return SelectionHelpers.filterByGroup($scope.selected, c[$scope.collectionProperty]);
+                        });
+                        $scope.visibleTags = [];
+                        $scope.filteredCollection.forEach(function (c) {
+                            $scope.visibleTags = $scope.visibleTags.union(c[$scope.collectionProperty]);
+                        });
+                    }
+                    $scope.$watchCollection('collection', function (collection) {
+                        var tagValues = _.union(_.map(collection, function (item) { return $scope.$eval($scope.collectionProperty, item); }));
+                        var tags = [];
+                        _.forEach(tagValues, function (values) {
+                            tags = _.union(tags, values);
+                        });
+                        //log.debug("tags: ", tags);
+                        $scope.tags = tags;
+                    });
+                    $scope.$watchCollection('tags', function (newValue, oldValue) {
+                        if (newValue !== oldValue) {
+                            SelectionHelpers.syncGroupSelection($scope.selected, $scope.tags);
+                            maybeFilterVisibleTags();
+                        }
+                    });
+                    $scope.$watchCollection('selected', function (selected) {
+                        $scope.selected = _.uniq(selected);
+                        //log.debug("newValue: ", $scope.selected);
+                        //TODO
+                        /*
+                        if (!Core.isBlank($scope.saveAs)) {
+                          var saveAs = angular.toJson($scope.selected);
+                          localStorage[$scope.saveAs] = saveAs;
+                          $location.replace().search($scope.saveAs, saveAs);
+                        }
+                        */
+                        maybeFilterVisibleTags();
+                    });
+                }
+            };
+        }]);
 })(UI || (UI = {}));
 
 /// <reference path="uiPlugin.ts"/>
 var UI;
 (function (UI) {
     UI.hawtioTagList = UI._module.directive("hawtioTagList", ['$interpolate', '$compile', '$templateCache', function ($interpolate, $compile, $templateCache) {
-        return {
-            restrict: 'E',
-            replace: true,
-            templateUrl: UrlHelpers.join(UI.templatePath, 'tagList.html'),
-            scope: {
-                tags: '=',
-                remove: '=?',
-                selected: '=?'
-            },
-            link: function (scope, $element, attr) {
-                var tagBase = $templateCache.get('tagBase.html');
-                var tagRemove = $templateCache.get('tagRemove.html');
-                scope.addSelected = function (tag) {
-                    if (scope.selected) {
-                        scope.selected.push(tag);
-                    }
-                };
-                scope.isSelected = function (tag) {
-                    if (!scope.selected) {
-                        return 'badge-success';
-                    }
-                    return _.any(scope.selected, function (item) { return tag === item; }) ? 'badge-success' : '';
-                };
-                scope.removeTag = function (tag) {
-                    scope.tags.remove(tag);
-                };
-                scope.$watchCollection('tags', function (tags) {
-                    //log.debug("Collection changed: ", tags);
-                    var tmp = angular.element("<div></div>");
-                    tags.forEach(function (tag) {
-                        var func = $interpolate(tagBase);
-                        var el = angular.element(func({ tag: tag }));
-                        if (scope.remove) {
-                            el.append($interpolate(tagRemove)({ tag: tag }));
-                        }
+            return {
+                restrict: 'E',
+                replace: true,
+                templateUrl: UrlHelpers.join(UI.templatePath, 'tagList.html'),
+                scope: {
+                    tags: '=',
+                    remove: '=?',
+                    selected: '=?'
+                },
+                link: function (scope, $element, attr) {
+                    var tagBase = $templateCache.get('tagBase.html');
+                    var tagRemove = $templateCache.get('tagRemove.html');
+                    scope.addSelected = function (tag) {
                         if (scope.selected) {
-                            el.attr('ng-click', 'addSelected(\'' + tag + '\')');
+                            scope.selected.push(tag);
                         }
-                        tmp.append(el);
+                    };
+                    scope.isSelected = function (tag) {
+                        if (!scope.selected) {
+                            return 'badge-success';
+                        }
+                        return _.any(scope.selected, function (item) { return tag === item; }) ? 'badge-success' : '';
+                    };
+                    scope.removeTag = function (tag) {
+                        scope.tags.remove(tag);
+                    };
+                    scope.$watchCollection('tags', function (tags) {
+                        //log.debug("Collection changed: ", tags);
+                        var tmp = angular.element("<div></div>");
+                        tags.forEach(function (tag) {
+                            var func = $interpolate(tagBase);
+                            var el = angular.element(func({ tag: tag }));
+                            if (scope.remove) {
+                                el.append($interpolate(tagRemove)({ tag: tag }));
+                            }
+                            if (scope.selected) {
+                                el.attr('ng-click', 'addSelected(\'' + tag + '\')');
+                            }
+                            tmp.append(el);
+                        });
+                        $element.html($compile(tmp.children())(scope));
                     });
-                    $element.html($compile(tmp.children())(scope));
-                });
-            }
-        };
-    }]);
+                }
+            };
+        }]);
 })(UI || (UI = {}));
 
 /**
@@ -3543,58 +3609,58 @@ var UI;
                 getContents: '&'
             },
             controller: ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {
-                $scope.remaining = -1;
-                $scope.render = false;
-                $scope.chapters = [];
-                $scope.addChapter = function (item) {
-                    console.log("Adding: ", item);
-                    $scope.chapters.push(item);
-                    if (!angular.isDefined(item['text'])) {
-                        $scope.fetchItemContent(item);
-                    }
-                };
-                $scope.getTarget = function (id) {
-                    if (!id) {
-                        return '';
-                    }
-                    return id.replace(".", "_");
-                };
-                $scope.getFilename = function (href, ext) {
-                    var filename = href.split('/').last();
-                    if (ext && !filename.endsWith(ext)) {
-                        filename = filename + '.' + ext;
-                    }
-                    return filename;
-                };
-                $scope.$watch('remaining', function (newValue, oldValue) {
-                    if (newValue !== oldValue) {
-                        var renderIfPageLoadFails = false;
-                        if (newValue === 0 || renderIfPageLoadFails) {
-                            $scope.render = true;
+                    $scope.remaining = -1;
+                    $scope.render = false;
+                    $scope.chapters = [];
+                    $scope.addChapter = function (item) {
+                        console.log("Adding: ", item);
+                        $scope.chapters.push(item);
+                        if (!angular.isDefined(item['text'])) {
+                            $scope.fetchItemContent(item);
                         }
-                    }
-                });
-                $scope.fetchItemContent = function (item) {
-                    var me = $scope;
-                    $scope.$eval(function (parent) {
-                        parent.getContents({
-                            filename: item['filename'],
-                            cb: function (data) {
-                                if (data) {
-                                    if (item['filename'].endsWith(".md")) {
-                                        item['text'] = marked(data);
-                                    }
-                                    else {
-                                        item['text'] = data;
-                                    }
-                                    $scope.remaining--;
-                                    Core.$apply(me);
-                                }
+                    };
+                    $scope.getTarget = function (id) {
+                        if (!id) {
+                            return '';
+                        }
+                        return id.replace(".", "_");
+                    };
+                    $scope.getFilename = function (href, ext) {
+                        var filename = href.split('/').last();
+                        if (ext && !filename.endsWith(ext)) {
+                            filename = filename + '.' + ext;
+                        }
+                        return filename;
+                    };
+                    $scope.$watch('remaining', function (newValue, oldValue) {
+                        if (newValue !== oldValue) {
+                            var renderIfPageLoadFails = false;
+                            if (newValue === 0 || renderIfPageLoadFails) {
+                                $scope.render = true;
                             }
-                        });
+                        }
                     });
-                };
-            }],
+                    $scope.fetchItemContent = function (item) {
+                        var me = $scope;
+                        $scope.$eval(function (parent) {
+                            parent.getContents({
+                                filename: item['filename'],
+                                cb: function (data) {
+                                    if (data) {
+                                        if (item['filename'].endsWith(".md")) {
+                                            item['text'] = marked(data);
+                                        }
+                                        else {
+                                            item['text'] = data;
+                                        }
+                                        $scope.remaining--;
+                                        Core.$apply(me);
+                                    }
+                                }
+                            });
+                        });
+                    };
+                }],
             link: function ($scope, $element, $attrs) {
                 var offsetTop = 0;
                 var logbar = $('.logbar');
@@ -3848,6 +3914,43 @@ var UI;
     UI.HorizontalViewport = HorizontalViewport;
 })(UI || (UI = {}));
 
+/// <reference path="uiPlugin.ts"/>
+//
+var UI;
+(function (UI) {
+    UI._module.directive('hawtioWindowHeight', ['$window', function ($window) {
+            return {
+                restrict: 'A',
+                replace: false,
+                link: function (scope, element, attrs) {
+                    var viewportHeight = $window.innerHeight;
+                    function processElement(el) {
+                        var offset = el.offset();
+                        if (!offset) {
+                            return;
+                        }
+                        var top = offset.top;
+                        var height = viewportHeight - top;
+                        if (height > 0) {
+                            el.attr({
+                                'style': 'height: ' + height + 'px;'
+                            });
+                        }
+                    }
+                    function layout() {
+                        viewportHeight = $window.innerHeight;
+                        element.parents().each(function (index, el) {
+                            el = $(el);
+                            processElement(el);
+                        });
+                        processElement(element);
+                    }
+                    scope.$watch(_.debounce(layout, 1000, { trailing: true }));
+                }
+            };
+        }]);
+})(UI || (UI = {}));
+
 /**
  * @module UI
  */
@@ -3855,8 +3958,8 @@ var UI;
 var UI;
 (function (UI) {
     UI._module.directive('zeroClipboard', ["$parse", function ($parse) {
-        return UI.ZeroClipboardDirective($parse);
-    }]);
+            return UI.ZeroClipboardDirective($parse);
+        }]);
     function ZeroClipboardDirective($parse) {
         return {
             restrict: 'A',
@@ -3882,6 +3985,17 @@ var UI;
     UI.ZeroClipboardDirective = ZeroClipboardDirective;
 })(UI || (UI = {}));
 
+/// <reference path="../../includes.ts"/>
+var UIBootstrap;
+(function (UIBootstrap) {
+    var pluginName = "hawtio-ui-bootstrap";
+    angular.module(pluginName, ["ui.bootstrap"]);
+    hawtioPluginLoader.addModule(pluginName);
+    hawtioPluginLoader.addModule("hawtio-compat.transition");
+    hawtioPluginLoader.addModule("hawtio-compat.dialog");
+    hawtioPluginLoader.addModule("hawtio-compat.modal");
+})(UIBootstrap || (UIBootstrap = {}));
+
 angular.module("hawtio-ui-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("plugins/editor/html/editor.html","<div class=\"editor-autoresize\">\n  <textarea name=\"{{name}}\" ng-model=\"text\"></textarea>\n</div>\n");
 $templateCache.put("plugins/ui/html/breadcrumbs.html","<span class=\"hawtio-breadcrumb\">\n  <li ng-repeat=\"(level, config) in levels track by level\" ng-show=\"config\">\n    <div hawtio-drop-down=\"config\" process-submenus=\"false\"></div>\n  </li>\n</span>\n");
 $templateCache.put("plugins/ui/html/colorPicker.html","<div class=\"color-picker\">\n  <div class=\"wrapper\">\n    <div class=\"selected-color\" style=\"background-color: {{property}};\" ng-click=\"popout = !popout\"></div>\n  </div>\n  <div class=\"color-picker-popout\">\n    <table>\n      <tr>\n        <td ng-repeat=\"color in colorList\">\n          <div class=\"{{color.select}}\" style=\"background-color: {{color.color}};\"\n               ng-click=\"selectColor(color)\">\n          </div>\n        <td>\n        <td>\n          <i class=\"fa fa-remove clickable\" ng-click=\"popout = !popout\"></i>\n        </td>\n      </tr>\n    </table>\n  </div>\n</div>\n");
@@ -3898,7 +4012,7 @@ $templateCache.put("plugins/ui/html/list.html","<div>\n\n  <!-- begin cell templ
 $templateCache.put("plugins/ui/html/multiItemConfirmActionDialog.html","<div>\n  <form class=\"no-bottom-margin\">\n    <div class=\"modal-header\">\n      <span>{{options.title || \'Are you sure?\'}}</span>\n    </div>\n    <div class=\"modal-body\">\n      <p ng-show=\'options.action\'\n         ng-class=\'options.actionClass\'\n         ng-bind=\'options.action\'></p>\n      <ul>\n        <li ng-repeat=\"item in options.collection\" ng-bind=\"getName(item)\"></li>\n      </ul>\n      <p ng-show=\"options.custom\" \n         ng-class=\"options.customClass\" \n         ng-bind=\"options.custom\"></p>\n    </div>\n    <div class=\"modal-footer\">\n      <button class=\"btn\" \n              ng-class=\"options.okClass\" \n              ng-click=\"close(true)\">{{options.okText || \'Ok\'}}</button>\n      <button class=\"btn\" \n              ng-class=\"options.cancelClass\"\n              ng-click=\"close(false)\">{{options.cancelText || \'Cancel\'}}</button>\n    </div>\n  </form>\n</div>\n");
 $templateCache.put("plugins/ui/html/object.html","<div>\n  <script type=\"text/ng-template\" id=\"primitiveValueTemplate.html\">\n    <span ng-show=\"data\" object-path=\"{{path}}\">{{data}}</span>\n  </script>\n  <script type=\"text/ng-template\" id=\"arrayValueListTemplate.html\">\n    <ul class=\"zebra-list\" ng-show=\"data\" object-path=\"{{path}}\">\n      <li ng-repeat=\"item in data\">\n        <div hawtio-object=\"item\" config=\"config\" path=\"path\" row=\"row\"></div>\n      </li>\n    </ul>\n  </script>\n  <script type=\"text/ng-template\" id=\"arrayValueTableTemplate.html\">\n    <table class=\"table table-striped\" object-path=\"{{path}}\">\n      <thead>\n      </thead>\n      <tbody>\n      </tbody>\n    </table>\n  </script>\n  <script type=\"text/ng-template\" id=\"dateAttributeTemplate.html\">\n    <dl class=\"\" ng-show=\"data\" object-path=\"{{path}}\">\n      <dt>{{key}}</dt>\n      <dd ng-show=\"data && data.getTime() > 0\">{{data | date:\"EEEE, MMMM dd, yyyy \'at\' hh : mm : ss a Z\"}}</dd>\n      <dd ng-show=\"data && data.getTime() <= 0\"></dd>\n\n    </dl>\n  </script>\n  <script type=\"text/ng-template\" id=\"dateValueTemplate.html\">\n    <span ng-show=\"data\">\n      <span ng-show=\"data && data.getTime() > 0\" object-path=\"{{path}}\">{{data | date:\"EEEE, MMMM dd, yyyy \'at\' hh : mm : ss a Z\"}}</span>\n      <span ng-show=\"data && data.getTime() <= 0\" object-path=\"{{path}}\"></span>\n    </span>\n  </script>\n  <script type=\"text/ng-template\" id=\"primitiveAttributeTemplate.html\">\n    <dl class=\"\" ng-show=\"data\" object-path=\"{{path}}\">\n      <dt>{{key}}</dt>\n      <dd>{{data}}</dd>\n    </dl>\n  </script>\n  <script type=\"text/ng-template\" id=\"objectAttributeTemplate.html\">\n    <dl class=\"\" ng-show=\"data\" object-path=\"{{path}}\">\n      <dt>{{key}}</dt>\n      <dd>\n        <div hawtio-object=\"data\" config=\"config\" path=\"path\" row=\"row\"></div>\n      </dd>\n    </dl>\n  </script>\n  <script type=\"text/ng-template\" id=\"arrayAttributeListTemplate.html\">\n    <dl class=\"\" ng-show=\"data\" object-path=\"{{path}}\">\n      <dt>{{key}}</dt>\n      <dd>\n        <ul class=\"zebra-list\">\n          <li ng-repeat=\"item in data\" ng-init=\"path = path + \'/\' + $index\">\n            <div hawtio-object=\"item\" config=\"config\" path=\"path\" row=\"row\"></div>\n          </li>\n        </ul>\n      </dd>\n    </dl>\n  </script>\n  <script type=\"text/ng-template\" id=\"arrayAttributeTableTemplate.html\">\n    <dl class=\"\" ng-show=\"data\" object-path=\"{{path}}\">\n      <dt>{{key}}</dt>\n      <dd>\n        <table class=\"table table-striped\">\n          <thead>\n          </thead>\n          <tbody>\n          </tbody>\n        </table>\n      </dd>\n    </dl>\n  </script>\n  <script type=\"text/ng-template\" id=\"headerTemplate.html\">\n    <th object-path=\"{{path}}\">{{key}}</th>\n  </script>\n  <script type=\"text/ng-template\" id=\"rowTemplate.html\">\n    <tr object-path=\"{{path}}\"></tr>\n  </script>\n  <script type=\"text/ng-template\" id=\"cellTemplate.html\">\n    <td object-path=\"{{path}}\"></td>\n  </script>\n</div>\n");
 $templateCache.put("plugins/ui/html/pane.html","<div class=\"pane\">\n  <div class=\"pane-wrapper\">\n    <div class=\"pane-header-wrapper\">\n    </div>\n    <div class=\"pane-viewport\">\n      <div class=\"pane-content\">\n      </div>\n    </div>\n    <div class=\"pane-bar\"\n         ng-mousedown=\"startMoving($event)\"\n         ng-click=\"toggle()\"></div>\n  </div>\n</div>\n");
-$templateCache.put("plugins/ui/html/slideout.html","<div class=\"slideout {{direction || \'right\'}}\">\n  <div class=slideout-title>\n    <div class=\"mouse-pointer pull-right\" ng-click=\"hidePanel($event)\" title=\"Close panel\">\n      <i class=\"fa fa-remove\"></i>\n    </div>\n    <span>{{title}}</span>\n  </div>\n  <div class=\"slideout-content\">\n    <div class=\"slideout-body\"></div>\n  </div>\n</div>\n");
+$templateCache.put("plugins/ui/html/slideout.html","<div class=\"slideout {{direction || \'right\'}}\">\n  <div class=slideout-title>\n    <div ng-show=\"{{close || \'true\'}}\" class=\"mouse-pointer pull-right\" ng-click=\"hidePanel($event)\" title=\"Close panel\">\n      <i class=\"fa fa-remove\"></i>\n    </div>\n    <span>{{title}}</span>\n  </div>\n  <div class=\"slideout-content\">\n    <div class=\"slideout-body\"></div>\n  </div>\n</div>\n");
 $templateCache.put("plugins/ui/html/tablePager.html","<div class=\"hawtio-pager clearfix\">\n  <label>{{rowIndex() + 1}} / {{tableLength()}}</label>\n  <div class=btn-group>\n    <button class=\"btn\" ng-disabled=\"isEmptyOrFirst()\" ng-click=\"first()\"><i class=\"fa fa-fast-backward\"></i></button>\n    <button class=\"btn\" ng-disabled=\"isEmptyOrFirst()\" ng-click=\"previous()\"><i class=\"fa fa-step-backward\"></i></button>\n    <button class=\"btn\" ng-disabled=\"isEmptyOrLast()\" ng-click=\"next()\"><i class=\"fa fa-step-forward\"></i></button>\n    <button class=\"btn\" ng-disabled=\"isEmptyOrLast()\" ng-click=\"last()\"><i class=\"fa fa-fast-forward\"></i></button>\n  </div>\n</div>\n");
 $templateCache.put("plugins/ui/html/tagFilter.html","<div>\n  <ul class=\"list-unstyled label-list\">\n    <li ng-repeat=\"tag in visibleTags | orderBy:\'tag.id || tag\'\"\n        class=\"mouse-pointer\"\n        ng-click=\"toggleSelectionFromGroup(selected, tag.id || tag)\">\n              <span class=\"badge\"\n                    ng-class=\"isInGroup(selected, tag.id || tag, \'badge-success\', \'\')\"\n                      >{{tag.id || tag}}</span>\n              <span class=\"pull-right\"\n                    ng-show=\"tag.count\">{{tag.count}}&nbsp;</span>\n    </li>\n  </ul>\n  <div class=\"mouse-pointer\"\n       ng-show=\"selected.length\"\n       ng-click=\"clearGroup(selected)\">\n    <i class=\"fa fa-remove\" ></i> Clear Tags\n  </div>\n</div>\n");
 $templateCache.put("plugins/ui/html/tagList.html","<span>\n<script type=\"text/ng-template\" id=\"tagBase.html\">\n  <span class=\"badge mouse-pointer\" ng-class=\"isSelected(\'{{tag}}\')\">{{tag}}</span>\n</script>\n<script type=\"text/ng-template\" id=\"tagRemove.html\">\n  <i class=\"fa fa-remove\" ng-click=\"removeTag({{tag}})\"></i>\n</script>\n</span>\n");

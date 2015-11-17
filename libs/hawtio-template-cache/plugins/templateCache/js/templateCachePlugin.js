@@ -4,7 +4,7 @@ var templateCache;
   templateCache._module = angular.module(templateCache.pluginName, []);
 
   templateCache._module.config(['$provide', function($provide) {
-    
+
     // extend template cache a bit so we can avoid fetching templates from the
     // server
     $provide.decorator('$templateCache', ['$delegate', function($delegate) {
@@ -41,7 +41,7 @@ var templateCache;
     // extend templateRequest so we can prevent it from requesting templates, as
     // we have 'em all in $templateCache
     $provide.decorator('$templateRequest', ['$rootScope', '$timeout', '$q', '$templateCache', '$delegate', function($rootScope, $timeout, $q, $templateCache, $delegate) {
-      return function(url, ignore) {
+      var fn = function(url, ignore) {
         var log = Logger.get('$templateRequest');
         //log.debug("request for template at: ", url);
         var answer = $templateCache.get(url);
@@ -70,6 +70,8 @@ var templateCache;
           return deferred.promise;
         }
       };
+      fn.totalPendingRequests = 0;
+      return fn;
     }]);
   }]);
 

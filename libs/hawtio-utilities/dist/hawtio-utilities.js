@@ -20,9 +20,7 @@ var StringHelpers;
             // return null so we don't show any old random non-string thing
             return null;
         }
-        return str.chars().map(function (c) {
-            return '*';
-        }).join('');
+        return str.chars().map(function (c) { return '*'; }).join('');
     }
     StringHelpers.obfusicate = obfusicate;
     /**
@@ -95,9 +93,7 @@ var ArrayHelpers;
         if (index === void 0) { index = 'id'; }
         var oldLength = collection.length;
         collection.remove(function (item) {
-            return !newCollection.any(function (c) {
-                return c[index] === item[index];
-            });
+            return !newCollection.any(function (c) { return c[index] === item[index]; });
         });
         return collection.length !== oldLength;
     }
@@ -111,9 +107,7 @@ var ArrayHelpers;
         var answer = removeElements(collection, newCollection, index);
         if (newCollection) {
             newCollection.forEach(function (item) {
-                var oldItem = collection.find(function (c) {
-                    return c[index] === item[index];
-                });
+                var oldItem = collection.find(function (c) { return c[index] === item[index]; });
                 if (!oldItem) {
                     answer = true;
                     collection.push(item);
@@ -335,7 +329,7 @@ var Core;
         // Add any other known possible jolokia URLs here
         jolokiaUrls = [
             Core.url("jolokia"),
-            "/jolokia"
+            "/jolokia" // instance that's already installed in a karaf container for example
         ];
         return jolokiaUrls;
     }
@@ -842,22 +836,22 @@ var HawtioCompile;
         log.debug("loaded");
     });
     HawtioCompile._module.directive('compile', ['$compile', function ($compile) {
-        return function (scope, element, attrs) {
-            scope.$watch(function (scope) {
-                // watch the 'compile' expression for changes
-                return scope.$eval(attrs.compile);
-            }, function (value) {
-                // when the 'compile' expression changes
-                // assign it into the current DOM
-                element.html(value);
-                // compile the new DOM and link it to the current
-                // scope.
-                // NOTE: we only compile .childNodes so that
-                // we don't get into infinite loop compiling ourselves
-                $compile(element.contents())(scope);
-            });
-        };
-    }]);
+            return function (scope, element, attrs) {
+                scope.$watch(function (scope) {
+                    // watch the 'compile' expression for changes
+                    return scope.$eval(attrs.compile);
+                }, function (value) {
+                    // when the 'compile' expression changes
+                    // assign it into the current DOM
+                    element.html(value);
+                    // compile the new DOM and link it to the current
+                    // scope.
+                    // NOTE: we only compile .childNodes so that
+                    // we don't get into infinite loop compiling ourselves
+                    $compile(element.contents())(scope);
+                });
+            };
+        }]);
     hawtioPluginLoader.addModule(pluginName);
 })(HawtioCompile || (HawtioCompile = {}));
 
@@ -951,11 +945,10 @@ var ControllerHelpers;
     ControllerHelpers.reloadWhenParametersChange = reloadWhenParametersChange;
 })(ControllerHelpers || (ControllerHelpers = {}));
 
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 /// <reference path="includes.ts"/>
 var Core;
@@ -1097,11 +1090,11 @@ var Core;
     Core.lineCount = lineCount;
     function safeNull(value) {
         if (typeof value === 'boolean') {
-            return value;
+            return value + '';
         }
         else if (typeof value === 'number') {
             // return numbers as-is
-            return value;
+            return value + '';
         }
         if (value) {
             return value;
@@ -1429,6 +1422,7 @@ var Core;
                         localStorage.setItem('jvmConnect', angular.toJson(jvmConnect));
                         localStorage.removeItem('activemqUserName');
                         localStorage.removeItem('activemqPassword');
+                        // TODO, more feedback
                         switch (xhr.status) {
                             case 401:
                                 Core.log.debug('Failed to log out, ', error);
@@ -1437,6 +1431,7 @@ var Core;
                                 Core.log.debug('Failed to log out, ', error);
                                 break;
                             case 0:
+                                // this may happen during onbeforeunload -> logout, when XHR is cancelled
                                 break;
                             default:
                                 Core.log.debug('Failed to log out, ', error);
@@ -1580,9 +1575,7 @@ var Core;
     function createResponseKey(arguments) {
         var answer = '';
         if (angular.isArray(arguments)) {
-            answer = arguments.map(function (arg) {
-                return keyForArgument(arg);
-            }).join(':');
+            answer = arguments.map(function (arg) { return keyForArgument(arg); }).join(':');
         }
         else {
             answer = keyForArgument(arguments);
@@ -1795,7 +1788,9 @@ var Core;
             var silent = options['silent'];
             if (!silent) {
                 var operation = Core.pathGet(response, ['request', 'operation']) || "unknown";
-                if (stacktrace.indexOf("javax.management.InstanceNotFoundException") >= 0 || stacktrace.indexOf("javax.management.AttributeNotFoundException") >= 0 || stacktrace.indexOf("java.lang.IllegalArgumentException: No operation") >= 0) {
+                if (stacktrace.indexOf("javax.management.InstanceNotFoundException") >= 0 ||
+                    stacktrace.indexOf("javax.management.AttributeNotFoundException") >= 0 ||
+                    stacktrace.indexOf("java.lang.IllegalArgumentException: No operation") >= 0) {
                     // ignore these errors as they can happen on timing issues
                     // such as its been removed
                     // or if we run against older containers
@@ -1934,7 +1929,8 @@ var Core;
         if (maxDigitsBetweenDots === void 0) { maxDigitsBetweenDots = 4; }
         return (version || "").split(".").map(function (x) {
             var length = x.length;
-            return (length >= maxDigitsBetweenDots) ? x : x.padLeft(' ', maxDigitsBetweenDots - length);
+            return (length >= maxDigitsBetweenDots)
+                ? x : x.padLeft(' ', maxDigitsBetweenDots - length);
         }).join(".");
     }
     Core.versionToSortableString = versionToSortableString;
@@ -2191,6 +2187,8 @@ var Core;
         else {
             parts = url.split(host);
         }
+        // make sure we use port as a number
+        var portNum = Core.parseIntValue(port);
         var path = parts[1];
         if (path && path.startsWith('/')) {
             path = path.slice(1, path.length);
@@ -2199,7 +2197,7 @@ var Core;
         return {
             scheme: scheme,
             host: host,
-            port: port,
+            port: portNum,
             path: path
         };
     }
@@ -2312,9 +2310,7 @@ var Core;
     /**
      * handy do nothing converter for the below function
      **/
-    function doNothing(value) {
-        return value;
-    }
+    function doNothing(value) { return value; }
     Core.doNothing = doNothing;
     // moved these into their own helper file
     Core.bindModelToSearchParam = ControllerHelpers.bindModelToSearchParam;
@@ -2474,9 +2470,7 @@ var Core;
     Core.getRegexs = getRegexs;
     function removeRegex(name) {
         var regexs = Core.getRegexs();
-        var hasFunc = function (r) {
-            return r['name'] === name;
-        };
+        var hasFunc = function (r) { return r['name'] === name; };
         if (regexs.any(hasFunc)) {
             regexs = regexs.exclude(hasFunc);
             Core.writeRegexs(regexs);
@@ -2575,20 +2569,20 @@ var EventServices;
         return Core.postLogoutTasks;
     });
     _module.run(['$rootScope', 'locationChangeStartTasks', 'postLoginTasks', 'preLogoutTasks', 'postLogoutTasks', function ($rootScope, locationChangeStartTasks, postLoginTasks, preLogoutTasks, postLogoutTasks) {
-        preLogoutTasks.addTask("ResetPreLogoutTasks", function () {
-            preLogoutTasks.reset();
-        });
-        preLogoutTasks.addTask("ResetPostLoginTasks", function () {
-            preLogoutTasks.reset();
-        });
-        postLoginTasks.addTask("ResetPostLogoutTasks", function () {
-            postLogoutTasks.reset();
-        });
-        $rootScope.$on('$locationChangeStart', function ($event, newUrl, oldUrl) {
-            locationChangeStartTasks.execute($event, newUrl, oldUrl);
-        });
-        log.debug("loaded");
-    }]);
+            preLogoutTasks.addTask("ResetPreLogoutTasks", function () {
+                preLogoutTasks.reset();
+            });
+            preLogoutTasks.addTask("ResetPostLoginTasks", function () {
+                preLogoutTasks.reset();
+            });
+            postLoginTasks.addTask("ResetPostLogoutTasks", function () {
+                postLogoutTasks.reset();
+            });
+            $rootScope.$on('$locationChangeStart', function ($event, newUrl, oldUrl) {
+                locationChangeStartTasks.execute($event, newUrl, oldUrl);
+            });
+            log.debug("loaded");
+        }]);
     hawtioPluginLoader.addModule(pluginName);
 })(EventServices || (EventServices = {}));
 
@@ -2638,9 +2632,7 @@ var FilterHelpers;
         if (maxDepth === void 0) { maxDepth = -1; }
         if (and === void 0) { and = true; }
         var f = filter.split(" ");
-        var matches = f.filter(function (f) {
-            return searchObject(object, f, maxDepth);
-        });
+        var matches = f.filter(function (f) { return searchObject(object, f, maxDepth); });
         if (and) {
             return matches.length === f.length;
         }
@@ -2845,20 +2837,27 @@ var PollHelpers;
             $timeout = HawtioCore.injector.get('$timeout');
         }
         if (!jolokia) {
-            jolokia = HawtioCore.injector.get('jolokia');
+            try {
+                jolokia = HawtioCore.injector.get('jolokia');
+            }
+            catch (err) {
+            }
         }
         var promise = undefined;
         var name = $scope.name || 'anonymous scope';
         var refreshFunction = function () {
             // log.debug("polling for scope: ", name);
             updateFunction(function () {
-                var keenPollingFn = $scope.$keepPolling;
-                if (!angular.isFunction(keenPollingFn)) {
-                    keenPollingFn = function () {
-                        return !jolokia || jolokia.isRunning();
+                var keepPollingFn = $scope.$keepPolling;
+                if (!angular.isFunction(keepPollingFn)) {
+                    keepPollingFn = function () {
+                        if (!jolokia) {
+                            return true;
+                        }
+                        return jolokia.isRunning();
                     };
                 }
-                if (keenPollingFn() && $scope.$hasPoller) {
+                if (keepPollingFn() && $scope.$hasPoller) {
                     promise = $timeout(refreshFunction, period);
                 }
             });
@@ -2900,14 +2899,10 @@ var Core;
             var converter = _default['converter'];
             var formatter = _default['formatter'];
             if (!formatter) {
-                formatter = function (value) {
-                    return value;
-                };
+                formatter = function (value) { return value; };
             }
             if (!converter) {
-                converter = function (value) {
-                    return value;
-                };
+                converter = function (value) { return value; };
             }
             if (key in localStorage) {
                 var value = converter(localStorage[key]);
@@ -2967,9 +2962,7 @@ var SelectionHelpers;
     var log = Logger.get("SelectionHelpers");
     // these functions deal with adding/using a 'selected' item on a group of objects
     function selectNone(group) {
-        group.forEach(function (item) {
-            item['selected'] = false;
-        });
+        group.forEach(function (item) { item['selected'] = false; });
     }
     SelectionHelpers.selectNone = selectNone;
     function selectAll(group, filter) {
@@ -3000,9 +2993,7 @@ var SelectionHelpers;
                 return selection[index] === item[index];
             });
         });
-        return group.filter(function (item) {
-            return item['selected'];
-        });
+        return group.filter(function (item) { return item['selected']; });
     }
     SelectionHelpers.sync = sync;
     function select(group, item, $event) {

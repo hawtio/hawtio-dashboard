@@ -29,7 +29,7 @@ gulp.task('clean-defs', function() {
 });
 
 gulp.task('bower', function() {
-  gulp.src('index.html')
+  return gulp.src('index.html')
     .pipe(wiredep({}))
     .pipe(gulp.dest('.'));
 });
