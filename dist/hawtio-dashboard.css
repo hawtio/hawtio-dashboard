@@ -1,4 +1,8 @@
 
+.gridster > * {
+  margin: inherit;
+}
+
 .gridster ul#widgets {
   list-style-type: none;
 }

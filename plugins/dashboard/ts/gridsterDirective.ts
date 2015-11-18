@@ -257,7 +257,27 @@ module Dashboard {
                 widget.size_y = 1;
               }
               var tmpModuleName = 'dashboard-' + widget.id;
-              var tmpModule = angular.module(tmpModuleName, modules);
+              var plugins = _.filter(hawtioPluginLoader.getModules(), (module) => angular.isString(module));
+              var tmpModule = angular.module(tmpModuleName, plugins);
+
+              function getServices(module:string, answer?:any) {
+                if (!answer) {
+                  answer = <any>{};
+                }
+                _.forEach(angular.module(module).requires, (m) => getServices(m, answer));
+                _.forEach((<any>angular.module(module))._invokeQueue, (a) => {
+                  try {
+                    answer[a[2][0]] = HawtioCore.injector.get(a[2][0]);
+                  } catch (err) {
+                    //nothing to do
+                  }
+                });
+                return answer;
+              };
+              var services = {};
+              _.forEach(plugins, (plugin:string) => plugin ? getServices(plugin, services) : console.log("null plugin name"));
+              //log.debug("services: ", services);
+
               tmpModule.config(['$provide', ($provide) => {
                 $provide.decorator('HawtioDashboard', ['$delegate', '$rootScope', ($delegate, $rootScope) => {
                   $delegate.inDashboard = true;
@@ -277,6 +297,23 @@ module Dashboard {
                   //log.debug("Using $routeParams: ", search);
                   return search;
                 }]);
+                _.forIn(services, (service, name) => {
+                  switch(name) {
+                    case '$location':
+                    case '$route':
+                    case '$routeParams':
+                    case 'HawtioDashboard':
+                      return;
+                  }
+                  //log.debug("name: ", name, " service: ", service);
+                  try {
+                    $provide.decorator(name, ['$delegate', ($delegate) => {
+                      return service;
+                    }]);
+                  } catch (err) {
+                    // ignore, this'll happen for constants and stuff
+                  }
+                });
               }]);
               tmpModule.controller('HawtioDashboard.Title', ["$scope", "$modal", ($scope, $modal) => {
                 $scope.widget = widget;
