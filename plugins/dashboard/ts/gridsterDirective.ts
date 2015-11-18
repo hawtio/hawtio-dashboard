@@ -307,7 +307,8 @@ module Dashboard {
                   }
                   //log.debug("name: ", name, " service: ", service);
                   try {
-                    $provide.decorator(name, ['$delegate', ($delegate) => {
+                    $provide.decorator(name, [() => {
+                      console.log("Returning existing service for: ", name);
                       return service;
                     }]);
                   } catch (err) {
