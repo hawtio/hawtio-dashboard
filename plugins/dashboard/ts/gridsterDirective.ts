@@ -33,20 +33,24 @@ module Dashboard {
       var dashboardRepository:DashboardRepository = $scope.$eval('dashboardRepository') || dashboardRepository;
 
       $scope.$on('$destroy', () => {
-        angular.forEach(widgetMap, (value, key) => {
-          if ('scope' in value) {
-            var scope = value['scope'];
+        angular.forEach(widgetMap, (widget, key) => {
+          if ('scope' in widget) {
+            var scope = widget['scope'];
             scope.$destroy();
           }
+          destroyWidget(widget);
         });
+      });
+
+      $element.on('$destroy', () => {
+        $scope.$destroy();
       });
 
       setTimeout(updateWidgets, 10);
 
-      function removeWidget(widget) {
+      function destroyWidget(widget) {
         var gridster = getGridster();
         var widgetElem = null;
-
         // lets destroy the widgets's scope
         var widgetData = widgetMap[widget.id];
         if (widgetData) {
@@ -58,8 +62,20 @@ module Dashboard {
           widgetElem = $element.find("[data-widgetId='" + widget.id + "']").parent();
         }
         if (gridster && widgetElem) {
-          gridster.remove_widget(widgetElem);
+          try {
+            gridster.remove_widget(widgetElem);
+          } catch (err) {
+            // nothing to do, we'll destroy the element below
+          }
         }
+        if (widgetElem) {
+          log.debug("Removing widget: ", widget.id);
+          widgetElem.remove();
+        }
+      }
+
+      function removeWidget(widget) {
+        destroyWidget(widget);
         // lets trash the JSON metadata
         if ($scope.dashboard) {
           var widgets = $scope.dashboard.widgets;
@@ -67,7 +83,6 @@ module Dashboard {
             widgets.remove(widget);
           }
         }
-
         updateDashboardRepository("Removed widget " + widget.title);
       };
 
