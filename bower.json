@@ -5,10 +5,9 @@
     "hawtio"
   ],
   "main": [
-    "dist/jquery.gridster.css",
+    "dist/hawtio-dashboard.css",
     "dist/jquery.gridster.js",
-    "dist/hawtio-dashboard.js",
-    "dist/hawtio-dashboard.css"
+    "dist/hawtio-dashboard.js"
   ],
   "ignore": [
     "dist/hawtio-dashboard-test.js",

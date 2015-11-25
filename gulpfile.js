@@ -19,7 +19,7 @@ var config = {
   main: '.',
   ts: ['plugins/**/*.ts'],
   testTs: ['test-plugins/**/*.ts'],
-  less: './less/**/*.less',
+  less: ['plugins/**/*.less'],
   templates: ['plugins/**/*.html'],
   testTemplates: ['test-plugins/**/*.html'],
   templateModule: pkg.name + '-templates',
@@ -141,26 +141,14 @@ gulp.task('tsc', ['clean-defs'], function() {
         }));
 });
 
-/*
-gulp.task('tslint', function(){
-  gulp.src(config.ts)
-    .pipe(tslint(config.tsLintOptions))
-    .pipe(tslint.report('verbose'));
-});
-
-gulp.task('tslint-watch', function(){
-  gulp.src(config.ts)
-    .pipe(tslint(config.tsLintOptions))
-    .pipe(tslint.report('prose', {
-      emitError: false
-    }));
-});
-
-*/
 gulp.task('less', function () {
   return gulp.src(config.less)
     .pipe(plugins.less({
       paths: [ path.join(__dirname, 'less', 'includes') ]
+    }))
+    .on('error', plugins.notify.onError({
+      message: '<%= error.message %>',
+      title: 'less file compilation error'
     }))
     .pipe(plugins.concat(config.css))
     .pipe(gulp.dest('./dist'));
@@ -194,7 +182,13 @@ gulp.task('clean', ['concat'], function() {
     .pipe(plugins.clean());
 });
 
-gulp.task('watch', ['build', 'build-example'], function() {
+gulp.task('watch-less', function() {
+  plugins.watch(config.less, function() {
+    gulp.start('less');
+  });
+});
+
+gulp.task('watch', ['build', 'build-example', 'watch-less'], function() {
   plugins.watch(['libs/**/*.js', 'libs/**/*.css', 'index.html', config.dist + '/' + '*'], function() {
     gulp.start('reload');
   });
@@ -203,9 +197,6 @@ gulp.task('watch', ['build', 'build-example'], function() {
   });
   plugins.watch([config.testTs, config.testTemplates], function() {
     gulp.start([ 'example-template', 'example-concat', 'example-clean']);
-  });
-  plugins.watch(config.less, function(){
-    gulp.start('less', 'reload');
   });
 });
 
