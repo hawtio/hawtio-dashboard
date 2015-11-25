@@ -14,6 +14,7 @@ var config = {
   main: '.',
   ts: ['plugins/**/*.ts'],
   testTs: ['test-plugins/**/*.ts'],
+  less: ['plugins/**/*.less'],
   templates: ['plugins/**/*.html'],
   testTemplates: ['test-plugins/**/*.html'],
   templateModule: pkg.name + '-templates',
@@ -21,6 +22,7 @@ var config = {
   dist: './dist/',
   js: pkg.name + '.js',
   testJs: pkg.name + '-test.js',
+  css: pkg.name + '.css',
   tsProject: plugins.typescript.createProject({
     target: 'ES5',
     module: 'commonjs',
@@ -120,6 +122,19 @@ gulp.task('tsc', ['clean-defs'], function() {
         }));
 });
 
+gulp.task('less', function () {
+  return gulp.src(config.less)
+    .pipe(plugins.less({
+      paths: [ path.join(__dirname, 'less', 'includes') ]
+    }))
+    .on('error', plugins.notify.onError({
+      message: '<%= error.message %>',
+      title: 'less file compilation error'
+    }))
+    .pipe(plugins.concat(config.css))
+    .pipe(gulp.dest('./dist'));
+});
+
 gulp.task('template', ['tsc'], function() {
   return gulp.src(config.templates)
     .pipe(plugins.angularTemplatecache({
@@ -143,7 +158,13 @@ gulp.task('clean', ['concat'], function() {
     .pipe(plugins.clean());
 });
 
-gulp.task('watch', ['build', 'build-example'], function() {
+gulp.task('watch-less', function() {
+  plugins.watch(config.less, function() {
+    gulp.start('less');
+  });
+});
+
+gulp.task('watch', ['build', 'build-example', 'watch-less'], function() {
   plugins.watch(['libs/**/*.js', 'libs/**/*.css', 'index.html', config.dist + '/*'], function() {
     gulp.start('reload');
   });
@@ -204,7 +225,7 @@ gulp.task('deploy', ['build', 'build-example', 'site'], function() {
 });
 
 
-gulp.task('build', ['bower', 'path-adjust', 'tsc', 'template', 'concat', 'clean']);
+gulp.task('build', ['bower', 'path-adjust', 'tsc', 'less', 'template', 'concat', 'clean']);
 gulp.task('build-example', ['example-tsc', 'example-template', 'example-concat', 'example-clean']);
 
 gulp.task('default', ['connect']);

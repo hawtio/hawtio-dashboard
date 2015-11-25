@@ -1,34 +1,66 @@
+.modal-body .form-group {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* forms stuff */
+div.hawtio-form-tabs div.tab-content {
+  padding-top: 15px;
+  padding: 10px;
+}
+.hawtio-form fieldset legend {
+  margin-bottom: 0;
+  border-bottom: none;
+  font-size: 15px;
+}
+.spacer {
+  display: inline-block;
+  margin-bottom: 10px;
+}
+div.hawtio-form-tabs ul.nav-tabs {
+  margin-bottom: 0px !important;
+}
+div.hawtio-form-tabs ul.nav-tabs li {
+  margin-bottom: -1px !important;
+}
+div.hawtio-form-tabs ul.nav-tabs li.active:first-child {
+  margin-left: 0px;
+}
+div.hawtio-form-tabs ul.nav-tabs li.active {
+  margin-right: 1px;
+  margin-left: 2px;
+  box-shadow: 0 -10px 10px -10px rgba(0, 0, 0, 0.1) !important;
+}
+div.hawtio-form-tabs ul.nav-tabs li.active a {
+  font-weight: bold;
+}
+/* end forms stuff */
+
 .hawtio-form-2 .inline-array .form-control[disabled],
-.hawtio-form-2 .inline-array .table-control[disabled],
+.hawtio-form-2 .inline-array .table-control[disabled] {
+  border: none;
+  background: inherit;
+  color: #333;
+}
+.hawtio-form-2 table .help-block {
+  display: none;
+}
+.hawtio-form-2 .form-map-value .inline-array table {
+  border: 1px solid #d4d4d4;
+  margin-bottom: auto;
+}
+.hawtio-form-2 legend {
+  border: none;
+}
+.hawtio-form-2 .clearfix {
+  padding: 0;
+}
 .hawtio-form-2-unwrapped .form-control[disabled],
 .hawtio-form-2-unwrapped .table-control[disabled] {
   border: none;
   background: inherit;
   color: #333;
 }
-
 .hawtio-form-2-unwrapped .form-group {
   margin: auto;
-}
-
-.hawtio-form-2 table .help-block {
-  display: none;
-}
-
-.hawtio-form-2 .form-map-value .inline-array table {
-  border: 1px solid #d4d4d4;
-  margin-bottom: auto;
-}
-
-.hawtio-form-2 legend {
-  border: none;
-}
-
-.modal-body .form-group {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.hawtio-form-2 .clearfix {
-  padding: 0;
 }
