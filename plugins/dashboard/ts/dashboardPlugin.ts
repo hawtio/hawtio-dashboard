@@ -5,9 +5,6 @@
 /// <reference path="dashboardHelpers.ts"/>
 module Dashboard {
   
-  export var templatePath = 'plugins/dashboard/html/';
-  export var pluginName = 'dashboard';
-  
   export var _module = angular.module(pluginName, []);
 
   _module.config(["$routeProvider", "$provide", ($routeProvider, $provide) => {
@@ -56,61 +53,33 @@ module Dashboard {
     }
   });
 
-  var tab = undefined;
-
-  export function setSubTabs(builder, dashboards:Array<Dashboard>, $rootScope) {
-    log.debug("Updating sub-tabs");
-    if (!tab.tabs) {
-      tab.tabs = [];
-    } else {
-      tab.tabs.length = 0;
+  _module.factory('HawtioDashboardTab', ['HawtioNav', 'HawtioDashboard', '$timeout', '$rootScope', 'dashboardRepository', (nav:HawtioMainNav.Registry, dash:DashboardService, $timeout, $rootScope, dashboards:DashboardRepository) => {
+    var tab = <any> {
+      embedded: true
+    };
+    if (dash.inDashboard) {
+      log.debug("Embedded in a dashboard, not initializing our navigation tab");
+      return tab;
     }
-    _.forEach(dashboards, (dashboard) => {
-      var child = builder
-        .id('dashboard-' + dashboard.id)
-        .title(() => dashboard.title || dashboard.id)
-        .href(() => {
-          var uri = new URI(UrlHelpers.join('/dashboard/id', dashboard.id))
-            uri.search({
-              'main-tab': pluginName,
-              'sub-tab': 'dashboard-' + dashboard.id
-            });
-          return uri.toString();
-        })
-      .build();
-      tab.tabs.push(child);
-    });
-    var manage = builder
-      .id('dashboard-manage')
-      .title(() => '<i class="fa fa-pencil"></i>&nbsp;Manage')
-      .href(() => '/dashboard/edit?main-tab=dashboard&sub-tab=dashboard-manage')
-      .build();
-    tab.tabs.push(manage);
-    tab.tabs.forEach((tab) => {
-      tab.isSelected = () => {
-        var id = tab.id.replace('dashboard-', '');
-        var uri = new URI();
-        return uri.query(true)['sub-tab'] === tab.id || _.endsWith(uri.path(), id);
-      }
-    });
-    Core.$apply($rootScope);
-  }
-
-  _module.run(["HawtioNav", "dashboardRepository", "$rootScope", "HawtioDashboard", "$timeout", (nav:HawtioMainNav.Registry, dashboards:DashboardRepository, $rootScope, dash:DashboardService, $timeout) => {
     // special case here, we don't want to overwrite our stored tab!
-    if (!dash.inDashboard) {
-      var builder = nav.builder();
-      tab = builder.id(pluginName)
-        .href(() => '/dashboard/idx/0')
-        .title(() => 'Dashboard')
-        .build();
-      nav.add(tab);
-      $timeout(() => {
-        dashboards.getDashboards((dashboards) => {
-          setSubTabs(builder, dashboards, $rootScope);
-        });
-      }, 500);
-    }
+    var builder = nav.builder();
+    tab = builder.id(pluginName)
+      .href(() => '/dashboard/idx/0')
+      .title(() => 'Dashboard')
+      .build();
+    nav.add(tab);
+    setTimeout(() => {
+      log.debug("Setting up dashboard sub-tabs");
+      dashboards.getDashboards((dashboards) => {
+        setSubTabs(tab, builder, dashboards, $rootScope);
+      });
+    }, 500);
+    log.debug("Not embedded in a dashboard, returning proper tab");
+    return tab;
+  }]);
+
+  _module.run(["HawtioDashboardTab", (HawtioDashboardTab) => {
+    log.debug("running");
   }]);
 
   hawtioPluginLoader.addModule(pluginName);

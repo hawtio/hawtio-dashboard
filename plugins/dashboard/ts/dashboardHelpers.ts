@@ -4,6 +4,9 @@
  * @module Dashboard
  */
 module Dashboard {
+  
+  export var templatePath = 'plugins/dashboard/html/';
+  export var pluginName = 'dashboard';
 
   export var log:Logging.Logger = Logger.get('Dashboard');
 
@@ -46,5 +49,94 @@ module Dashboard {
 
   export function onOperationComplete(result) {
     console.log("Completed adding the dashboard with response " + JSON.stringify(result));
+  }
+
+  export function setSubTabs(tab:any, builder, dashboards:Array<Dashboard>, $rootScope) {
+    if (!tab || tab.embedded) {
+      return;
+    } 
+    log.debug("Updating sub-tabs");
+    if (!tab.tabs) {
+      tab.tabs = [];
+    } else {
+      tab.tabs.length = 0;
+    }
+    log.debug("tab: ", tab);
+    log.debug("dashboards: ", dashboards);
+    _.forEach(dashboards, (dashboard) => {
+      var child = builder
+        .id('dashboard-' + dashboard.id)
+        .title(() => dashboard.title || dashboard.id)
+        .href(() => {
+          var uri = new URI(UrlHelpers.join('/dashboard/id', dashboard.id))
+            uri.search({
+              'main-tab': pluginName,
+              'sub-tab': 'dashboard-' + dashboard.id
+            });
+          return uri.toString();
+        })
+      .build();
+      tab.tabs.push(child);
+    });
+    var manage = builder
+      .id('dashboard-manage')
+      .title(() => '<i class="fa fa-pencil"></i>&nbsp;Manage')
+      .href(() => '/dashboard/edit?main-tab=dashboard&sub-tab=dashboard-manage')
+      .build();
+    tab.tabs.push(manage);
+    tab.tabs.forEach((tab) => {
+      tab.isSelected = () => {
+        var id = tab.id.replace('dashboard-', '');
+        var uri = new URI();
+        return uri.query(true)['sub-tab'] === tab.id || _.endsWith(uri.path(), id);
+      }
+    });
+    Core.$apply($rootScope);
+  }
+
+
+  export function getDummyBuilder() {
+    var self = {
+      id: () => self,
+      defaultPage: () => self,
+      rank: () => self,
+      reload: () => self,
+      page: () => self,
+      title: () => self,
+      tooltip: () => self,
+      context: () => self,
+      attributes: () => self,
+      linkAttributes: () => self,
+      href: () => self,
+      click: () => self,
+      isValid: () => self,
+      show: () => self,
+      isSelected: () => self,
+      template: () => self,
+      tabs: () => self,
+      subPath: () => self,
+      build: () => {}
+    }
+    return self;
+  }
+
+  export function getDummyBuilderFactory() {
+    return {
+      create: () => getDummyBuilder(),
+      join: () => '',
+      configureRouting: () => {}
+    }
+  }
+
+  export function getDummyHawtioNav() {
+    var nav = {
+      builder: () => getDummyBuilder(),
+      add: () => {},
+      remove: () => [],
+      iterate: () => null,
+      on: () => undefined,
+      selected: () => undefined
+    }
+    return nav;
   }
 }

@@ -4,7 +4,7 @@
  */
 module Dashboard {
 
-  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal) => {
+  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", "HawtioDashboardTabs", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal, tab) => {
 
     $scope._dashboards = [];
 
@@ -281,7 +281,7 @@ module Dashboard {
             dashboardRepository.putDashboards([newDash], "Created new dashboard: " + title, (dashboards) => {
               // let's just be safe and ensure there's no selections
               deselectAll();
-              setSubTabs(nav.builder(), dashboards, $rootScope);
+              setSubTabs(tab, nav.builder(), dashboards, $rootScope);
               dashboardLoaded(null, dashboards);
             });
           }
@@ -320,7 +320,7 @@ module Dashboard {
 
       commitMessage = commitMessage + newDashboards.map((d) => { return d.title }).join(',');
       dashboardRepository.putDashboards(newDashboards, commitMessage, (dashboards) => {
-        setSubTabs(nav.builder(), dashboards, $rootScope);
+        setSubTabs(tab, nav.builder(), dashboards, $rootScope);
         dashboardLoaded(null, dashboards);
       });
     };
@@ -345,7 +345,7 @@ module Dashboard {
               dashboardRepository.putDashboards([$scope.selected], 'renamed dashboard', (dashboards) => {
                 // let's just be safe and ensure there's no selections
                 deselectAll();
-                setSubTabs(nav.builder(), dashboards, $rootScope);
+                setSubTabs(tab, nav.builder(), dashboards, $rootScope);
                 dashboardLoaded(null, dashboards);
               });
             }
@@ -369,7 +369,7 @@ module Dashboard {
               dashboardRepository.deleteDashboards($scope.selected, (dashboards) => {
                 // let's just be safe and ensure there's no selections
                 deselectAll();
-                setSubTabs(nav.builder(), dashboards, $rootScope);
+                setSubTabs(tab, nav.builder(), dashboards, $rootScope);
                 dashboardLoaded(null, dashboards);
               });
             }

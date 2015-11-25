@@ -318,16 +318,55 @@ module Dashboard {
                     case '$route':
                     case '$routeParams':
                     case 'HawtioDashboard':
-                      return;
-                  }
-                  //log.debug("name: ", name, " service: ", service);
-                  try {
-                    $provide.decorator(name, [() => {
-                      log.debug("Returning existing service for: ", name);
-                      return service;
-                    }]);
-                  } catch (err) {
-                    // ignore, this'll happen for constants and stuff
+                      break;
+                    case 'dashboardRepository':
+                      try {
+                        $provide.decorator(name, [() => {
+                          return [];
+                        }]);
+                      } catch (err) {
+
+                      }
+                      break;
+                    case 'HawtioDashboardTab':
+                      try {
+                        $provide.decorator(name, [() => {
+                          return { embedded: true };
+                        }]);
+                      } catch (err) {
+
+                      }
+                      break;
+                    case 'BuilderFactoryProvider':
+                      try {
+                        $provide.decorator(name, [() => {
+                          return getDummyBuilderFactory();
+                        }]);
+                      } catch (err) {
+
+                      }
+                    case 'HawtioNav':
+                      break;
+                      try {
+                        $provide.decorator(name, [() => {
+                          return getDummyHawtioNav();
+                        }]);
+                      } catch (err) {
+                        // nothing to do
+                      }
+                    default:
+                      //log.debug("name: ", name, " service: ", service);
+                      if (_.startsWith(name, '$')) {
+                        return;
+                      }
+                      try {
+                        $provide.decorator(name, [() => {
+                          log.debug("Returning existing service for: ", name);
+                          return service;
+                        }]);
+                      } catch (err) {
+                        // ignore, this'll happen for constants and stuff
+                      }
                   }
                 });
               }]);
