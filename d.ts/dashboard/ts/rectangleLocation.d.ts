@@ -13,7 +13,7 @@ declare module Dashboard {
         path(newPath?: string): any;
         port(): number;
         protocol(): number;
-        replace(): RectangleLocation;
+        replace(): this;
         search(parametersMap?: any): any;
         url(newValue?: string): any;
     }
