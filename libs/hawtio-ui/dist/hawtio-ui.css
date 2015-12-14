@@ -1,3 +1,91 @@
+.health-displays .health-display,
+.column-box,
+.column-box-variable,
+.column-box-square,
+.column-box-half-screen {
+  position: relative;
+  display: inline-block;
+  width: 300px;
+  height: 300px;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 10px;
+  overflow: hidden;
+  vertical-align: top;
+}
+.health-displays .health-display > div,
+.column-box > div,
+.column-box-variable > div,
+.column-box-square > div,
+.column-box-half-screen > div {
+  position: relative;
+  height: 100%;
+  margin: 10px;
+}
+.health-displays .health-display h3,
+.column-box h3,
+.column-box-variable h3,
+.column-box-square h3,
+.column-box-half-screen h3 {
+  text-overflow: ellipsis;
+  line-height: normal;
+  margin-bottom: 0;
+}
+.health-displays .health-display .file-icon > *,
+.column-box .file-icon > *,
+.column-box-variable .file-icon > *,
+.column-box-square .file-icon > *,
+.column-box-half-screen .file-icon > * {
+  width: 100%;
+  height: auto;
+}
+.column-box {
+  height: auto;
+  min-height: 175px;
+  width: 500px;
+}
+.column-box-half-screen {
+  width: 50%;
+  min-width: auto;
+  height: auto;
+}
+.column-box-square {
+  height: 32px;
+  width: 32px;
+  line-height: 28px;
+  vertical-align: middle;
+  text-align: center;
+}
+.column-box-square > i {
+  font-size: 24px;
+  height: 24px;
+  vertical-align: middle;
+}
+.column-box-variable {
+  height: auto;
+  min-height: 175px;
+  width: auto;
+  min-width: 175px;
+  max-width: 500px;
+}
+.column-box-variable > h3 {
+  margin-bottom: 0;
+}
+.column-box-selected .column-box-header {
+  font-size: 150%;
+  font-weight: bold;
+}
+.column-box-icons > .span1 {
+  text-align: center;
+  vertical-align: middle;
+  width: 32px;
+}
+.column-box-icons i,
+.column-box-icons img {
+  font-size: 32px;
+  width: 32px;
+}
+
 /* fonts */
 /*
 @import url("./fonts/Open-Sans/stylesheet.css");
@@ -1265,15 +1353,6 @@ ol.zebra-list > li:before {
   margin-top: 1em;
   margin-bottom: 1em;
 }
-.tree-header .section-filter .search-query,
-.section-filter .search-query {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.tree-header .section-filter .search-query {
-  padding: 0;
-  min-width: 0;
-}
 .search-query.has-text {
   background: #55ddff;
   color: #333333;
@@ -1358,107 +1437,6 @@ small table tbody tr td.property-name {
 li.attr-column {
   width: 1em;
 }
-#widgets li div div div div form fieldset div input {
-  display: none;
-}
-#widgets li div div div div div#attributesGrid div div div div.ngHeaderCell {
-  border: none;
-}
-#widgets li div div div div div#attributesGrid div div div div.ngCell {
-  border: none;
-}
-#widgets li div div div div div#attributesGrid div.ngTopPanel {
-  border: none;
-}
-#widgets li div div div div div#attributesGrid div.ngTopPanel div.ngGroupPanel {
-  border: none;
-}
-#widgets li div div div div div#attributesGrid div.ngFooterPanel {
-  border: none;
-  display: none;
-}
-/* osgi page stuff */
-.ACTIVE:before {
-  font-family: FontAwesome;
-  content: "\f087";
-  font-style: normal;
-  color: #777777;
-}
-.RESOLVED:before {
-  font-family: FontAwesome;
-  content: "\f0ad";
-  font-style: normal;
-}
-.STARTING:before {
-  font-family: FontAwesome;
-  content: "\f021";
-  font-style: normal;
-}
-.STARTING {
-  -moz-animation: spin 2s infinite linear;
-  -o-animation: spin 2s infinite linear;
-  -webkit-animation: spin 2s infinite linear;
-  animation: spin 2s infinite linear;
-}
-.STOPPING:before {
-  font-family: FontAwesome;
-  content: "\f021";
-  font-style: normal;
-}
-.STOPPING {
-  -moz-animation: spin 2s infinite linear;
-  -o-animation: spin 2s infinite linear;
-  -webkit-animation: spin 2s infinite linear;
-  animation: spin 2s infinite linear;
-}
-.UNINSTALLED:before {
-  font-family: FontAwesome;
-  content: "\f014";
-  font-style: normal;
-}
-.INSTALLED:before {
-  font-family: FontAwesome;
-  content: "\f06b";
-  font-style: normal;
-}
-/* end osgi page stuff */
-/*
-.table-bordered {
-  border: none;
-  border-radius: 0px;
-}
-
-.table-bordered thead:first-child tr:first-child th:first-child,
-.table-bordered tbody:first-child tr:first-child td:first-child {
-  border-radius: 0px;
-  border-left: none;
-}
-
-.table-bordered th,
-.table-bordered td {
-  border-left: none;
-  border-top: none;
-}
-
-.table-bordered th:last-child,
-.table-bordered td:last-child {
-  border-left: none;
-  border-top: none;
-  border-right: none;
-}
-
-table.table thead .sorting {
-  background: inherit;
-}
-
-table.table thead .sorting_asc:after {
-  background: url('../img/datatable/sort_asc.png') no-repeat top center;
-}
-
-table.table thead .sorting_desc:after {
-  background: url('../img/datatable/sort_desc.png') no-repeat top center;
-}
-*/
 .navbar-fixed-top {
   margin-bottom: 0px;
 }
@@ -1550,81 +1528,6 @@ td.details {
 input[type="checkbox"].hawtio-checkbox {
   margin-top: 10px;
 }
-/* more osgi stuff */
-.bundle-list {
-  width: 100%;
-}
-.bundle-item {
-  position: relative;
-  display: inline-block;
-  width: 300px;
-  margin-bottom: 1px;
-}
-.bundle-item-details table {
-  min-height: 0;
-}
-.bundle-item-details {
-  height: 0;
-  display: inline-block;
-  z-index: 15;
-}
-.bundle-item > a {
-  display: block;
-  z-index: 5;
-}
-.bundle-item > a:hover {
-  text-decoration: none;
-}
-.bundle-item a span {
-  display: block;
-  padding: 8px;
-  font-weight: normal;
-  z-index: 6;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-.bundle-item a span.badge {
-  margin-left: 7px;
-}
-.bundle-item a span.badge::before {
-  padding: 0px;
-  float: left;
-  position: relative;
-  top: 4px;
-  left: -8px;
-  display: block;
-  content: ' ';
-  height: 6px;
-  width: 6px;
-  z-index: 10;
-}
-.bundle-item a.toggle-action {
-  position: absolute;
-  display: block;
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-  right: 12px;
-  top: 6px;
-  opacity: 0.2;
-  transition: all 500ms ease-in-out;
-  font-size: 18px;
-}
-.bundle-item a.toggle-action .icon-power-off {
-  color: orange;
-}
-.bundle-item a.toggle-action .icon-play-circle {
-  color: green;
-}
-.bundle-item a.toggle-action:hover {
-  opacity: 1;
-  text-decoration: none;
-}
-.bundle-list {
-  margin-bottom: 2em;
-}
-/* end more osgi stuff */
 li.stacktrace {
   line-height: 10px;
 }
@@ -1675,7 +1578,6 @@ li.stacktrace {
   min-height: 30px;
   width: 160px;
 }
-/* end fabric view stuff */
 /** highlight required fields which have no focus */
 input.ng-invalid,
 textarea.ng-invalid,
@@ -1690,37 +1592,6 @@ input[type="checkbox"].ng-invalid {
   -webkit-box-shadow: 0 0 12px #e5e971;
   -moz-box-shadow: 0 0 12px #e5e971;
   box-shadow: 0 0 12px #e5e971;
-}
-/** dashboard */
-.dashboard-link-row {
-  width: 100%;
-  position: relative;
-}
-a.dashboard-link {
-  line-height: 15px;
-  font-weight: normal;
-}
-a.dashboard-link:hover {
-  text-decoration: none;
-}
-.dashboard-link {
-  position: absolute;
-  top: 15px;
-  right: 76px;
-  z-index: 500;
-}
-.widget-title > .row-fluid {
-  position: relative;
-}
-.widget-title > .row-fluid > .pull-left {
-  position: absolute;
-  right: 16px;
-  left: 0;
-}
-.widget-title > .row-fluid > .pull-left > .ep > div {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 @media (max-width: 979px) {
   .navbar-fixed-top .navbar-inner,
@@ -1782,13 +1653,6 @@ input.ng-invalid-pattern:focus {
 .table-header.desc > .indicator:after {
   content: "\f078";
 }
-.camel-tree > ul.nav {
-  margin-bottom: 3px !important;
-}
-.camel-tree > .section-filter {
-  margin: 0 0 8px;
-  display: block;
-}
 .table > thead > tr > th {
   white-space: nowrap;
   overflow: hidden;
@@ -1802,32 +1666,6 @@ th > .indicator:before {
 .ngCellText .icon-replication-controller {
   width: 32px;
 }
-/* osgi page stuff */
-.repository-browser-toolbar > .btn {
-  margin-bottom: 10px;
-}
-.bundle-list-toolbar {
-  vertical-align: top;
-}
-.bundle-list-toolbar > .pull-left > *,
-.bundle-list-toolbar > .pull-right > * {
-  display: inline-block;
-}
-.bundle-list-toolbar > div > input,
-.bundle-list-toolbar > div > div > input {
-  margin-bottom: 10px;
-}
-.bundle-list-toolbar > div > label,
-.bundle-list-toolbar > div > strong {
-  position: relative;
-  top: -3px;
-}
-.bundle-list-toolbar > div > .input-append {
-  position: relative;
-  left: 3px;
-  top: -9px;
-}
-/* osgi page stuff */
 .connect-column {
   display: inline-block;
   vertical-align: top;
@@ -2068,45 +1906,6 @@ img.nodeIcon:hover {
   height: auto;
   width: 16px;
 }
-.tree-header > .left,
-.tree-header > .right {
-  position: absolute;
-  top: 3px;
-  bottom: 6px;
-  vertical-align: middle;
-  line-height: 10px;
-}
-.tree-header > .left {
-  left: 0;
-}
-.tree-header > .right {
-  right: 10px;
-}
-.camel.tree-header {
-  height: 42px;
-}
-.camel.tree-header > .left {
-  right: 94px;
-}
-.camel.tree-header > .left,
-.camel.tree-header > .right {
-  top: 6px;
-  line-height: 30px;
-}
-.camel.tree-header > .left > .section-filter {
-  width: 100%;
-}
-.camel.tree-header > .left > .section-filter > .search-query {
-  width: 100%;
-  margin-bottom: 10px;
-}
-.camel.tree-header > .left > .section-filter > .icon-remove {
-  right: -16px;
-}
-.attributes-wrapper {
-  width: 100%;
-  overflow: auto;
-}
 .separator {
   padding-top: 4px;
   display: inline-block;
@@ -2124,15 +1923,6 @@ img.nodeIcon:hover {
 }
 .dataTables_filter input {
   border-radius: 15px;
-}
-.config-admin-form .form-horizontal .control-label {
-  width: 260px;
-}
-.config-admin-form .form-horizontal .controls {
-  margin-left: 280px;
-}
-.new-config-name-form {
-  margin-top: 30px;
 }
 .td-fixed-width-150 {
   white-space: normal;

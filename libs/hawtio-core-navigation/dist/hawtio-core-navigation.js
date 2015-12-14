@@ -657,7 +657,7 @@ var HawtioMainNav;
         var href = new URI(tmpLink[0].href);
         var itemPath = trimLeading(href.path(), '/');
         if (itemPath === '') {
-          log.debug("nav item: ", item.id, " returning empty href, can't be selected");
+          // log.debug("nav item: ", item.id, " returning empty href, can't be selected");
           return false;
         }
         var current = new URI();

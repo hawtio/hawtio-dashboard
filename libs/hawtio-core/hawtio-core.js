@@ -374,20 +374,35 @@ var hawtioPluginLoader = (function(self) {
       var executedTasks = [];
       var deferredTasks = [];
 
-      self.registerPreBootstrapTask({
+      var bootstrapTask = {
         name: 'Hawtio Bootstrap',
         depends: '*',
-        task: function() {
-          if (deferredTasks.length > 0) {
-            self.log.debug("Orphaned tasks: ");
+        runs: 0,
+        task: function(next) {
+          function listTasks() {
             deferredTasks.forEach(function(task) {
-              self.log.debug("  name: " + task.name + " depends: ", task.depends);
+              self.log.info("  name: " + task.name + " depends: ", task.depends);
             });
           }
+          if (deferredTasks.length > 0) {
+            self.log.info("tasks yet to run: ");
+            listTasks();
+            bootstrapTask.runs = bootstrapTask.runs + 1;
+            self.log.info("Task list restarted : ", bootstrapTask.runs, " times");
+            if (bootstrapTask.runs === 5) {
+              self.log.info("Orphaned tasks: ");
+              listTasks();
+              deferredTasks.length = 0;
+            } else {
+              deferredTasks.push(bootstrapTask);
+            }
+          }
           self.log.debug("Executed tasks: ", executedTasks);
-          callback(); 
+          next();
         }
-      });
+      }
+
+      self.registerPreBootstrapTask(bootstrapTask);
 
       var executeTask = function() {
         var tObj = null;
@@ -454,6 +469,7 @@ var hawtioPluginLoader = (function(self) {
           });
         } else {
           self.log.debug("All tasks executed");
+          setTimeout(callback, 1);
         }
       };
       setTimeout(executeTask, 1);
@@ -631,7 +647,7 @@ var HawtioCore;
       } else {
         log.warn("Document is missing a 'base' tag, defaulting to '/'");
       }
-      log.debug("Document base: ", answer);
+      //log.debug("Document base: ", answer);
       return answer;
     }
 
