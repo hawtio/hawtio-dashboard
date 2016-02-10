@@ -4,7 +4,7 @@
  */
 module Dashboard {
 
-  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", "HawtioDashboardTabs", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal, tab) => {
+  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", "HawtioDashboardTab", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal, tab) => {
 
     $scope._dashboards = [];
 

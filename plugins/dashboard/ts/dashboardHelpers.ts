@@ -8,7 +8,7 @@ module Dashboard {
   export var templatePath = 'plugins/dashboard/html/';
   export var pluginName = 'dashboard';
 
-  export var log:Logging.Logger = Logger.get('Dashboard');
+  export var log:Logging.Logger = Logger.get('hawtio-dashboard');
 
   /**
    * Returns the cleaned up version of the dashboard data without any UI selection state
@@ -75,7 +75,7 @@ module Dashboard {
             });
           return uri.toString();
         })
-      .build();
+        .build();
       tab.tabs.push(child);
     });
     var manage = builder
@@ -91,6 +91,9 @@ module Dashboard {
         return uri.query(true)['sub-tab'] === tab.id || _.endsWith(uri.path(), id);
       }
     });
+    log.debug("Updated main tab to: ", tab);
+    //$rootScope.$broadcast('hawtio-nav-redraw');
+    $rootScope.$broadcast('hawtio-nav-subtab-redraw');
     Core.$apply($rootScope);
   }
 

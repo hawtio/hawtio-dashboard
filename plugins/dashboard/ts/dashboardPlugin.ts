@@ -53,7 +53,7 @@ module Dashboard {
     }
   });
 
-  _module.factory('HawtioDashboardTab', ['HawtioNav', 'HawtioDashboard', '$timeout', '$rootScope', 'dashboardRepository', (nav:HawtioMainNav.Registry, dash:DashboardService, $timeout, $rootScope, dashboards:DashboardRepository) => {
+  _module.factory('HawtioDashboardTab', ['HawtioNav', 'HawtioDashboard', '$timeout', '$rootScope', 'dashboardRepository', '$location', (nav:HawtioMainNav.Registry, dash:DashboardService, $timeout, $rootScope, dashboards:DashboardRepository, $location) => {
     var tab = <any> {
       embedded: true
     };
@@ -64,9 +64,12 @@ module Dashboard {
     // special case here, we don't want to overwrite our stored tab!
     var builder = nav.builder();
     tab = builder.id(pluginName)
-      .href(() => '/dashboard/idx/0')
-      .title(() => 'Dashboard')
-      .build();
+                  .href(() => '/dashboard/idx/0')
+                  .isSelected(() => {
+                    return _.startsWith($location.path(), '/dashboard/');
+                  })
+                  .title(() => 'Dashboard')
+                  .build();
     nav.add(tab);
     setTimeout(() => {
       log.debug("Setting up dashboard sub-tabs");
