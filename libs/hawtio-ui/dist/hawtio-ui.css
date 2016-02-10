@@ -769,11 +769,11 @@ i.mq-master {
 }
 .mq-container-rectangle.master {
   background-color: #DFFFB9;
-  background-image: -moz-linear-gradient(top, #efffdd, #ccff99);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#efffdd), to(#ccff99));
-  background-image: -webkit-linear-gradient(top, #efffdd, #ccff99);
-  background-image: -o-linear-gradient(top, #efffdd, #ccff99);
-  background-image: linear-gradient(to bottom, #efffdd, #ccff99);
+  background-image: -moz-linear-gradient(top, #efffdd, #CCFF99);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#efffdd), to(#CCFF99));
+  background-image: -webkit-linear-gradient(top, #efffdd, #CCFF99);
+  background-image: -o-linear-gradient(top, #efffdd, #CCFF99);
+  background-image: linear-gradient(to bottom, #efffdd, #CCFF99);
   background-repeat: repeat-x;
   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffefffdd', endColorstr='#ffCCFF99', GradientType=0);
   border-color: #CCFF99 #CCFF99 #CCFF99;
@@ -1180,7 +1180,7 @@ img.nodeIcon:hover {
 .hawtio-dropdown p {
   border-top: 1px solid #d4d4d4;
   border-bottom: 1px solid #d4d4d4;
-  background-image: linear-gradient(to bottom, #ffffff, #e5e5e5);
+  background-image: linear-gradient(to bottom, #fff, #e5e5e5);
 }
 .dropdown.perspective-selector .dropdown-menu li.clear-recent {
   border-top: 1px dashed #d4d4d4;
@@ -1199,7 +1199,7 @@ img.nodeIcon:hover {
   text-shadow: 0 1px 0 #FFFFFF;
 }
 .prefs .tabbable > .nav > li > a:hover {
-  background-color: #eeeeee;
+  background-color: #EEEEEE;
 }
 .column-box {
   /* border: 1px solid #d4d4d4; */
@@ -1227,6 +1227,205 @@ img.nodeIcon:hover {
   border: 4px dashed #aaffaa;
   background: #ddffdd;
   min-height: 150px;
+}
+
+@media (min-width: 1600px) {
+  .container {
+    width: 1530px;
+  }
+}
+@media (min-width: 1600px) {
+  .col-xl-1, .col-xl-2, .col-xl-3, .col-xl-4, .col-xl-5, .col-xl-6, .col-xl-7, .col-xl-8, .col-xl-9, .col-xl-10, .col-xl-11, .col-xl-12 {
+    float: left;
+  }
+  .col-xl-12 {
+    width: 100%;
+  }
+  .col-xl-11 {
+    width: 91.66666667%;
+  }
+  .col-xl-10 {
+    width: 83.33333333%;
+  }
+  .col-xl-9 {
+    width: 75%;
+  }
+  .col-xl-8 {
+    width: 66.66666667%;
+  }
+  .col-xl-7 {
+    width: 58.33333333%;
+  }
+  .col-xl-6 {
+    width: 50%;
+  }
+  .col-xl-5 {
+    width: 41.66666667%;
+  }
+  .col-xl-4 {
+    width: 33.33333333%;
+  }
+  .col-xl-3 {
+    width: 25%;
+  }
+  .col-xl-2 {
+    width: 16.66666667%;
+  }
+  .col-xl-1 {
+    width: 8.33333333%;
+  }
+  .col-xl-pull-12 {
+    right: 100%;
+  }
+  .col-xl-pull-11 {
+    right: 91.66666667%;
+  }
+  .col-xl-pull-10 {
+    right: 83.33333333%;
+  }
+  .col-xl-pull-9 {
+    right: 75%;
+  }
+  .col-xl-pull-8 {
+    right: 66.66666667%;
+  }
+  .col-xl-pull-7 {
+    right: 58.33333333%;
+  }
+  .col-xl-pull-6 {
+    right: 50%;
+  }
+  .col-xl-pull-5 {
+    right: 41.66666667%;
+  }
+  .col-xl-pull-4 {
+    right: 33.33333333%;
+  }
+  .col-xl-pull-3 {
+    right: 25%;
+  }
+  .col-xl-pull-2 {
+    right: 16.66666667%;
+  }
+  .col-xl-pull-1 {
+    right: 8.33333333%;
+  }
+  .col-xl-pull-0 {
+    right: auto;
+  }
+  .col-xl-push-12 {
+    left: 100%;
+  }
+  .col-xl-push-11 {
+    left: 91.66666667%;
+  }
+  .col-xl-push-10 {
+    left: 83.33333333%;
+  }
+  .col-xl-push-9 {
+    left: 75%;
+  }
+  .col-xl-push-8 {
+    left: 66.66666667%;
+  }
+  .col-xl-push-7 {
+    left: 58.33333333%;
+  }
+  .col-xl-push-6 {
+    left: 50%;
+  }
+  .col-xl-push-5 {
+    left: 41.66666667%;
+  }
+  .col-xl-push-4 {
+    left: 33.33333333%;
+  }
+  .col-xl-push-3 {
+    left: 25%;
+  }
+  .col-xl-push-2 {
+    left: 16.66666667%;
+  }
+  .col-xl-push-1 {
+    left: 8.33333333%;
+  }
+  .col-xl-push-0 {
+    left: auto;
+  }
+  .col-xl-offset-12 {
+    margin-left: 100%;
+  }
+  .col-xl-offset-11 {
+    margin-left: 91.66666667%;
+  }
+  .col-xl-offset-10 {
+    margin-left: 83.33333333%;
+  }
+  .col-xl-offset-9 {
+    margin-left: 75%;
+  }
+  .col-xl-offset-8 {
+    margin-left: 66.66666667%;
+  }
+  .col-xl-offset-7 {
+    margin-left: 58.33333333%;
+  }
+  .col-xl-offset-6 {
+    margin-left: 50%;
+  }
+  .col-xl-offset-5 {
+    margin-left: 41.66666667%;
+  }
+  .col-xl-offset-4 {
+    margin-left: 33.33333333%;
+  }
+  .col-xl-offset-3 {
+    margin-left: 25%;
+  }
+  .col-xl-offset-2 {
+    margin-left: 16.66666667%;
+  }
+  .col-xl-offset-1 {
+    margin-left: 8.33333333%;
+  }
+  .col-xl-offset-0 {
+    margin-left: 0%;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .visible-lg {
+    display: block !important;
+  }
+  table.visible-lg {
+    display: table !important;
+  }
+  tr.visible-lg {
+    display: table-row !important;
+  }
+  th.visible-lg,
+  td.visible-lg {
+    display: table-cell !important;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .visible-lg-block {
+    display: block !important;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .visible-lg-inline {
+    display: inline !important;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .visible-lg-inline-block {
+    display: inline-block !important;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .hidden-lg {
+    display: none !important;
+  }
 }
 
 .well.editor-autoresize {
@@ -1417,22 +1616,6 @@ small table tbody tr td.property-name {
 .tab {
   display: block;
   margin-left: 1em;
-}
-.list-row {
-  height: 30px;
-  white-space: nowrap;
-}
-.list-row .ngCellText {
-  padding: 0;
-  vertical-align: middle;
-}
-.list-row-select,
-.list-row-contents {
-  height: 100%;
-  vertical-align: middle;
-}
-.list-row-select > input {
-  vertical-align: middle;
 }
 li.attr-column {
   width: 1em;
@@ -1996,13 +2179,16 @@ table.dataTable tbody tr td {
   outline: none;
 }
 
-.simple-table-checkbox,
-.simple-table-checkbox > input {
-  vertical-align: middle;
-  margin: 0;
-  width: 16px;
-  line-height: 16px;
-  max-width: 16px;
+.simple-table-checkbox {
+  padding: 0 !important;
+  width: 36px;
+}
+.simple-table-checkbox input {
+  min-width: 16px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  margin-right: 10px;
+  margin-left: 10px;
 }
 .table td,
 .table th {
@@ -2328,6 +2514,28 @@ editable-property {
 .expandable .expandable-body form fieldset legend {
   font-size: inherit;
   margin-bottom: 0px;
+}
+
+.hawtio-list-row {
+  height: 30px;
+  white-space: nowrap;
+}
+.hawtio-list-row .ngCellText {
+  padding: 0;
+  vertical-align: middle;
+}
+.hawtio-list-row-select,
+.hawtio-list-row-contents {
+  height: 100%;
+  vertical-align: middle;
+}
+.hawtio-list-row-select > input {
+  vertical-align: middle;
+}
+.hawtio-list-row-select,
+.hawtio-list-row-contents,
+.hawtio-list-row-contents > .ngCellText {
+  display: inline-block;
 }
 
 #log-panel {
@@ -2942,10 +3150,7 @@ div.log-stack-trace p {
 .inline {
   display: inline;
 }
-.inline-block,
-.list-row-select,
-.list-row-contents,
-.list-row-contents > .ngCellText {
+.inline-block {
   display: inline-block;
 }
 ol.inline,

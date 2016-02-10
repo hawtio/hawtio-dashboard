@@ -2,10 +2,10 @@ var gulp = require('gulp'),
     wiredep = require('wiredep').stream,
     eventStream = require('event-stream'),
     gulpLoadPlugins = require('gulp-load-plugins'),
-    map = require('vinyl-map'),
     fs = require('fs'),
     path = require('path'),
-    s = require('underscore.string');
+    s = require('underscore.string'),
+    del = require('del');
 
 var plugins = gulpLoadPlugins({});
 var pkg = require('./package.json');
@@ -24,8 +24,7 @@ var config = {
 };
 
 gulp.task('clean-defs', function() {
-  return gulp.src('defs.d.ts', { read: false })
-    .pipe(plugins.clean());
+  return del('defs.d.ts');
 });
 
 gulp.task('bower', function() {
@@ -49,14 +48,13 @@ gulp.task('tsc', ['clean-defs'], function() {
         .pipe(gulp.dest(config.dist)),
       tsResult.dts
         .pipe(gulp.dest('d.ts')))
-        .pipe(map(function(buf, filename) {
-          if (!s.endsWith(filename, 'd.ts')) {
-            return buf;
-          }
-          var relative = path.relative(cwd, filename);
-          fs.appendFileSync('defs.d.ts', '/// <reference path="' + relative + '"/>\n');
-          return buf;
-        }));
+        .pipe(plugins.filter('**/*.d.ts'))
+        .pipe(plugins.concatFilenames('defs.d.ts', {
+          root: cwd,
+          prepend: '/// <reference path="',
+          append: '"/>'
+        }))
+        .pipe(gulp.dest('.'));
 });
 
 gulp.task('watch', ['build'], function() {
@@ -87,4 +85,4 @@ gulp.task('build', ['tsc']);
 gulp.task('default', ['watch']);
 
 
-    
+

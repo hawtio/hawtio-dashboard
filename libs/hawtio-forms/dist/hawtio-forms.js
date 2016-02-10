@@ -2453,6 +2453,17 @@ var HawtioForms;
         if ('input-attributes' in control) {
             input.attr(control['input-attributes']);
         }
+        if ('selectors' in control) {
+            _.forIn(control.selectors, function (func, selector) {
+                HawtioForms.log.debug("Found selector: ", selector, " for control: ", control, " applying");
+                if (selector === 'el') {
+                    func(el);
+                }
+                else {
+                    func($(el.find(selector)));
+                }
+            });
+        }
         return el.prop('outerHTML');
     }
     HawtioForms.applyElementConfig = applyElementConfig;
@@ -2650,9 +2661,12 @@ var HawtioForms;
     }
     HawtioForms.getTemplate = getTemplate;
     function interpolateTemplate(context, config, name, control, template, model) {
-        // log.debug("template: ", template);
+        if (control.formTemplate) {
+            //log.debug("template: ", template);
+            //log.debug("name: ", name, " control: ", control);
+            return control.formTemplate;
+        }
         var interpolateFunc = context.$interpolate(template);
-        // log.debug("name: ", name, " control: ", control);
         var answer = interpolateFunc({
             maybeHumanize: context.maybeHumanize,
             control: control,
@@ -2737,14 +2751,21 @@ var HawtioForms;
             return {
                 restrict: 'A',
                 link: function (scope, element, attrs) {
-                    scope.$watch(_.debounce(function () {
-                        if (element.prop('disabled')) {
-                            return;
-                        }
-                        if (element.children().length > 5) {
-                            element.combobox();
-                        }
-                    }, 100, { trailing: true }));
+                    // TODO - disable the bootstrap combobox until we can have it properly display a drop-down
+                    /*
+                    var isComboboxAlready = false;
+                    scope.$children = element.children();
+                    scope.$watchCollection('$children', (children) => {
+                      if (!isComboboxAlready && children.length > 5) {
+                        isComboboxAlready = true;
+                        (<any>element).combobox();
+                      }
+                      setTimeout(() => {
+                        console.log("Refreshing");
+                        (<any>element).combobox('refresh');
+                      }, 10);
+                    });
+                    */
                 }
             };
         }]);
