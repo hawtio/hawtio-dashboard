@@ -137,7 +137,7 @@ var UrlHelpers;
      */
     function noHash(url) {
         if (url && url.startsWith('#')) {
-            return url.last(url.length - 1);
+            return url.substring(1);
         }
         else {
             return url;
@@ -190,10 +190,10 @@ var UrlHelpers;
                 tmp.push('');
                 return;
             }
-            if (index !== 0 && path.first(1) === '/') {
+            if (index !== 0 && path.match(/^\//)) {
                 path = path.slice(1);
             }
-            if (index !== length && path.last(1) === '/') {
+            if (index !== length && path.match(/\/$/)) {
                 path = path.slice(0, path.length - 1);
             }
             if (!Core.isBlank(path)) {
@@ -774,7 +774,7 @@ var Core;
             return true;
         }
         if (angular.isString(str)) {
-            return str.isBlank();
+            return str.trim().length === 0;
         }
         else {
             // TODO - not undefined but also not a string...
@@ -1342,15 +1342,15 @@ var Core;
         var answer = {};
         var parts = mbean.split(":");
         if (parts.length > 1) {
-            answer['domain'] = parts.first();
-            parts = parts.exclude(parts.first());
+            answer['domain'] = _.first(parts);
+            parts = _.without(parts, _.first(parts));
             parts = parts.join(":");
             answer['attributes'] = {};
             var nameValues = parts.split(",");
             nameValues.forEach(function (str) {
                 var nameValue = str.split('=');
-                var name = nameValue.first().trim();
-                nameValue = nameValue.exclude(nameValue.first());
+                var name = _.first(nameValue).trim();
+                nameValue = _.without(nameValue, _.first(nameValue));
                 answer['attributes'][name] = nameValue.join('=').trim();
             });
         }
@@ -1672,6 +1672,10 @@ var Core;
      * @param {Function} callback
      */
     function register(jolokia, scope, arguments, callback) {
+        if (scope.$$destroyed) {
+            // fail fast to prevent registration leaks
+            return;
+        }
         /*
         if (scope && !Core.isBlank(scope.name)) {
           Core.log.debug("Calling register from scope: ", scope.name);
@@ -2061,8 +2065,14 @@ var Core;
      * @return {String}
      */
     function maybePlural(count, word) {
-        var pluralWord = (count === 1) ? word : word.pluralize();
-        return "" + count + " " + pluralWord;
+        if (word.pluralize) {
+            var pluralWord = (count === 1) ? word : word.pluralize();
+            return "" + count + " " + pluralWord;
+        }
+        else {
+            var pluralWord = (count === 1) ? word : word + 's';
+            return "" + count + " " + pluralWord;
+        }
     }
     Core.maybePlural = maybePlural;
     /**
@@ -2141,7 +2151,7 @@ var Core;
         }
         var answer = parts[1];
         if (parts.length > 1) {
-            var remaining = parts.last(parts.length - 2);
+            var remaining = parts.slice(2);
             remaining.forEach(function (part) {
                 answer = answer + "#" + part;
             });
@@ -2155,7 +2165,7 @@ var Core;
     Core.authHeaderValue = authHeaderValue;
     function getBasicAuthHeader(username, password) {
         var authInfo = username + ":" + password;
-        authInfo = authInfo.encodeBase64();
+        authInfo = window.btoa(authInfo);
         return "Basic " + authInfo;
     }
     Core.getBasicAuthHeader = getBasicAuthHeader;

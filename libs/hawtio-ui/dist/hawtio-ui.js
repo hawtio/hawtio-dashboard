@@ -1269,8 +1269,8 @@ var UI;
                         //log.debug("Item clicked: ", config);
                         if (config.level && angular.isNumber(config.level)) {
                             $scope.levels[config.level] = config;
-                            var keys = _.keys($scope.levels).sortBy("");
-                            var toRemove = keys.from(config.level + 1);
+                            var keys = _.sortBy(_.keys($scope.levels), "");
+                            var toRemove = keys.slice(config.level + 1);
                             toRemove.forEach(function (i) {
                                 if (i in $scope.levels) {
                                     $scope.levels[i] = {};
@@ -1295,7 +1295,7 @@ var UI;
                             }
                             else {
                                 //ooh we picked a thing!
-                                var keys = _.keys($scope.levels).keys().sortBy("");
+                                var keys = _.sortBy(_.keys($scope.levels), "");
                                 var path = [];
                                 keys.forEach(function (key) {
                                     path.push($scope.levels[key]['title']);
@@ -2836,15 +2836,16 @@ var UI;
                                 if (!answer) {
                                     answer = [];
                                 }
-                                answer = _.keys(item).filter(function (key) {
-                                    return !angular.isFunction(item[key]);
-                                }).filter(function (key) {
+                                var keys = _.keys(item);
+                                var notFunctions = _.filter(keys, function (key) { return !angular.isFunction(item[key]); });
+                                var notHidden = _.filter(notFunctions, function (key) {
                                     var conf = getEntityConfig(path + '/' + key, config);
                                     if (conf && conf.hidden) {
                                         return false;
                                     }
                                     return true;
-                                }).union(answer);
+                                });
+                                return _.union(answer, notHidden);
                             }
                             else {
                                 answer = undefined;
@@ -2852,7 +2853,7 @@ var UI;
                             }
                         });
                         if (answer) {
-                            answer = answer.exclude(function (item) { return ("" + item).startsWith('$'); });
+                            answer = _.reject(answer, function (item) { return _.startsWith("" + item, '$'); });
                         }
                         //log.debug("Column headers: ", answer);
                         return answer;
@@ -3087,14 +3088,14 @@ var UI;
                 var height = "100%";
                 if ('hawtioMessagePanel' in $attrs) {
                     var wantedHeight = $attrs['hawtioMessagePanel'];
-                    if (wantedHeight && !wantedHeight.isBlank()) {
+                    if (!Core.isBlank(wantedHeight)) {
                         height = wantedHeight;
                     }
                 }
                 var speed = "1s";
                 if ('speed' in $attrs) {
                     var wantedSpeed = $attrs['speed'];
-                    if (speed && !speed.isBlank()) {
+                    if (!Core.isBlank(wantedSpeed)) {
                         speed = wantedSpeed;
                     }
                 }
@@ -3150,8 +3151,8 @@ var UI;
                 var direction = "right";
                 if ('hawtioInfoPanel' in $attrs) {
                     var wantedDirection = $attrs['hawtioInfoPanel'];
-                    if (wantedDirection && !wantedDirection.isBlank()) {
-                        if (_.keys(validDirections).any(wantedDirection)) {
+                    if (!Core.isBlank(wantedDirection)) {
+                        if (_.some(_.keys(validDirections), wantedDirection)) {
                             direction = wantedDirection;
                         }
                     }
@@ -3159,14 +3160,14 @@ var UI;
                 var speed = "1s";
                 if ('speed' in $attrs) {
                     var wantedSpeed = $attrs['speed'];
-                    if (speed && !speed.isBlank()) {
+                    if (!Core.isBlank(wantedSpeed)) {
                         speed = wantedSpeed;
                     }
                 }
                 var toggle = "open";
                 if ('toggle' in $attrs) {
                     var wantedToggle = $attrs['toggle'];
-                    if (toggle && !toggle.isBlank()) {
+                    if (!Core.isBlank(wantedSpeed)) {
                         toggle = wantedToggle;
                     }
                 }

@@ -5,6 +5,7 @@ var gulp = require('gulp'),
     fs = require('fs'),
     path = require('path'),
     s = require('underscore.string'),
+    argv = require('yargs').argv,
     del = require('del');
 
 var plugins = gulpLoadPlugins({});
@@ -13,7 +14,7 @@ var pkg = require('./package.json');
 var config = {
   main: '.',
   ts: ['helpers/*.ts'],
-  dist: './dist/',
+  dist: argv.out || './dist/',
   js: pkg.name + '.js',
   tsProject: plugins.typescript.createProject({
     target: 'ES5',

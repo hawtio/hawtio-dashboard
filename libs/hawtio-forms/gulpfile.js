@@ -5,6 +5,8 @@ var gulp = require('gulp'),
     del = require('del'),
     fs = require('fs'),
     path = require('path'),
+    urljoin = require('url-join'),
+    argv = require('yargs').argv,
     s = require('underscore.string');
 
 var plugins = gulpLoadPlugins({});
@@ -19,7 +21,7 @@ var config = {
   testTemplates: ['test-plugins/**/*.html'],
   templateModule: pkg.name + '-templates',
   testTemplateModule: pkg.name + '-test-templates',
-  dist: './dist/',
+  dist: argv.out || './dist/',
   js: pkg.name + '.js',
   testJs: pkg.name + '-test.js',
   css: pkg.name + '.css',
@@ -124,7 +126,7 @@ gulp.task('less', function () {
       title: 'less file compilation error'
     }))
     .pipe(plugins.concat(config.css))
-    .pipe(gulp.dest('./dist'));
+    .pipe(gulp.dest(config.dist));
 });
 
 gulp.task('template', ['tsc'], function() {
@@ -156,7 +158,7 @@ gulp.task('watch-less', function() {
 });
 
 gulp.task('watch', ['build', 'build-example', 'watch-less'], function() {
-  plugins.watch(['libs/**/*.js', 'libs/**/*.css', 'index.html', config.dist + '/*'], function() {
+  plugins.watch(['libs/**/*.js', 'libs/**/*.css', 'index.html', urljoin(config.dist, '*')], function() {
     gulp.start('reload');
   });
   plugins.watch(['libs/**/*.d.ts', config.ts, config.templates], function() {
