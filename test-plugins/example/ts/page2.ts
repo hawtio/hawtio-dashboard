@@ -28,7 +28,7 @@ module DevExample {
       var target = new URI("/dashboard/add").search({
         'main-tab': 'dashboard',
         'sub-tab': 'dashboard-manage',
-        'href': href.toString().escapeURL(true)
+        'href': URI.encodeReserved(href.toString())
       });
       return target.toString();
     }

@@ -21,12 +21,12 @@ module Dashboard {
         var widgetUri = new URI(currentUri.path());
         widgetUri.query(currentUri.query(true));
         target.query((query) => {
-          query.href = widgetUri.toString().escapeURL()
+          query.href = URI.encodeReserved(widgetUri.toString())
           if (title) {
-            query.title = title.escapeURL();
+            query.title = URI.encodeReserved(title);
           }
           if (size_x && size_y) {
-            query.size = angular.toJson({size_x: size_x, size_y: size_y}).escapeURL();
+            query.size = URI.encodeReserved(angular.toJson({size_x: size_x, size_y: size_y}));
           }
         });
         return target.toString();

@@ -103,7 +103,7 @@ module Dashboard {
     }
 
     public cloneDashboard(dashboard:any) {
-      var newDashboard = Object.clone(dashboard);
+      var newDashboard = _.clone(dashboard);
       newDashboard['id'] = Core.getUUID();
       newDashboard['title'] = "Copy of " + dashboard.title;
       return newDashboard;

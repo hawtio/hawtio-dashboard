@@ -50,17 +50,17 @@ module DevExample {
     }
 
     $scope.addToDashboardLink = () => {
-      var iframe = $scope.widgetConfig.widgetUrl.escapeURL();
-      var size = angular.toJson({
+      var iframe = URI.encodeReserved($scope.widgetConfig.widgetUrl);
+      var size = URI.encodeReserved(angular.toJson({
         size_x: $scope.widgetConfig.size_x,
         size_y: $scope.widgetConfig.size_y
-      }).escapeURL();
+      }));
       var target = new URI("/dashboard/add").search(<any>{
         'main-tab': 'dashboard',
         'sub-tab': 'dashboard-manage',
         'iframe': iframe,
         'size': size,
-        'title': $scope.widgetConfig.widgetTitle.escapeURL()
+        'title': URI.encodeReserved($scope.widgetConfig.widgetTitle)
       });
       return target.toString();
     }
