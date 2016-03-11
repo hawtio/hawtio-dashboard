@@ -20,7 +20,7 @@ var StringHelpers;
             // return null so we don't show any old random non-string thing
             return null;
         }
-        return str.chars().map(function (c) { return '*'; }).join('');
+        return str.split('').map(function (c) { return '*'; }).join('');
     }
     StringHelpers.obfusicate = obfusicate;
     /**
@@ -92,9 +92,7 @@ var ArrayHelpers;
     function removeElements(collection, newCollection, index) {
         if (index === void 0) { index = 'id'; }
         var oldLength = collection.length;
-        collection.remove(function (item) {
-            return !newCollection.any(function (c) { return c[index] === item[index]; });
-        });
+        _.remove(collection, function (item) { return !_.some(newCollection, function (c) { return c[index] === item[index]; }); });
         return collection.length !== oldLength;
     }
     ArrayHelpers.removeElements = removeElements;
@@ -107,7 +105,7 @@ var ArrayHelpers;
         var answer = removeElements(collection, newCollection, index);
         if (newCollection) {
             newCollection.forEach(function (item) {
-                var oldItem = collection.find(function (c) { return c[index] === item[index]; });
+                var oldItem = _.find(collection, function (c) { return c[index] === item[index]; });
                 if (!oldItem) {
                     answer = true;
                     collection.push(item);
@@ -136,7 +134,7 @@ var UrlHelpers;
      * @returns {string}
      */
     function noHash(url) {
-        if (url && url.startsWith('#')) {
+        if (url && _.startsWith(url, '#')) {
             return url.substring(1);
         }
         else {
@@ -145,7 +143,7 @@ var UrlHelpers;
     }
     UrlHelpers.noHash = noHash;
     function extractPath(url) {
-        if (url.has('?')) {
+        if (url.indexOf('?') !== -1) {
             return url.split('?')[0];
         }
         else {
@@ -161,13 +159,13 @@ var UrlHelpers;
      */
     function contextActive(url, thingICareAbout) {
         var cleanUrl = extractPath(url);
-        if (thingICareAbout.endsWith('/') && thingICareAbout.startsWith("/")) {
-            return cleanUrl.has(thingICareAbout);
+        if (_.endsWith(thingICareAbout, '/') && _.startsWith(thingICareAbout, "/")) {
+            return cleanUrl.indexOf(thingICareAbout) > -1;
         }
-        if (thingICareAbout.startsWith("/")) {
-            return noHash(cleanUrl).startsWith(thingICareAbout);
+        if (_.startsWith(thingICareAbout, "/")) {
+            return _.startsWith(noHash(cleanUrl), thingICareAbout);
         }
-        return cleanUrl.endsWith(thingICareAbout);
+        return _.endsWith(cleanUrl, thingICareAbout);
     }
     UrlHelpers.contextActive = contextActive;
     /**
@@ -217,12 +215,12 @@ var UrlHelpers;
      * @returns {*}
      */
     function maybeProxy(jolokiaUrl, url) {
-        if (jolokiaUrl && jolokiaUrl.startsWith('proxy/')) {
+        if (jolokiaUrl && _.startsWith(jolokiaUrl, 'proxy/')) {
             log.debug("Jolokia URL is proxied, applying proxy to: ", url);
             return join('proxy', url);
         }
         var origin = window.location['origin'];
-        if (url && (url.startsWith('http') && !url.startsWith(origin))) {
+        if (url && (_.startsWith(url, 'http') && !_.startsWith(url, origin))) {
             log.debug("Url doesn't match page origin: ", origin, " applying proxy to: ", url);
             return join('proxy', url);
         }
@@ -237,7 +235,7 @@ var UrlHelpers;
      */
     function escapeColons(url) {
         var answer = url;
-        if (url.startsWith('proxy')) {
+        if (_.startsWith(url, 'proxy')) {
             answer = url.replace(/:/g, '\\:');
         }
         else {
@@ -275,11 +273,11 @@ var Core;
      */
     function url(path) {
         if (path) {
-            if (path.startsWith && path.startsWith("/")) {
+            if (_.startsWith(path, "/")) {
                 if (!_urlPrefix) {
                     // lets discover the base url via the base html element
                     _urlPrefix = $('base').attr('href') || "";
-                    if (_urlPrefix.endsWith && _urlPrefix.endsWith('/')) {
+                    if (_.endsWith(_urlPrefix, '/')) {
                         _urlPrefix = _urlPrefix.substring(0, _urlPrefix.length - 1);
                     }
                 }
@@ -300,26 +298,12 @@ var Core;
         return window.location;
     }
     Core.windowLocation = windowLocation;
-    // use a better implementation of unescapeHTML
-    String.prototype.unescapeHTML = function () {
+    function unescapeHTML(str) {
         var txt = document.createElement("textarea");
-        txt.innerHTML = this;
+        txt.innerHTML = str;
         return txt.value;
-    };
-    // add object.keys if we don't have it, used
-    // in a few places
-    if (!Object.keys) {
-        console.debug("Creating hawt.io version of Object.keys()");
-        Object.keys = function (obj) {
-            var keys = [], k;
-            for (k in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, k)) {
-                    keys.push(k);
-                }
-            }
-            return keys;
-        };
     }
+    Core.unescapeHTML = unescapeHTML;
     /**
      * Private method to support testing.
      *
@@ -346,7 +330,7 @@ var Core;
      */
     function trimLeading(text, prefix) {
         if (text && prefix) {
-            if (text.startsWith(prefix) || text.indexOf(prefix) === 0) {
+            if (_.startsWith(text, prefix) || text.indexOf(prefix) === 0) {
                 return text.substring(prefix.length);
             }
         }
@@ -364,7 +348,7 @@ var Core;
      */
     function trimTrailing(text, postfix) {
         if (text && postfix) {
-            if (text.endsWith(postfix)) {
+            if (_.endsWith(text, postfix)) {
                 return text.substring(0, text.length - postfix.length);
             }
         }
@@ -789,15 +773,7 @@ var Core;
      * @returns {string}
      */
     function trimQuotes(text) {
-        if (text) {
-            while (text.endsWith('"') || text.endsWith("'")) {
-                text = text.substring(0, text.length - 1);
-            }
-            while (text.startsWith('"') || text.startsWith("'")) {
-                text = text.substring(1, text.length);
-            }
-        }
-        return text;
+        return _.trim(text, ' \'"');
     }
     Core.trimQuotes = trimQuotes;
     /**
@@ -809,13 +785,12 @@ var Core;
     function humanizeValue(value) {
         if (value) {
             var text = value + '';
-            try {
-                text = text.underscore();
-            }
-            catch (e) {
+            if (Core.isBlank(text)) {
+                return text;
             }
             try {
-                text = text.humanize();
+                text = _.snakeCase(text);
+                text = _.capitalize(text.split('_').join(' '));
             }
             catch (e) {
             }
@@ -1135,7 +1110,7 @@ var Core;
                 arr.push(line);
             }
             // sort array so the values is listed nicely
-            arr = arr.sortBy(function (row) { return row.toString(); });
+            arr = _.sortBy(arr, function (row) { return row.toString(); });
             return arr.join("\n");
         }
         else if (angular.isArray(value)) {
@@ -1330,7 +1305,7 @@ var Core;
         if (Core.isBlank(hashUrl)) {
             return hashUrl;
         }
-        if (hashUrl.startsWith("#")) {
+        if (_.startsWith(hashUrl, "#")) {
             return hashUrl.substring(1);
         }
         else {
@@ -1934,7 +1909,7 @@ var Core;
         return (version || "").split(".").map(function (x) {
             var length = x.length;
             return (length >= maxDigitsBetweenDots)
-                ? x : x.padLeft(' ', maxDigitsBetweenDots - length);
+                ? x : _.padLeft(x, maxDigitsBetweenDots - length, ' ');
         }).join(".");
     }
     Core.versionToSortableString = versionToSortableString;
@@ -2043,8 +2018,8 @@ var Core;
      * @return {Object}
      */
     function tryParseJson(text) {
-        text = text.trim();
-        if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+        text = _.trim(text);
+        if ((_.startsWith(text, "[") && _.endsWith(text, "]")) || (_.startsWith(text, "{") && _.endsWith(text, "}"))) {
             try {
                 return JSON.parse(text);
             }
@@ -2065,14 +2040,15 @@ var Core;
      * @return {String}
      */
     function maybePlural(count, word) {
+        /* TODO - will need to find another dependency for this
         if (word.pluralize) {
-            var pluralWord = (count === 1) ? word : word.pluralize();
-            return "" + count + " " + pluralWord;
-        }
-        else {
-            var pluralWord = (count === 1) ? word : word + 's';
-            return "" + count + " " + pluralWord;
-        }
+          var pluralWord = (count === 1) ? word : word.pluralize();
+          return "" + count + " " + pluralWord;
+        } else {
+        */
+        var pluralWord = (count === 1) ? word : word + 's';
+        return "" + count + " " + pluralWord;
+        //}
     }
     Core.maybePlural = maybePlural;
     /**
@@ -2200,7 +2176,7 @@ var Core;
         // make sure we use port as a number
         var portNum = Core.parseIntValue(port);
         var path = parts[1];
-        if (path && path.startsWith('/')) {
+        if (path && _.startsWith(path, '/')) {
             path = path.slice(1, path.length);
         }
         //log.debug("parts: ", parts);
@@ -2642,7 +2618,7 @@ var FilterHelpers;
         if (maxDepth === void 0) { maxDepth = -1; }
         if (and === void 0) { and = true; }
         var f = filter.split(" ");
-        var matches = f.filter(function (f) { return searchObject(object, f, maxDepth); });
+        var matches = _.filter(f, function (f) { return searchObject(object, f, maxDepth); });
         if (and) {
             return matches.length === f.length;
         }
@@ -2669,15 +2645,13 @@ var FilterHelpers;
         var f = filter.toLowerCase();
         var answer = false;
         if (angular.isString(object)) {
-            answer = object.toLowerCase().has(f);
+            answer = object.toLowerCase().indexOf(f) !== -1;
         }
         else if (angular.isNumber(object)) {
-            answer = ("" + object).toLowerCase().has(f);
+            answer = ("" + object).toLowerCase().indexOf(f) !== -1;
         }
         else if (angular.isArray(object)) {
-            answer = object.some(function (item) {
-                return searchObject(item, f, maxDepth, depth + 1);
-            });
+            answer = _.some(object, function (item) { return searchObject(item, f, maxDepth, depth + 1); });
         }
         else if (angular.isObject(object)) {
             answer = searchObject(_.values(object), f, maxDepth, depth);
@@ -2760,8 +2734,8 @@ var Log;
         }
         var bold = true;
         if (line) {
-            line = line.trim();
-            if (line.startsWith('at')) {
+            line = _.trim(line);
+            if (_.startsWith(line, 'at')) {
                 line = '  ' + line;
                 bold = false;
             }
@@ -2999,11 +2973,9 @@ var SelectionHelpers;
     SelectionHelpers.selectOne = selectOne;
     function sync(selections, group, index) {
         group.forEach(function (item) {
-            item['selected'] = selections.any(function (selection) {
-                return selection[index] === item[index];
-            });
+            item['selected'] = _.some(selections, function (selection) { return selection[index] === item[index]; });
         });
-        return group.filter(function (item) { return item['selected']; });
+        return _.filter(group, function (item) { return item['selected']; });
     }
     SelectionHelpers.sync = sync;
     function select(group, item, $event) {
@@ -3032,11 +3004,11 @@ var SelectionHelpers;
     SelectionHelpers.clearGroup = clearGroup;
     function toggleSelectionFromGroup(group, item, search) {
         var searchMethod = search || item;
-        if (group.any(searchMethod)) {
-            group.remove(searchMethod);
+        if (_.some(group, searchMethod)) {
+            _.remove(group, searchMethod);
         }
         else {
-            group.add(item);
+            group.push(item);
         }
     }
     SelectionHelpers.toggleSelectionFromGroup = toggleSelectionFromGroup;
@@ -3067,7 +3039,7 @@ var SelectionHelpers;
             return nope(no);
         }
         var searchMethod = search || item;
-        return maybe(group.any(searchMethod), yes, no);
+        return maybe(_.some(group, searchMethod), yes, no);
     }
     SelectionHelpers.isInGroup = isInGroup;
     function filterByGroup(group, item, yes, no, search) {
@@ -3076,7 +3048,7 @@ var SelectionHelpers;
         }
         var searchMethod = search || item;
         if (angular.isArray(item)) {
-            return maybe(group.intersect(item).length === group.length, yes, no);
+            return maybe(_.intersection(group, item).length === group.length, yes, no);
         }
         else {
             return maybe(group.any(searchMethod), yes, no);
@@ -3087,7 +3059,7 @@ var SelectionHelpers;
         var newGroup = [];
         if (attribute) {
             group.forEach(function (groupItem) {
-                var first = collection.find(function (collectionItem) {
+                var first = _.find(collection, function (collectionItem) {
                     return groupItem[attribute] === collectionItem[attribute];
                 });
                 if (first) {
@@ -3097,7 +3069,7 @@ var SelectionHelpers;
         }
         else {
             group.forEach(function (groupItem) {
-                var first = collection.find(function (collectionItem) {
+                var first = _.find(collection, function (collectionItem) {
                     return _.isEqual(groupItem, collectionItem);
                 });
                 if (first) {
@@ -3174,7 +3146,7 @@ var UI;
     function getIfSet(attribute, $attr, def) {
         if (attribute in $attr) {
             var wantedAnswer = $attr[attribute];
-            if (wantedAnswer && !wantedAnswer.isBlank()) {
+            if (!Core.isBlank(wantedAnswer)) {
                 return wantedAnswer;
             }
         }

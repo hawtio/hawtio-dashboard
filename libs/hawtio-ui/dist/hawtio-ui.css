@@ -91,9 +91,6 @@
 @import url("./fonts/Open-Sans/stylesheet.css");
 @import url("./fonts/Droid-Sans-Mono/stylesheet.css");
 */
-* {
-  font-family: OpenSans;
-}
 body {
   font-family: OpenSans;
 }
