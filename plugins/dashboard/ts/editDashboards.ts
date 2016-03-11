@@ -88,7 +88,7 @@ module Dashboard {
       var iframe = config['iframe'];
       var type = 'href';
       if (href) {
-        href = href.unescapeURL();
+        href = URI.decode(href);
         href = Core.trimLeading(href, '#');
       } else if (iframe) {
         iframe = iframe.unescapeURL();
