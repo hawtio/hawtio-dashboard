@@ -2528,6 +2528,25 @@ var CoreFilters;
     _module.filter('humanize', function () { return Core.humanizeValue; });
     _module.filter('humanizeMs', function () { return Core.humanizeMilliseconds; });
     _module.filter('maskPassword', function () { return Core.maskPassword; });
+    // relativeTime was the first humanize filter for dates,
+    // let's maybe also add a 'humanizeDate' filter to match
+    // up with 'humanizeDuration'
+    var relativeTimeFunc = function (date) {
+        return humandate.relativeTime(date);
+    };
+    // Turn a date into a relative time from right now
+    _module.filter('relativeTime', function () {
+        return relativeTimeFunc;
+    });
+    _module.filter('humanizeDate', function () {
+        return relativeTimeFunc;
+    });
+    // Output a duration in milliseconds in a human-readable format
+    _module.filter('humanizeDuration', function () {
+        return function (duration) {
+            return humanizeDuration(duration, { round: true });
+        };
+    });
     hawtioPluginLoader.addModule(pluginName);
 })(CoreFilters || (CoreFilters = {}));
 

@@ -360,8 +360,8 @@ var CodeEditor;
         var answer = "text";
         if (value) {
             answer = "javascript";
-            var trimmed = value.toString().trimLeft().trimRight();
-            if (trimmed && trimmed.first() === '<' && trimmed.last() === '>') {
+            var trimmed = _.trim(value);
+            if (trimmed && _.startsWith(trimmed, '<') && _.endsWith(trimmed, '>')) {
                 answer = "xml";
             }
         }
@@ -1160,7 +1160,7 @@ var UI;
             this.restrict = 'A';
             this.link = function ($scope, $element, $attr) {
                 var selector = UI.getIfSet('hawtioAutoColumns', $attr, 'div');
-                var minMargin = UI.getIfSet('minMargin', $attr, '3').toNumber();
+                var minMargin = Core.parseIntValue(UI.getIfSet('minMargin', $attr, '3'));
                 var go = Core.throttled(function () {
                     var containerWidth = $element.innerWidth();
                     var childWidth = 0;
@@ -2227,23 +2227,6 @@ var UI;
                 var gridSize = [150, 150];
                 var extraRows = 10;
                 var extraCols = 6;
-                /*
-                if (angular.isDefined($attrs['dimensions'])) {
-                  var dimension = $attrs['dimensions'].toNumber();
-                  widgetBaseDimensions = [dimension, dimension];
-                }
-          
-          
-                if (angular.isDefined($attrs['margins'])) {
-                  var margins = $attrs['margins'].toNumber();
-                  widgetMargins = [margins, margins];
-                }
-          
-                if (angular.isDefined($attrs['gridSize'])) {
-                  var size = $attrs['gridSize'].toNumber();
-                  gridSize = [size, size];
-                }
-                */
                 if (angular.isDefined($attrs['extraRows'])) {
                     extraRows = $attrs['extraRows'].toNumber();
                 }
@@ -2273,7 +2256,7 @@ var UI;
 (function (UI) {
     function groupBy() {
         return function (list, group) {
-            if (list.length === 0) {
+            if (!list || list.length === 0) {
                 return list;
             }
             if (Core.isBlank(group)) {
@@ -2308,7 +2291,7 @@ var UI;
                         else {
                             createGroup = false;
                             targetGroup.forEach(function (item) {
-                                if (!createGroup && !currentGroup.any(function (i) { return i === item; })) {
+                                if (!createGroup && !_.some(currentGroup, function (i) { return i === item; })) {
                                     createGroup = true;
                                 }
                             });
@@ -3494,7 +3477,7 @@ var UI;
                                     count: $scope.filteredCollection.map(function (c) {
                                         return c[$scope.collectionProperty];
                                     }).reduce(function (count, c) {
-                                        if (c.any(t)) {
+                                        if (_.some(c, t)) {
                                             return count + 1;
                                         }
                                         return count;
@@ -3512,7 +3495,7 @@ var UI;
                         });
                         $scope.visibleTags = [];
                         $scope.filteredCollection.forEach(function (c) {
-                            $scope.visibleTags = $scope.visibleTags.union(c[$scope.collectionProperty]);
+                            $scope.visibleTags = _.union($scope.visibleTags, c[$scope.collectionProperty]);
                         });
                     }
                     $scope.$watchCollection('collection', function (collection) {
@@ -3951,7 +3934,7 @@ var UI;
                     var start = neighbor.position().top + neighbor.height();
                     var myHeight = container.height() - start;
                     if (angular.isDefined($attrs['heightAdjust'])) {
-                        var heightAdjust = $attrs['heightAdjust'].toNumber();
+                        var heightAdjust = Core.parseIntValue($attrs['heightAdjust']);
                     }
                     myHeight = myHeight + heightAdjust;
                     $element.css({

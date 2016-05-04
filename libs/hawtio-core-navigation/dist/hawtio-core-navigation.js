@@ -40,7 +40,7 @@ var HawtioMainNav;
   HawtioMainNav.pluginName = 'hawtio-nav';
   var log = Logger.get(HawtioMainNav.pluginName);
 
-  // Actions class with some pre-defined actions 
+  // Actions class with some pre-defined actions
   var Actions = (function() {
     function Actions() {}
     Object.defineProperty(Actions, "ADD", {
@@ -618,7 +618,9 @@ var HawtioMainNav;
       item.click = function($event) {
         if (!($event instanceof jQuery.Event)) {
           try {
-            $rootScope.$apply();
+            if(!$rootScope.$$phase) {
+              $rootScope.$apply();
+            }
           } catch (e) {
             // ignore
           }
