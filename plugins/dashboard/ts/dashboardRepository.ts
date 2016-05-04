@@ -33,23 +33,16 @@ module Dashboard {
 
     constructor(private defaults:DefaultDashboards) {
       this.localStorage = Core.getLocalStorage();
-      /*
       if ('userDashboards' in this.localStorage) {
         log.debug("Found previously saved dashboards");
-        if (this.loadDashboards().length === 0) {
-          this.storeDashboards(defaults.getAll());
-        }
       } else {
+        log.debug("Storing pre-defined dashboards");
         this.storeDashboards(defaults.getAll());
       }
-      */
     }
 
     private loadDashboards() {
       var answer = angular.fromJson(localStorage['userDashboards']);
-      if (!answer || answer.length === 0) {
-        answer = this.defaults.getAll();
-      }
       log.debug("returning dashboards: ", answer);
       return answer;
     }
@@ -63,7 +56,7 @@ module Dashboard {
     public putDashboards(array:any[], commitMessage:string, fn) {
       var dashboards = this.loadDashboards();
       array.forEach((dash) => {
-        var existing = dashboards.findIndex((d) => { return d.id === dash.id; });
+        var existing = _.findIndex(dashboards, (d:any) => { return d.id === dash.id; });
         if (existing >= 0) {
           dashboards[existing] = dash;
         } else {
@@ -76,7 +69,7 @@ module Dashboard {
     public deleteDashboards(array:any[], fn) {
       var dashboards = this.loadDashboards();
       angular.forEach(array, (item) => {
-        dashboards.remove((i) => { return i.id === item.id; });
+        _.remove(dashboards, (i:any) => { return i.id === item.id; });
       });
       fn(this.storeDashboards(dashboards));
     }
@@ -87,7 +80,7 @@ module Dashboard {
 
     public getDashboard(id:string, fn) {
       var dashboards = this.loadDashboards();
-      var dashboard = dashboards.find((dashboard) => { return dashboard.id === id });
+      var dashboard = _.find(dashboards, (dashboard:any) => { return dashboard.id === id });
       fn(dashboard);
     }
 

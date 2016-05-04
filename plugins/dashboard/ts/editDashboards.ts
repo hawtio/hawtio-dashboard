@@ -91,7 +91,7 @@ module Dashboard {
         href = URI.decode(href);
         href = Core.trimLeading(href, '#');
       } else if (iframe) {
-        iframe = iframe.unescapeURL();
+        iframe = URI.decode(iframe);
         type = 'iframe';
       }
       var widgetURI = <any> undefined;
@@ -110,10 +110,10 @@ module Dashboard {
       }
       var sizeStr = <any> config['size'];
       if (sizeStr) {
-        sizeStr = sizeStr.unescapeURL();
+        sizeStr = URI.decode(sizeStr);
       }
       var size = angular.fromJson(sizeStr) || { size_x: 1, size_y: 1 };
-      var title = (config['title'] || '').unescapeURL();
+      var title = URI.decode(config['title'] || '');
       var templateWidget = {
         id: Core.getUUID(),
         row: 1,
@@ -193,7 +193,7 @@ module Dashboard {
               bottom(w2) < top(w1));
         };
 
-        if (selectedItem.widgets.isEmpty()) {
+        if (!selectedItem.widgets.length) {
           found = true;
         }
 
@@ -209,7 +209,7 @@ module Dashboard {
             found = true;
           }
           for (; (widget.col + widget.size_x) <= gridWidth; widget.col++) {
-            if (!selectedItem.widgets.any((w) => {
+            if (!_.some(selectedItem.widgets, (w) => {
               var c = collision(w, widget);
               return c
             })) {
@@ -410,6 +410,7 @@ module Dashboard {
       }
 
       dashboardRepository.getDashboards((dashboards) => {
+        log.debug("Loaded dashboards: ", dashboards);
         dashboardLoaded(null, dashboards);
       });
     }

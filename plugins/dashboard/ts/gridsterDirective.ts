@@ -69,7 +69,6 @@ module Dashboard {
           }
         }
         if (widgetElem) {
-          log.debug("Removing widget: ", widget.id);
           widgetElem.remove();
         }
       }
@@ -80,7 +79,8 @@ module Dashboard {
         if ($scope.dashboard) {
           var widgets = $scope.dashboard.widgets;
           if (widgets) {
-            widgets.remove(widget);
+            var w = _.remove(widgets, (w:any) => w.id === widget.id);
+            log.debug("Removed widget:", w);
           }
         }
         updateDashboardRepository("Removed widget " + widget.title);

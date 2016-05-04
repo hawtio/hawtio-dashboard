@@ -55,7 +55,7 @@ var DevExample;
                 .build();
             builder.configureRouting($routeProvider, tab);
         }]);
-    DevExample._module.run(["HawtioNav", 'DefaultDashboards', function (HawtioNav, defaults) {
+    DevExample._module.run(["HawtioNav", 'HawtioDashboard', 'DefaultDashboards', 'dashboardRepository', function (HawtioNav, dash, defaults, dashboardRepository) {
             var myDefaults = angular.fromJson(testDashboards);
             myDefaults.forEach(function (dashboard) {
                 defaults.add(dashboard);
@@ -86,6 +86,17 @@ var DevExample;
                 href: function () { return 'http://hawt.io'; }
             });
             DevExample.log.debug("loaded");
+            if (!dash.inDashboard) {
+                DevExample.log.debug("Checking loaded dashboards");
+                dashboardRepository.getDashboards(function (dashboards) {
+                    if (!dashboards.length) {
+                        DevExample.log.debug("resetting dashboard data");
+                        dashboardRepository.putDashboards(defaults.getAll(), 'init dashboards', function (dashboards) {
+                            DevExample.log.debug("Stored dashboard data: ", dashboards);
+                        });
+                    }
+                });
+            }
         }]);
     hawtioPluginLoader.addModule(DevExample.pluginName);
 })(DevExample || (DevExample = {}));

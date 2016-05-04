@@ -15,6 +15,7 @@
 
 /// <reference path="../../includes.ts"/>
 /// <reference path="exampleGlobals.ts"/>
+            
 module DevExample {
 
   export var _module = angular.module(DevExample.pluginName, []);
@@ -36,12 +37,12 @@ module DevExample {
     builder.configureRouting($routeProvider, tab);
   }]);
 
-  _module.run(["HawtioNav", 'DefaultDashboards', (HawtioNav: HawtioMainNav.Registry, defaults:Dashboard.DefaultDashboards) => {
+  _module.run(["HawtioNav", 'HawtioDashboard', 'DefaultDashboards', 'dashboardRepository', (HawtioNav: HawtioMainNav.Registry, dash:Dashboard.DashboardService, defaults:Dashboard.DefaultDashboards, dashboardRepository:Dashboard.DashboardRepository) => {
     
     var myDefaults = angular.fromJson(testDashboards);
     myDefaults.forEach((dashboard) => {
       defaults.add(dashboard);
-    })
+    });
     HawtioNav.add(tab);
     HawtioNav.add({
       id: 'project-link',
@@ -68,8 +69,18 @@ module DevExample {
       href: () => 'http://hawt.io'
     });
     log.debug("loaded");
+    if (!dash.inDashboard) {
+      log.debug("Checking loaded dashboards");
+      dashboardRepository.getDashboards((dashboards) => {
+        if (!dashboards.length) {
+          log.debug("resetting dashboard data");
+          dashboardRepository.putDashboards(defaults.getAll(), 'init dashboards', (dashboards) => {
+            log.debug("Stored dashboard data: ", dashboards);
+          });
+        }
+      });
+    }
   }]);
-
 
   hawtioPluginLoader.addModule(DevExample.pluginName);
 }
