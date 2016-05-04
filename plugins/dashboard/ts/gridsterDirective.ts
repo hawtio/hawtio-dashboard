@@ -345,8 +345,8 @@ module Dashboard {
                       } catch (err) {
 
                       }
-                    case 'HawtioNav':
                       break;
+                    case 'HawtioNav':
                       try {
                         $provide.decorator(name, [() => {
                           return getDummyHawtioNav();
@@ -354,6 +354,7 @@ module Dashboard {
                       } catch (err) {
                         // nothing to do
                       }
+                      break;
                     default:
                       //log.debug("name: ", name, " service: ", service);
                       if (_.startsWith(name, '$')) {
