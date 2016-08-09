@@ -57,7 +57,7 @@ module Dashboard {
     var tab = <any> {
       embedded: true
     };
-    if (dash.inDashboard) {
+    if (dash && dash.inDashboard) {
       log.debug("Embedded in a dashboard, not initializing our navigation tab");
       return tab;
     }
