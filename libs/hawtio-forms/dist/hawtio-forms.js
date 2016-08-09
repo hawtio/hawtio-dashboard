@@ -1,1396 +1,6 @@
 /// <reference path="../libs/hawtio-ui/defs.d.ts"/>
 
 /// <reference path="../../includes.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    /**
-     * Enum for form mode attribute
-     */
-    (function (FormMode) {
-        FormMode[FormMode["VIEW"] = 0] = "VIEW";
-        FormMode[FormMode["EDIT"] = 1] = "EDIT";
-    })(HawtioForms.FormMode || (HawtioForms.FormMode = {}));
-    var FormMode = HawtioForms.FormMode;
-    /**
-     * Enum for the overall form style
-     */
-    (function (FormStyle) {
-        FormStyle[FormStyle["STANDARD"] = 0] = "STANDARD";
-        FormStyle[FormStyle["INLINE"] = 1] = "INLINE";
-        FormStyle[FormStyle["HORIZONTAL"] = 2] = "HORIZONTAL";
-        FormStyle[FormStyle["UNWRAPPED"] = 3] = "UNWRAPPED";
-    })(HawtioForms.FormStyle || (HawtioForms.FormStyle = {}));
-    var FormStyle = HawtioForms.FormStyle;
-    function createFormConfiguration(options) {
-        var answer = options || { properties: {} };
-        _.defaults(answer, {
-            style: FormStyle.HORIZONTAL,
-            mode: FormMode.EDIT
-        });
-        return answer;
-    }
-    HawtioForms.createFormConfiguration = createFormConfiguration;
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="../../includes.ts"/>
-/// <reference path="forms2Interfaces.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    HawtioForms.pluginName = 'hawtio-forms2';
-    HawtioForms.templatePath = 'plugins/forms2/html';
-    HawtioForms.log = Logger.get(HawtioForms.pluginName);
-    var Constants = (function () {
-        function Constants() {
-        }
-        Object.defineProperty(Constants, "FORM_STANDARD", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-standard.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "FORM_INLINE", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-inline.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "FORM_UNWRAPPED", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-unwrapped.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "FORM_HORIZONTAL", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-horizontal.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "STANDARD_HORIZONTAL_INPUT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'standard-horizontal-input.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "STANDARD_INPUT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'standard-input.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "STATIC_HORIZONTAL_TEXT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'static-horizontal-text.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "STATIC_TEXT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'static-text.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "SELECT_HORIZONTAL", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'select-horizontal.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "SELECT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'select.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "OPTION_ARRAY", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionArray.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "OPTION_OBJECT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionObject.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "OPTION_CONFIG_OBJECT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionConfigObject.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "CHECKBOX_HORIZONTAL", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'checkbox-horizontal.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "CHECKBOX", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'checkbox.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "OBJECT", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'object.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "ARRAY", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'array.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "MAP", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'map.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Constants, "HIDDEN", {
-            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'hidden.html'); },
-            enumerable: true,
-            configurable: true
-        });
-        return Constants;
-    })();
-    HawtioForms.Constants = Constants;
-    function addPostInterpolateAction(context, name, func) {
-        if (!(name in context.postInterpolateActions)) {
-            context.postInterpolateActions[name] = [];
-        }
-        context.postInterpolateActions[name].push(func);
-    }
-    HawtioForms.addPostInterpolateAction = addPostInterpolateAction;
-    function addPreCompileAction(context, name, func) {
-        if (!(name in context.preCompileActions)) {
-            context.preCompileActions[name] = [];
-        }
-        context.preCompileActions[name].push(func);
-    }
-    HawtioForms.addPreCompileAction = addPreCompileAction;
-    function getFormMain(context, config) {
-        switch (config.style) {
-            case HawtioForms.FormStyle.STANDARD:
-                return context.$templateCache.get(Constants.FORM_STANDARD);
-            case HawtioForms.FormStyle.INLINE:
-                return context.$templateCache.get(Constants.FORM_INLINE);
-            case HawtioForms.FormStyle.UNWRAPPED:
-                return context.$templateCache.get(Constants.FORM_UNWRAPPED);
-            default:
-                return context.$templateCache.get(Constants.FORM_HORIZONTAL);
-        }
-    }
-    HawtioForms.getFormMain = getFormMain;
-    function getStandardTemplate(context, config, control, type) {
-        var template = undefined;
-        switch (config.style) {
-            case HawtioForms.FormStyle.HORIZONTAL:
-                template = context.$templateCache.get(Constants.STANDARD_HORIZONTAL_INPUT);
-                break;
-            default:
-                template = context.$templateCache.get(Constants.STANDARD_INPUT);
-        }
-        return applyElementConfig(context, config, control, template, type);
-    }
-    HawtioForms.getStandardTemplate = getStandardTemplate;
-    function applyElementConfig(context, config, control, template, type) {
-        var el = angular.element(template);
-        if ('tooltip' in control) {
-            el.attr({ title: control.tooltip });
-        }
-        if ('control-group-attributes' in control) {
-            el.attr(control['control-group-attributes']);
-        }
-        if ('label-attributes' in control) {
-            el.find('label').attr(control['label-attributes']);
-        }
-        var input = el.find('input');
-        if (type) {
-            input.attr({ type: type });
-        }
-        if ('input-attributes' in control) {
-            input.attr(control['input-attributes']);
-        }
-        if ('selectors' in control) {
-            _.forIn(control.selectors, function (func, selector) {
-                HawtioForms.log.debug("Found selector: ", selector, " for control: ", control, " applying");
-                if (selector === 'el') {
-                    func(el);
-                }
-                else {
-                    func($(el.find(selector)));
-                }
-            });
-        }
-        return el.prop('outerHTML');
-    }
-    HawtioForms.applyElementConfig = applyElementConfig;
-    function getStaticTextTemplate(context, config) {
-        switch (config.style) {
-            case HawtioForms.FormStyle.HORIZONTAL:
-                return context.$templateCache.get(Constants.STATIC_HORIZONTAL_TEXT);
-            default:
-                return context.$templateCache.get(Constants.STATIC_TEXT);
-        }
-    }
-    HawtioForms.getStaticTextTemplate = getStaticTextTemplate;
-    function setSelectOptions(isArray, propName, select) {
-    }
-    HawtioForms.setSelectOptions = setSelectOptions;
-    function getSelectTemplate(context, config, name, control) {
-        var template = undefined;
-        switch (config.style) {
-            case HawtioForms.FormStyle.HORIZONTAL:
-                template = context.$templateCache.get(Constants.SELECT_HORIZONTAL);
-                break;
-            default:
-                template = context.$templateCache.get(Constants.SELECT);
-        }
-        addPostInterpolateAction(context, name, function (el) {
-            var select = el.find('select');
-            var propName = 'config.properties[\'' + name + '\'].enum';
-            var isArray = _.isArray(control.enum);
-            var isFunction = _.isFunction(control.enum);
-            if (isArray) {
-                if (_.isObject(_.first(control.enum))) {
-                    var template = context.$templateCache.get(Constants.OPTION_CONFIG_OBJECT);
-                    var interpolate = context.$interpolate(template);
-                    _.forEach(control.enum, function (config) {
-                        var newOption = angular.element(interpolate(config));
-                        if (config.attributes) {
-                            newOption.attr(config.attributes);
-                        }
-                        select.append(newOption);
-                    });
-                }
-                else {
-                    var template = context.$templateCache.get(Constants.OPTION_ARRAY);
-                    var interpolate = context.$interpolate(template);
-                    _.forEach(control.enum, function (value) {
-                        select.append(interpolate({
-                            value: value
-                        }));
-                    });
-                }
-            }
-            else if (isFunction) {
-                context.scope.enum = control.enum;
-                select.attr('ng-options', 'item.value as item.label for item in enum()');
-                select.removeAttr('hawtio-combobox');
-            }
-            else {
-                var template = context.$templateCache.get(Constants.OPTION_OBJECT);
-                var interpolate = context.$interpolate(template);
-                _.forIn(control.enum, function (value, key) {
-                    select.append(interpolate({
-                        key: key,
-                        value: value
-                    }));
-                });
-            }
-        });
-        return applyElementConfig(context, config, control, template);
-    }
-    HawtioForms.getSelectTemplate = getSelectTemplate;
-    function getCheckboxTemplate(context, config, control) {
-        switch (config.style) {
-            case HawtioForms.FormStyle.HORIZONTAL:
-                return context.$templateCache.get(Constants.CHECKBOX_HORIZONTAL);
-            default:
-                return context.$templateCache.get(Constants.CHECKBOX);
-        }
-    }
-    HawtioForms.getCheckboxTemplate = getCheckboxTemplate;
-    function getObjectTemplate(context, config, name, control) {
-        var configName = 'config.properties.' + name;
-        if ('javaType' in control) {
-            configName = control.javaType;
-        }
-        addPostInterpolateAction(context, name, function (el) {
-            var attr = {
-                'hawtio-form-2': configName,
-                'entity': 'entity.' + name,
-                'no-wrap': 'true',
-                'mode': config.mode,
-                'style': config.style,
-                'label': control.label || context.maybeHumanize(name)
-            };
-            var groupAttr = {};
-            if ('control-group-attributes' in control) {
-                _.forIn(control['control-group-attributes'], function (value, key) {
-                    groupAttr[key] = value;
-                });
-            }
-            el.attr(groupAttr);
-            el.find('.inline-object').attr(attr);
-        });
-        return context.$templateCache.get(Constants.OBJECT);
-    }
-    HawtioForms.getObjectTemplate = getObjectTemplate;
-    function getMapTemplate(context, config, name, control) {
-        addPostInterpolateAction(context, name, function (el) {
-            el.find('.inline-map').attr({
-                'hawtio-forms-2-map': 'config.properties.' + name,
-                'entity': 'entity.' + name,
-                'mode': config.mode
-            });
-        });
-        return context.$templateCache.get(Constants.MAP);
-    }
-    HawtioForms.getMapTemplate = getMapTemplate;
-    function getArrayTemplate(context, config, name, control) {
-        /*
-        if (control.items) {
-          if (!('javaType' in control.items)) {
-            log.debug("Array, name: ", name, " type: ", control.items.type, " control: ", control);
-          } else {
-            log.debug("Array, name: ", name, " type: ", control.items.javaType, " control: ", control);
-          }
-        }
-        */
-        addPostInterpolateAction(context, name, function (el) {
-            el.find('.inline-array').attr({
-                'hawtio-forms-2-array': 'config.properties.' + name,
-                'entity': 'entity.' + name,
-                'mode': config.mode
-            });
-        });
-        return context.$templateCache.get(Constants.ARRAY);
-    }
-    HawtioForms.getArrayTemplate = getArrayTemplate;
-    ;
-    function lookupTemplate(context, config, name, control) {
-        var controlType = context.mappings.getMapping(control.type);
-        if ('enum' in control) {
-            controlType = 'select';
-        }
-        if ('properties' in control) {
-            controlType = 'object';
-        }
-        if (control.hidden) {
-            controlType = 'hidden';
-        }
-        // coerce this for now...
-        if (control.type === 'object' && control.javaType && _.startsWith(control.javaType, 'java.util.Map')) {
-            controlType = 'map';
-        }
-        if (controlType) {
-            switch (controlType) {
-                case 'array':
-                    return getArrayTemplate(context, config, name, control);
-                case 'number':
-                    return getStandardTemplate(context, config, control, 'number');
-                case 'password':
-                    return getStandardTemplate(context, config, control, 'password');
-                case 'text':
-                    return getStandardTemplate(context, config, control, 'text');
-                case 'static':
-                    return getStaticTextTemplate(context, config);
-                case 'object':
-                    return getObjectTemplate(context, config, name, control);
-                case 'map':
-                    return getMapTemplate(context, config, name, control);
-                case 'hidden':
-                    control.hidden = true;
-                    return applyElementConfig(context, config, control, context.$templateCache.get(Constants.HIDDEN));
-                case 'select':
-                    return getSelectTemplate(context, config, name, control);
-                case 'checkbox':
-                    return getCheckboxTemplate(context, config, control);
-            }
-        }
-        // log.debug("No mapping found for control: ", control);
-        var type = control.javaType || control.type;
-        // log.debug("controlType: ", type);
-        // look in the schema registry
-        var schema = context.schemas.getSchema(type);
-        // log.debug("Schema: ", schema);
-        if (schema) {
-            return getObjectTemplate(context, config, name, _.extend(control, schema));
-        }
-        return undefined;
-    }
-    HawtioForms.lookupTemplate = lookupTemplate;
-    function getTemplate(context, config, name, control) {
-        if ('formTemplate' in control) {
-            return control.formTemplate;
-        }
-        return lookupTemplate(context, config, name, control);
-    }
-    HawtioForms.getTemplate = getTemplate;
-    function interpolateTemplate(context, config, name, control, template, model) {
-        if (control.formTemplate) {
-            //log.debug("template: ", template);
-            //log.debug("name: ", name, " control: ", control);
-            return control.formTemplate;
-        }
-        var interpolateFunc = context.$interpolate(template);
-        var answer = interpolateFunc({
-            maybeHumanize: context.maybeHumanize,
-            control: control,
-            name: name,
-            model: model
-        });
-        // log.debug("postInterpolateActions: ", postInterpolateActions);
-        if (context.postInterpolateActions[name]) {
-            var el = angular.element(answer);
-            context.postInterpolateActions[name].forEach(function (func) {
-                func(el);
-            });
-            answer = el.prop('outerHTML');
-        }
-        return answer;
-    }
-    HawtioForms.interpolateTemplate = interpolateTemplate;
-    function createMaybeHumanize(context) {
-        return function (value) {
-            var config = context.config;
-            if (!config || (config && !config.disableHumanizeLabel)) {
-                return Core.humanizeValue(value);
-            }
-            else {
-                return value;
-            }
-        };
-    }
-    HawtioForms.createMaybeHumanize = createMaybeHumanize;
-    function initConfig(context, config, lookup) {
-        if (lookup === void 0) { lookup = true; }
-        var answer = config;
-        if (!answer && lookup) {
-            // look in schema registry
-            var name = context.attrs[context.directiveName];
-            // log.debug("not a full config object, looking up schema: ", name);
-            if (name) {
-                answer = context.schemas.cloneSchema(name);
-                if (!answer) {
-                    // log.debug("No schema found for type: ", name);
-                    // log.debug("attrs: ", context.attrs);
-                    answer = {};
-                }
-            }
-        }
-        if (answer) {
-            // set any missing defaults
-            if ('label' in context.attrs) {
-                answer.label = context.attrs['label'];
-            }
-            if ('mode' in context.attrs) {
-                answer.mode = Number(context.attrs['mode']);
-            }
-            if ('style' in context.attrs) {
-                answer.style = Number(context.attrs['style']);
-            }
-            if ('noWrap' in context.attrs) {
-                if (context.attrs['noWrap']) {
-                    answer.style = HawtioForms.FormStyle.UNWRAPPED;
-                }
-            }
-        }
-        return HawtioForms.createFormConfiguration(answer);
-    }
-    HawtioForms.initConfig = initConfig;
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Helpers.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    HawtioForms._module = angular.module(HawtioForms.pluginName, []);
-    HawtioForms._module.run(function () {
-        HawtioForms.log.debug("loaded");
-    });
-    hawtioPluginLoader.addModule(HawtioForms.pluginName);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    HawtioForms._module.directive('hawtioCombobox', [function () {
-            return {
-                restrict: 'A',
-                link: function (scope, element, attrs) {
-                    // TODO - disable the bootstrap combobox until we can have it properly display a drop-down
-                    /*
-                    var isComboboxAlready = false;
-                    scope.$children = element.children();
-                    scope.$watchCollection('$children', (children) => {
-                      if (!isComboboxAlready && children.length > 5) {
-                        isComboboxAlready = true;
-                        (<any>element).combobox();
-                      }
-                      setTimeout(() => {
-                        console.log("Refreshing");
-                        (<any>element).combobox('refresh');
-                      }, 10);
-                    });
-                    */
-                }
-            };
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    var directiveName = "hawtioForms2Array";
-    function clearBody(context, table) {
-        var body = table.find('tbody');
-        body.empty();
-        return body;
-    }
-    function buildTableBody(context, columnSchema, entity, body) {
-        _.forEach(entity, function (row, index) {
-            var tr = newBodyRow(context);
-            if (columnSchema.properties.$items) {
-                tr.append('<td>' + row + '</td>');
-            }
-            else {
-                _.forIn(columnSchema.properties, function (control, name) {
-                    var tmpConfig = {
-                        style: HawtioForms.FormStyle.UNWRAPPED,
-                        mode: HawtioForms.FormMode.VIEW,
-                        properties: {}
-                    };
-                    tmpConfig.properties[name] = control;
-                    var template = HawtioForms.getTemplate(context, tmpConfig, name, control);
-                    if (template) {
-                        var el = angular.element(template);
-                        el.attr({
-                            'class': ''
-                        });
-                        el.find('label').text('');
-                        ['input', 'select'].forEach(function (controlType) {
-                            el.find(controlType).attr({
-                                'ng-disabled': 'true',
-                                'style': 'width: auto'
-                            }).removeClass('form-control')
-                                .addClass('table-control');
-                        });
-                        if (control.enum) {
-                            HawtioForms.addPostInterpolateAction(context, name, function (el) {
-                                var select = el.find('select');
-                                var propName = 'config.columnSchema.properties[\'' + name + '\'].enum';
-                                HawtioForms.setSelectOptions(_.isArray(control.enum), propName, select);
-                            });
-                        }
-                        if ('properties' in control || 'javaType' in control) {
-                            HawtioForms.addPostInterpolateAction(context, name, function (el) {
-                                el.find('h4').remove();
-                                el.find('.inline-object').attr({
-                                    'entity': 'entity[' + index + '].' + name,
-                                    'label': false
-                                });
-                            });
-                        }
-                        template = HawtioForms.interpolateTemplate(context, tmpConfig, name, control, el.prop('outerHTML'), 'entity[' + index + '].' + name);
-                        var td = angular.element('<td></td>');
-                        td.append(template);
-                        tr.append(td);
-                    }
-                    else {
-                        tr.append('<td>' + row[name] + '</td>');
-                    }
-                });
-            }
-            var deleteRow = angular.element(context.$templateCache.get('deleteRow.html'));
-            deleteRow.find('.deleteRow').attr({
-                'ng-click': 'deleteRow(' + index + ')'
-            });
-            deleteRow.find('.editRow').attr({
-                'ng-click': 'editRow(' + index + ')'
-            });
-            tr.append(deleteRow);
-            body.append(tr);
-        });
-    }
-    function newBodyRow(context) {
-        return angular.element(context.$templateCache.get('rowTemplate.html'));
-    }
-    function newHeaderRow(context, table) {
-        var header = table.find('thead');
-        header.empty();
-        return header.append(context.$templateCache.get('rowTemplate.html')).find('tr');
-    }
-    function buildTableHeader(context, table, columnSchema) {
-        var headerRow = newHeaderRow(context, table);
-        _.forIn(columnSchema.properties, function (control, name) {
-            var interpolateFunc = context.$interpolate(control.headerTemplate || context.$templateCache.get('header.html'));
-            headerRow.append(interpolateFunc({
-                control: control,
-                name: context.maybeHumanize(name)
-            }));
-        });
-        headerRow.append(context.$templateCache.get("newItemHeader.html"));
-        return headerRow;
-    }
-    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', '$modal', function ($compile, $templateCache, $interpolate, schemas, mappings, $modal) {
-            return {
-                restrict: 'A',
-                replace: true,
-                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Array.html'),
-                scope: {
-                    config: '=' + directiveName,
-                    entity: '=?'
-                },
-                link: function (scope, element, attrs) {
-                    scope.$watch('config', function (newConfig) {
-                        var context = {
-                            postInterpolateActions: {},
-                            maybeHumanize: undefined,
-                            config: undefined,
-                            element: element,
-                            attrs: attrs,
-                            mappings: mappings,
-                            schemas: schemas,
-                            $templateCache: $templateCache,
-                            $interpolate: $interpolate,
-                            $compile: $compile,
-                            directiveName: directiveName
-                        };
-                        var config = HawtioForms.initConfig(context, _.cloneDeep(newConfig), false);
-                        context.config = config;
-                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
-                        if (!scope.entity) {
-                            scope.entity = [];
-                        }
-                        if (!config || !config.items) {
-                            return;
-                        }
-                        var type = config.items.type || config.items.javaType;
-                        var entity = scope.entity;
-                        var columnSchema = {
-                            properties: {}
-                        };
-                        if (mappings.hasMapping(type)) {
-                            var items = {};
-                            _.merge(items, config, {
-                                type: mappings.getMapping(type)
-                            });
-                            if ('items' in items) {
-                                delete items['items'];
-                            }
-                            if (!items.label) {
-                                items.label = 'Entries';
-                            }
-                            columnSchema.properties.$items = items;
-                        }
-                        else {
-                            columnSchema = schemas.getSchema(type);
-                        }
-                        var table = angular.element($templateCache.get("table.html"));
-                        var header = buildTableHeader(context, table, columnSchema);
-                        var s = scope.$new();
-                        config.columnSchema = columnSchema;
-                        s.config = config;
-                        s.entity = entity;
-                        function initSchema(schema) {
-                            var answer = _.clone(schema, true);
-                            answer.style = HawtioForms.FormStyle.STANDARD;
-                            if ('$items' in answer.properties) {
-                                answer.properties.$items['label-attributes'] = {
-                                    'style': 'display: none'
-                                };
-                            }
-                            return answer;
-                        }
-                        s.deleteRow = function (index) {
-                            var modal = $modal.open({
-                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
-                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
-                                        $scope.schema = initSchema(columnSchema);
-                                        $scope.schema.mode = HawtioForms.FormMode.VIEW;
-                                        $scope.header = "Delete Entry?";
-                                        $scope.description = "<p>Are you sure you want to delete the following entry?</p><p><strong>This operation cannot be undone!</strong></p>";
-                                        if (columnSchema.properties.$items) {
-                                            $scope.newEntity = {
-                                                $items: entity[index]
-                                            };
-                                        }
-                                        else {
-                                            $scope.newEntity = _.clone(entity[index]);
-                                        }
-                                        $scope.ok = function () {
-                                            modal.close();
-                                            entity.splice(index, 1);
-                                        };
-                                        $scope.cancel = function () {
-                                            modal.dismiss();
-                                        };
-                                    }]
-                            });
-                        };
-                        s.editRow = function (index) {
-                            var modal = $modal.open({
-                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
-                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
-                                        $scope.schema = initSchema(columnSchema);
-                                        $scope.header = "Edit Entry";
-                                        if (columnSchema.properties.$items) {
-                                            $scope.newEntity = {
-                                                $items: entity[index]
-                                            };
-                                        }
-                                        else {
-                                            $scope.newEntity = _.clone(entity[index]);
-                                        }
-                                        $scope.ok = function () {
-                                            modal.close();
-                                            if ('$items' in $scope.newEntity) {
-                                                entity[index] = $scope.newEntity.$items;
-                                            }
-                                            else {
-                                                entity[index] = $scope.newEntity;
-                                            }
-                                        };
-                                        $scope.cancel = function () {
-                                            modal.dismiss();
-                                        };
-                                    }]
-                            });
-                        };
-                        s.createNewRow = function () {
-                            var modal = $modal.open({
-                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
-                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
-                                        $scope.schema = initSchema(columnSchema);
-                                        $scope.newEntity = undefined;
-                                        $scope.header = "Add New Entry";
-                                        $scope.ok = function () {
-                                            modal.close();
-                                            if ('$items' in $scope.newEntity) {
-                                                entity.push($scope.newEntity.$items);
-                                            }
-                                            else {
-                                                entity.push($scope.newEntity);
-                                            }
-                                        };
-                                        $scope.cancel = function () {
-                                            modal.dismiss();
-                                        };
-                                    }]
-                            });
-                        };
-                        s.watch = s.$watchCollection('entity', function (entity, old) {
-                            scope.entity = entity;
-                            var body = clearBody(context, table);
-                            var tmp = angular.element('<div></div>');
-                            buildTableBody(context, columnSchema, entity, tmp);
-                            body.append($compile(tmp.children())(s));
-                        });
-                        element.append($compile(table)(s));
-                    }, true);
-                }
-            };
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    var directiveName = 'hawtioForm2';
-    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', function ($compile, $templateCache, $interpolate, schemas, mappings) {
-            return {
-                restrict: 'A',
-                replace: true,
-                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Directive.html'),
-                scope: {
-                    config: '=' + directiveName,
-                    entity: '=?',
-                    name: '@?'
-                },
-                link: function (scope, element, attrs) {
-                    scope.$watch('config', function () {
-                        element.empty();
-                        var context = {
-                            postInterpolateActions: {},
-                            preCompileActions: {},
-                            maybeHumanize: undefined,
-                            config: undefined,
-                            scope: undefined,
-                            element: element,
-                            attrs: attrs,
-                            mappings: mappings,
-                            schemas: schemas,
-                            $templateCache: $templateCache,
-                            $interpolate: $interpolate,
-                            $compile: $compile,
-                            directiveName: directiveName
-                        };
-                        var config = HawtioForms.initConfig(context, _.cloneDeep(scope.config));
-                        context.config = config;
-                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
-                        if (!scope.entity) {
-                            scope.entity = {};
-                        }
-                        var entity = scope.entity;
-                        if (!('properties' in config)) {
-                            return;
-                        }
-                        // create our child scope here
-                        var s = context.scope = scope.$new();
-                        s.config = config;
-                        s.name = scope.name || 'hawtio-form';
-                        // s.entity = entity;
-                        s.maybeHumanize = context.maybeHumanize;
-                        // These are here to figure out what controls go on which page
-                        var pages = {};
-                        var controls = {};
-                        // log.debug("Config: ", config);
-                        // log.debug("Entity: ", entity);
-                        var form = angular.element(HawtioForms.getFormMain(context, config));
-                        form.find('form').attr({
-                            name: config.id || 'form'
-                        });
-                        var parent = form.find('fieldset');
-                        if (parent.length === 0) {
-                            parent = form;
-                        }
-                        var singlePage = false;
-                        if (('wizard' in config) && config.wizard.pages) {
-                            var wizard = config.wizard;
-                            var wizardBody = $templateCache.get('wizardParent.html');
-                            parent.append(wizardBody);
-                            s.pageIds = [];
-                            parent = parent.find('.wizardParent');
-                            s.onFinish = function () {
-                                HawtioForms.log.warn("No onFinish() function supplied to form wizard");
-                            };
-                            s.buttons = {
-                                'next': 'Next',
-                                'back': 'Back',
-                                'finish': 'Finish'
-                            };
-                            _.forIn(wizard, function (attr, key) {
-                                s[key] = attr;
-                            });
-                            _.forIn(wizard.pages, function (pageConfig, id) {
-                                if (!('title' in pageConfig)) {
-                                    pageConfig.title = id;
-                                }
-                                pageConfig.el = angular.element($templateCache.get('wizardPage.html'));
-                                pageConfig.el.attr({
-                                    'ng-switch-when': id
-                                });
-                                pageConfig.el.find('h3').text(id);
-                                if ('template' in pageConfig) {
-                                    pageConfig.el.append($compile(pageConfig.template)(scope));
-                                }
-                                pageConfig.parent = pageConfig.el.find('.wizardPageBody');
-                                pageConfig.parent.attr({
-                                    'ng-form': _.camelCase(id)
-                                });
-                                HawtioForms.addPreCompileAction(context, _.camelCase(id), function () {
-                                    var buttons = angular.element($templateCache.get('wizardButtons.html'));
-                                    var disabled = {
-                                        'ng-disabled': _.camelCase(id) + '.$invalid'
-                                    };
-                                    buttons.find('.next').attr(disabled);
-                                    buttons.find('.finish').attr(disabled);
-                                    pageConfig.parent.append(buttons);
-                                });
-                                pages[id] = pageConfig;
-                                s.pageIds.push(id);
-                            });
-                            s.currentPageIndex = 0;
-                            s.gotoPage = function (index, current) {
-                                if (index < 0 || index > s.pageIds.length) {
-                                    return;
-                                }
-                                if (s.onChange) {
-                                    var idx = s.onChange(current, index, s.pageIds);
-                                    if (idx) {
-                                        s.currentPageIndex = idx;
-                                        return;
-                                    }
-                                }
-                                s.currentPageIndex = index;
-                            };
-                            s.isValid = function () {
-                                HawtioForms.log.debug("scope: ", scope);
-                                return true;
-                            };
-                            s.getCurrentPageId = function () {
-                                return s.pageIds[s.currentPageIndex];
-                            };
-                            s.atFront = function () {
-                                return s.currentPageIndex === 0;
-                            };
-                            s.atBack = function () {
-                                return s.currentPageIndex === s.pageIds.length - 1;
-                            };
-                            s.next = function () {
-                                s.gotoPage(s.currentPageIndex + 1, s.currentPageIndex);
-                            };
-                            s.back = function () {
-                                s.gotoPage(s.currentPageIndex - 1, s.currentPageIndex);
-                            };
-                        }
-                        else if ('tabs' in config) {
-                            parent.append($templateCache.get('tabElement.html'));
-                            parent = parent.find('.tabbable');
-                            var tabs = config.tabs;
-                            _.forIn(tabs, function (tabConfig, id) {
-                                var tab = angular.element($templateCache.get('tabPage.html'));
-                                tab.attr({
-                                    'title': id
-                                });
-                                var tabPage = {
-                                    controls: tabConfig,
-                                    el: tab,
-                                    parent: tab
-                                };
-                                pages[id] = tabPage;
-                            });
-                        }
-                        else if ('controls' in config) {
-                            pages['$main'] = {
-                                'controls': config.controls,
-                                'el': form,
-                                'parent': parent
-                            };
-                            singlePage = true;
-                        }
-                        else {
-                            pages['$main'] = {
-                                'controls': ['*'],
-                                'el': form,
-                                'parent': parent
-                            };
-                            singlePage = true;
-                        }
-                        _.forIn(config.properties, function (control, name) {
-                            // Set up typeahead if data is provided
-                            var typeaheadData = Core.pathGet(control, ['typeaheadData']);
-                            if (typeaheadData && !Core.pathGet(control, ['input-attributes', 'typeahead'])) {
-                                Core.pathSet(control, ['input-attributes', 'typeahead'], 'item for item in config.properties.' + name + '.typeaheadData');
-                            }
-                            // set up an initial value if set in the input attributes
-                            var value = Core.pathGet(control, ['input-attributes', 'value']);
-                            if (value) {
-                                entity[name] = value;
-                            }
-                            // set the initial value if set as a default for the property
-                            var _default = Core.pathGet(control, ['default']);
-                            if (_default) {
-                                entity[name] = _default;
-                            }
-                            if (mappings.getMapping(control.type) === "checkbox") {
-                                entity[name] = Core.parseBooleanValue(_default);
-                            }
-                            // log.debug("control: ", control);
-                            var template = HawtioForms.getTemplate(context, config, name, control);
-                            if (template) {
-                                template = HawtioForms.interpolateTemplate(context, config, name, control, template, 'entity.' + name);
-                                controls[name] = template;
-                            }
-                        });
-                        /*
-                           log.debug("pages: ", pages);
-                           log.debug("controls: ", controls);
-                         */
-                        var ids = _.keys(pages);
-                        var wildcardId = undefined;
-                        ids.forEach(function (pageId) {
-                            var pageConfig = pages[pageId];
-                            if (pageConfig.controls) {
-                                pageConfig.controls.forEach(function (name) {
-                                    if (name === '*') {
-                                        if (singlePage) {
-                                            _.forIn(controls, function (control, controlId) {
-                                                if (_.any(pageConfig.controls, function (id) { return id === controlId; })) {
-                                                    return;
-                                                }
-                                                else {
-                                                    pageConfig.parent.append(control);
-                                                    delete controls[controlId];
-                                                }
-                                            });
-                                        }
-                                        else {
-                                            wildcardId = pageId;
-                                        }
-                                    }
-                                    else {
-                                        if (name in controls) {
-                                            pageConfig.parent.append(controls[name]);
-                                            delete controls[name];
-                                        }
-                                        else {
-                                            HawtioForms.log.debug("Control with name ", name, " not found");
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                        // take care of leftover controls
-                        if (_.keys(controls).length > 0) {
-                            if (!wildcardId) {
-                                wildcardId = _.last(ids);
-                            }
-                            _.forIn(controls, function (control, controlId) {
-                                pages[wildcardId].parent.append(control);
-                                delete controls[controlId];
-                            });
-                        }
-                        /*
-                           form.append('<pre>{{entity}}</pre>');
-                           form.append('<pre>{{config}}</pre>');
-                         */
-                        _.forIn(pages, function (pageConfig, id) {
-                            if (id !== '$main') {
-                                parent.append(pageConfig.el);
-                            }
-                        });
-                        _.forIn(context.preCompileActions, function (value, name) {
-                            _.forEach(value, function (func) {
-                                func();
-                            });
-                        });
-                        element.append($compile(form)(s));
-                        s.$emit('hawtio-form2-form', {
-                            name: s.name,
-                            form: s.$eval(s.name)
-                        });
-                    }, true);
-                }
-            };
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    var directiveName = "hawtioForms2Map";
-    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', '$modal', function ($compile, $templateCache, $interpolate, schemas, mappings, $modal) {
-            function clearBody(context, table) {
-                var body = table.find('tbody');
-                body.empty();
-                return body;
-            }
-            function findSchema(name, type, control) {
-                var answer = {
-                    properties: {},
-                    control: control
-                };
-                if ('items' in control) {
-                    answer.properties[name] = {
-                        noLabel: true,
-                        type: type,
-                        items: {
-                            type: control.items.type
-                        }
-                    };
-                }
-                else if (mappings.hasMapping(type)) {
-                    answer.properties[name] = {
-                        noLabel: true,
-                        type: mappings.getMapping(type)
-                    };
-                }
-                else {
-                    answer = schemas.getSchema(type);
-                }
-                if (angular.isObject(answer)) {
-                    answer.control = control;
-                }
-                return answer;
-            }
-            function buildMap(context, entity, keySchema, valueSchema, body) {
-                var s = context.s;
-                s.keys = {};
-                s.values = {};
-                _.forIn(entity, function (value, key) {
-                    s.keys[key] = {
-                        key: key
-                    };
-                    if (valueSchema.control.items || mappings.hasMapping(valueSchema.control.type)) {
-                        s.values[key] = {
-                            value: value
-                        };
-                    }
-                    else {
-                        s.values[key] = value;
-                    }
-                    var template = context.$templateCache.get('mapRowTemplate.html');
-                    var func = $interpolate(template);
-                    template = func({
-                        key: key
-                    });
-                    body.append(template);
-                });
-            }
-            return {
-                restrict: 'A',
-                replace: true,
-                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Map.html'),
-                scope: {
-                    config: '=' + directiveName,
-                    entity: '=?'
-                },
-                link: function (scope, element, attrs) {
-                    scope.$watch('config', function (newConfig) {
-                        var context = {
-                            postInterpolateActions: {},
-                            maybeHumanize: undefined,
-                            config: undefined,
-                            s: undefined,
-                            element: element,
-                            attrs: attrs,
-                            mappings: mappings,
-                            schemas: schemas,
-                            $templateCache: $templateCache,
-                            $interpolate: $interpolate,
-                            $compile: $compile,
-                            directiveName: directiveName
-                        };
-                        var config = HawtioForms.initConfig(context, _.cloneDeep(newConfig), false);
-                        context.config = config;
-                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
-                        if (!scope.entity) {
-                            scope.entity = {};
-                        }
-                        if (!config || !config.items) {
-                            HawtioForms.log.debug("Invalid map config, no 'items' configured");
-                            return;
-                        }
-                        if (!config.items.key) {
-                            HawtioForms.log.debug("Invalid map config, no 'key' attribute configured in 'items'");
-                            return;
-                        }
-                        if (!config.items.value) {
-                            HawtioForms.log.debug("Invalid map config, no 'value' attribute configured in 'items'");
-                            return;
-                        }
-                        var entity = scope.entity;
-                        // log.debug("In map, config: ", config, " entity: ", entity);
-                        var s = scope.$new();
-                        context.s = s;
-                        var keySchema = findSchema('key', config.items.key.type, config.items.key);
-                        var valueSchema = findSchema('value', config.items.value.type, config.items.value);
-                        var table = angular.element($templateCache.get('table.html'));
-                        var body = table.find('tbody');
-                        s.config = config;
-                        s.entity = entity;
-                        s.keySchema = _.cloneDeep(keySchema);
-                        s.valueSchema = _.cloneDeep(valueSchema);
-                        if (s.keySchema) {
-                            s.keySchema.mode = HawtioForms.FormMode.VIEW;
-                            s.keySchema.style = HawtioForms.FormStyle.UNWRAPPED;
-                            s.keySchema.hideLegend = true;
-                        }
-                        if (s.valueSchema) {
-                            s.valueSchema.mode = HawtioForms.FormMode.VIEW;
-                            s.valueSchema.style = HawtioForms.FormStyle.UNWRAPPED;
-                            s.valueSchema.hideLegend = true;
-                        }
-                        function initSchema(schema) {
-                            var answer = _.cloneDeep(schema);
-                            answer.style = HawtioForms.FormStyle.STANDARD;
-                            _.forIn(answer.properties, function (value, key) {
-                                if ('noLabel' in value) {
-                                    delete value['noLabel'];
-                                }
-                            });
-                            HawtioForms.log.debug("Schema: ", schema);
-                            return answer;
-                        }
-                        s.editRow = function (key) {
-                            HawtioForms.log.debug("Edit row: ", key);
-                        };
-                        s.deleteRow = function (key) {
-                            HawtioForms.log.debug("Delete row: ", key);
-                        };
-                        s.createRow = function () {
-                            HawtioForms.log.debug("create row");
-                            var modal = $modal.open({
-                                templateUrl: "mapItemModal.html",
-                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
-                                        $scope.header = "Create Entry";
-                                        $scope.description = "<p>Add a new entry to the map by filling in the details for the key and value</p>";
-                                        $scope.keySchema = initSchema(keySchema);
-                                        $scope.valueSchema = initSchema(valueSchema);
-                                        $scope.ok = function () {
-                                            modal.close();
-                                            var key = $scope.newKeyEntity.key;
-                                            var value = $scope.newValueEntity;
-                                            if (valueSchema.control.items || mappings.hasMapping(valueSchema.control.type)) {
-                                                value = $scope.newValueEntity.value;
-                                            }
-                                            HawtioForms.log.debug("New key: ", key);
-                                            HawtioForms.log.debug("New value: ", value);
-                                            entity[key] = value;
-                                        };
-                                        $scope.cancel = function () {
-                                            modal.dismiss();
-                                        };
-                                    }]
-                            });
-                        };
-                        s.$watch('entity', function (entity, old) {
-                            scope.entity = entity;
-                            var body = clearBody(context, table);
-                            var tmp = angular.element('<div></div>');
-                            buildMap(context, entity, keySchema, valueSchema, tmp);
-                            body.append($compile(tmp.children())(s));
-                        }, true);
-                        element.append($compile(table)(s));
-                    });
-                }
-            };
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    HawtioForms._module.factory("SchemaRegistry", ['ControlMappingRegistry', function (mappings) {
-            var schemaMap = {};
-            var listeners = {};
-            function addSchemaInternal(name, schema) {
-                schemaMap[name] = schema;
-                _.forIn(listeners, function (listener, id) {
-                    listener(name, schema);
-                });
-            }
-            function getTypeConfig(type) {
-                if (mappings.getMapping(type) === type) {
-                    return {
-                        type: 'object',
-                        javaType: type
-                    };
-                }
-                else {
-                    return {
-                        type: type
-                    };
-                }
-            }
-            var registry = {
-                addListener: function (name, callback) {
-                    if (!name || !callback) {
-                        return;
-                    }
-                    _.forIn(schemaMap, function (schema, name) {
-                        callback(name, schema);
-                    });
-                    listeners[name] = callback;
-                },
-                removeListener: function (name) {
-                    if (name in listeners) {
-                        delete listeners[name];
-                    }
-                },
-                addSchema: function (name, schema) {
-                    var schemaClone = _.cloneDeep(schema);
-                    _.forIn(schemaClone.properties, function (property, id) {
-                        if (_.startsWith(property.javaType, 'java.util.Map')) {
-                            var trimmed = property.javaType.replace('java.util.Map<', '').replace('>', '');
-                            var parts = trimmed.split(',');
-                            if (parts.length !== 2) {
-                                return;
-                            }
-                            property.type = 'map';
-                            property.items = {
-                                key: getTypeConfig(parts[0]),
-                                value: getTypeConfig(parts[1])
-                            };
-                        }
-                    });
-                    // log.debug("Adding schema: ", name, " schema: ", schema);
-                    addSchemaInternal(name, schemaClone);
-                    if (schema.javaType) {
-                        // log.debug("Adding schema by Java type: ", schema.javaType, " value: ", schema);
-                        addSchemaInternal(schema.javaType, schemaClone);
-                    }
-                    if (schema.definitions) {
-                        // log.debug("Found definitions in schema: ", name);
-                        _.forIn(schema.definitions, function (value, key) {
-                            registry.addSchema(key, value);
-                        });
-                    }
-                },
-                getSchema: function (name) {
-                    return schemaMap[name];
-                },
-                cloneSchema: function (name) {
-                    return _.clone(schemaMap[name], true);
-                },
-                removeSchema: function (name) {
-                    var answer = undefined;
-                    if (name in schemaMap) {
-                        answer = schemaMap[name];
-                        delete schemaMap[name];
-                    }
-                    return answer;
-                },
-                iterate: function (iter) {
-                    _.forIn(schemaMap, iter);
-                }
-            };
-            /*
-            registry.addListener('logging', (name: string, schema: any) => {
-              log.debug("Added schema name: ", name, " schema: ", schema);
-            });
-            */
-            return registry;
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="forms2Plugin.ts"/>
-var HawtioForms;
-(function (HawtioForms) {
-    HawtioForms._module.factory('ControlMappingRegistry', [function () {
-            var controlMap = {};
-            var answer = {
-                hasMapping: function (name) {
-                    if (!name) {
-                        return false;
-                    }
-                    return (name.toLowerCase() in controlMap);
-                },
-                addMapping: function (name, controlType) {
-                    controlMap[name.toLowerCase()] = controlType;
-                },
-                getMapping: function (name) {
-                    if (!name) {
-                        return undefined;
-                    }
-                    var answer = controlMap[name.toLowerCase()];
-                    if (!answer) {
-                        return name;
-                    }
-                    return answer;
-                },
-                removeMapping: function (name) {
-                    var answer = undefined;
-                    if (name.toLowerCase() in controlMap) {
-                        answer = controlMap[name.toLowerCase()];
-                        delete controlMap[name.toLowerCase()];
-                    }
-                    return answer;
-                },
-                iterate: function (iter) {
-                    _.forIn(controlMap, iter);
-                }
-            };
-            /* Set up some defaults */
-            _.forEach(["int",
-                "number",
-                "integer",
-                "long",
-                "short",
-                "java.lang.integer",
-                "java.lang.long",
-                "float",
-                "double",
-                "java.lang.float",
-                "java.lang.double"
-            ], function (name) { return answer.addMapping(name, 'number'); });
-            _.forEach(["boolean",
-                "bool",
-                "java.lang.boolean"
-            ], function (name) { return answer.addMapping(name, 'checkbox'); });
-            answer.addMapping('password', 'password');
-            answer.addMapping('hidden', 'hidden');
-            answer.addMapping('static', 'static');
-            answer.addMapping('enum', 'select');
-            answer.addMapping('choice', 'radio-group');
-            answer.addMapping('multiple', 'multiple-select');
-            _.forEach(["string",
-                "text",
-                "java.lang.string"
-            ], function (name) { return answer.addMapping(name, 'text'); });
-            return answer;
-        }]);
-})(HawtioForms || (HawtioForms = {}));
-
-/// <reference path="../../includes.ts"/>
 /**
  * @module Forms
  */
@@ -2140,7 +750,7 @@ var Forms;
             return this.getMode() === "view";
         };
         return InputBaseConfig;
-    })();
+    }());
     Forms.InputBaseConfig = InputBaseConfig;
     var InputBase = (function () {
         function InputBase($compile) {
@@ -2203,7 +813,7 @@ var Forms;
             return rc;
         };
         return InputBase;
-    })();
+    }());
     Forms.InputBase = InputBase;
     var TextInput = (function (_super) {
         __extends(TextInput, _super);
@@ -2234,7 +844,7 @@ var Forms;
             return rc;
         };
         return TextInput;
-    })(InputBase);
+    }(InputBase));
     Forms.TextInput = TextInput;
     var HiddenText = (function (_super) {
         __extends(HiddenText, _super);
@@ -2254,7 +864,7 @@ var Forms;
             return rc;
         };
         return HiddenText;
-    })(TextInput);
+    }(TextInput));
     Forms.HiddenText = HiddenText;
     var PasswordInput = (function (_super) {
         __extends(PasswordInput, _super);
@@ -2264,7 +874,7 @@ var Forms;
             this.type = "password";
         }
         return PasswordInput;
-    })(TextInput);
+    }(TextInput));
     Forms.PasswordInput = PasswordInput;
     var CustomInput = (function (_super) {
         __extends(CustomInput, _super);
@@ -2288,7 +898,7 @@ var Forms;
             return rc;
         };
         return CustomInput;
-    })(InputBase);
+    }(InputBase));
     Forms.CustomInput = CustomInput;
     var SelectInput = (function (_super) {
         __extends(SelectInput, _super);
@@ -2337,7 +947,7 @@ var Forms;
             return rc;
         };
         return SelectInput;
-    })(InputBase);
+    }(InputBase));
     Forms.SelectInput = SelectInput;
     var NumberInput = (function (_super) {
         __extends(NumberInput, _super);
@@ -2382,7 +992,7 @@ var Forms;
             return rc;
         };
         return NumberInput;
-    })(InputBase);
+    }(InputBase));
     Forms.NumberInput = NumberInput;
     /**
      * Generates a list of strings which can be added / edited / removed
@@ -2465,7 +1075,7 @@ var Forms;
             }
         };
         return StringArrayInput;
-    })(InputBase);
+    }(InputBase));
     Forms.StringArrayInput = StringArrayInput;
     var ArrayInput = (function (_super) {
         __extends(ArrayInput, _super);
@@ -2532,7 +1142,7 @@ var Forms;
             $(element).append(this.$compile(table)(scope));
         };
         return ArrayInput;
-    })(InputBase);
+    }(InputBase));
     Forms.ArrayInput = ArrayInput;
     var BooleanInput = (function (_super) {
         __extends(BooleanInput, _super);
@@ -2568,7 +1178,7 @@ var Forms;
             return rc;
         };
         return BooleanInput;
-    })(InputBase);
+    }(InputBase));
     Forms.BooleanInput = BooleanInput;
 })(Forms || (Forms = {}));
 
@@ -2623,7 +1233,7 @@ var Forms;
             return this.getMode() === "view";
         };
         return SimpleFormConfig;
-    })();
+    }());
     Forms.SimpleFormConfig = SimpleFormConfig;
     var SimpleForm = (function () {
         function SimpleForm($compile) {
@@ -2940,7 +1550,7 @@ var Forms;
             return '';
         };
         return SimpleForm;
-    })();
+    }());
     Forms.SimpleForm = SimpleForm;
 })(Forms || (Forms = {}));
 
@@ -2983,7 +1593,7 @@ var Forms;
             return this.tableConfig || "tableConfig";
         };
         return InputTableConfig;
-    })();
+    }());
     Forms.InputTableConfig = InputTableConfig;
     var InputTable = (function () {
         function InputTable($compile) {
@@ -3303,7 +1913,7 @@ var Forms;
             return rc;
         };
         return InputTable;
-    })();
+    }());
     Forms.InputTable = InputTable;
 })(Forms || (Forms = {}));
 
@@ -3328,7 +1938,7 @@ var Forms;
             });
         };
         return SubmitForm;
-    })();
+    }());
     Forms.SubmitForm = SubmitForm;
 })(Forms || (Forms = {}));
 
@@ -3356,7 +1966,7 @@ var Forms;
             });
         };
         return ResetForm;
-    })();
+    }());
     Forms.ResetForm = ResetForm;
 })(Forms || (Forms = {}));
 
@@ -3653,6 +2263,1426 @@ var Forms;
         }]);
 })(Forms || (Forms = {}));
 
+/// <reference path="../../includes.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    /**
+     * Enum for form mode attribute
+     */
+    (function (FormMode) {
+        FormMode[FormMode["VIEW"] = 0] = "VIEW";
+        FormMode[FormMode["EDIT"] = 1] = "EDIT";
+    })(HawtioForms.FormMode || (HawtioForms.FormMode = {}));
+    var FormMode = HawtioForms.FormMode;
+    /**
+     * Enum for the overall form style
+     */
+    (function (FormStyle) {
+        FormStyle[FormStyle["STANDARD"] = 0] = "STANDARD";
+        FormStyle[FormStyle["INLINE"] = 1] = "INLINE";
+        FormStyle[FormStyle["HORIZONTAL"] = 2] = "HORIZONTAL";
+        FormStyle[FormStyle["UNWRAPPED"] = 3] = "UNWRAPPED";
+    })(HawtioForms.FormStyle || (HawtioForms.FormStyle = {}));
+    var FormStyle = HawtioForms.FormStyle;
+    function createFormConfiguration(options) {
+        var answer = options || { properties: {} };
+        _.defaults(answer, {
+            style: FormStyle.HORIZONTAL,
+            mode: FormMode.EDIT
+        });
+        return answer;
+    }
+    HawtioForms.createFormConfiguration = createFormConfiguration;
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="../../includes.ts"/>
+/// <reference path="forms2Interfaces.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    HawtioForms.pluginName = 'hawtio-forms2';
+    HawtioForms.templatePath = 'plugins/forms2/html';
+    HawtioForms.log = Logger.get(HawtioForms.pluginName);
+    var Constants = (function () {
+        function Constants() {
+        }
+        Object.defineProperty(Constants, "FORM_STANDARD", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-standard.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "FORM_INLINE", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-inline.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "FORM_UNWRAPPED", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-unwrapped.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "FORM_HORIZONTAL", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'form-horizontal.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "STANDARD_HORIZONTAL_INPUT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'standard-horizontal-input.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "STANDARD_INPUT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'standard-input.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "STATIC_HORIZONTAL_TEXT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'static-horizontal-text.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "STATIC_TEXT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'static-text.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "SELECT_HORIZONTAL", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'select-horizontal.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "SELECT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'select.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "OPTION_ARRAY", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionArray.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "OPTION_OBJECT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionObject.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "OPTION_CONFIG_OBJECT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'optionConfigObject.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "CHECKBOX_HORIZONTAL", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'checkbox-horizontal.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "CHECKBOX", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'checkbox.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "OBJECT", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'object.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "ARRAY", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'array.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "MAP", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'map.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Constants, "HIDDEN", {
+            get: function () { return UrlHelpers.join(HawtioForms.templatePath, 'hidden.html'); },
+            enumerable: true,
+            configurable: true
+        });
+        return Constants;
+    }());
+    HawtioForms.Constants = Constants;
+    function addPostInterpolateAction(context, name, func) {
+        if (!(name in context.postInterpolateActions)) {
+            context.postInterpolateActions[name] = [];
+        }
+        context.postInterpolateActions[name].push(func);
+    }
+    HawtioForms.addPostInterpolateAction = addPostInterpolateAction;
+    function addPreCompileAction(context, name, func) {
+        if (!(name in context.preCompileActions)) {
+            context.preCompileActions[name] = [];
+        }
+        context.preCompileActions[name].push(func);
+    }
+    HawtioForms.addPreCompileAction = addPreCompileAction;
+    function getFormMain(context, config) {
+        switch (config.style) {
+            case HawtioForms.FormStyle.STANDARD:
+                return context.$templateCache.get(Constants.FORM_STANDARD);
+            case HawtioForms.FormStyle.INLINE:
+                return context.$templateCache.get(Constants.FORM_INLINE);
+            case HawtioForms.FormStyle.UNWRAPPED:
+                return context.$templateCache.get(Constants.FORM_UNWRAPPED);
+            default:
+                return context.$templateCache.get(Constants.FORM_HORIZONTAL);
+        }
+    }
+    HawtioForms.getFormMain = getFormMain;
+    function getStandardTemplate(context, config, control, type) {
+        var template = undefined;
+        switch (config.style) {
+            case HawtioForms.FormStyle.HORIZONTAL:
+                template = context.$templateCache.get(Constants.STANDARD_HORIZONTAL_INPUT);
+                break;
+            default:
+                template = context.$templateCache.get(Constants.STANDARD_INPUT);
+        }
+        return applyElementConfig(context, config, control, template, type);
+    }
+    HawtioForms.getStandardTemplate = getStandardTemplate;
+    function applyElementConfig(context, config, control, template, type) {
+        var el = angular.element(template);
+        if ('tooltip' in control) {
+            el.attr({ title: control.tooltip });
+        }
+        if ('control-group-attributes' in control) {
+            el.attr(control['control-group-attributes']);
+        }
+        if ('label-attributes' in control) {
+            el.find('label').attr(control['label-attributes']);
+        }
+        var input = el.find('input');
+        if (type) {
+            input.attr({ type: type });
+        }
+        if ('input-attributes' in control) {
+            input.attr(control['input-attributes']);
+        }
+        if ('selectors' in control) {
+            _.forIn(control.selectors, function (func, selector) {
+                HawtioForms.log.debug("Found selector: ", selector, " for control: ", control, " applying");
+                if (selector === 'el') {
+                    func(el);
+                }
+                else {
+                    func($(el.find(selector)));
+                }
+            });
+        }
+        return el.prop('outerHTML');
+    }
+    HawtioForms.applyElementConfig = applyElementConfig;
+    function getStaticTextTemplate(context, config) {
+        switch (config.style) {
+            case HawtioForms.FormStyle.HORIZONTAL:
+                return context.$templateCache.get(Constants.STATIC_HORIZONTAL_TEXT);
+            default:
+                return context.$templateCache.get(Constants.STATIC_TEXT);
+        }
+    }
+    HawtioForms.getStaticTextTemplate = getStaticTextTemplate;
+    function setSelectOptions(isArray, propName, select) {
+    }
+    HawtioForms.setSelectOptions = setSelectOptions;
+    function getSelectTemplate(context, config, name, control) {
+        var template = undefined;
+        switch (config.style) {
+            case HawtioForms.FormStyle.HORIZONTAL:
+                template = context.$templateCache.get(Constants.SELECT_HORIZONTAL);
+                break;
+            default:
+                template = context.$templateCache.get(Constants.SELECT);
+        }
+        addPostInterpolateAction(context, name, function (el) {
+            var select = el.find('select');
+            var propName = 'config.properties[\'' + name + '\'].enum';
+            var isArray = _.isArray(control.enum);
+            var isFunction = _.isFunction(control.enum);
+            if (isArray) {
+                if (_.isObject(_.first(control.enum))) {
+                    var template = context.$templateCache.get(Constants.OPTION_CONFIG_OBJECT);
+                    var interpolate = context.$interpolate(template);
+                    _.forEach(control.enum, function (config) {
+                        var newOption = angular.element(interpolate(config));
+                        if (config.attributes) {
+                            newOption.attr(config.attributes);
+                        }
+                        select.append(newOption);
+                    });
+                }
+                else {
+                    var template = context.$templateCache.get(Constants.OPTION_ARRAY);
+                    var interpolate = context.$interpolate(template);
+                    _.forEach(control.enum, function (value) {
+                        select.append(interpolate({
+                            value: value
+                        }));
+                    });
+                }
+            }
+            else if (isFunction) {
+                context.scope.enum = control.enum;
+                select.attr('ng-options', 'item.value as item.label for item in enum()');
+                select.removeAttr('hawtio-combobox');
+            }
+            else {
+                var template = context.$templateCache.get(Constants.OPTION_OBJECT);
+                var interpolate = context.$interpolate(template);
+                _.forIn(control.enum, function (value, key) {
+                    select.append(interpolate({
+                        key: key,
+                        value: value
+                    }));
+                });
+            }
+        });
+        return applyElementConfig(context, config, control, template);
+    }
+    HawtioForms.getSelectTemplate = getSelectTemplate;
+    function getCheckboxTemplate(context, config, control) {
+        switch (config.style) {
+            case HawtioForms.FormStyle.HORIZONTAL:
+                return context.$templateCache.get(Constants.CHECKBOX_HORIZONTAL);
+            default:
+                return context.$templateCache.get(Constants.CHECKBOX);
+        }
+    }
+    HawtioForms.getCheckboxTemplate = getCheckboxTemplate;
+    function getObjectTemplate(context, config, name, control) {
+        var configName = 'config.properties.' + name;
+        if ('javaType' in control) {
+            configName = control.javaType;
+        }
+        addPostInterpolateAction(context, name, function (el) {
+            var attr = {
+                'hawtio-form-2': configName,
+                'entity': 'entity.' + name,
+                'no-wrap': 'true',
+                'mode': config.mode,
+                'style': config.style,
+                'label': control.label || context.maybeHumanize(name)
+            };
+            var groupAttr = {};
+            if ('control-group-attributes' in control) {
+                _.forIn(control['control-group-attributes'], function (value, key) {
+                    groupAttr[key] = value;
+                });
+            }
+            el.attr(groupAttr);
+            el.find('.inline-object').attr(attr);
+        });
+        return context.$templateCache.get(Constants.OBJECT);
+    }
+    HawtioForms.getObjectTemplate = getObjectTemplate;
+    function getMapTemplate(context, config, name, control) {
+        addPostInterpolateAction(context, name, function (el) {
+            el.find('.inline-map').attr({
+                'hawtio-forms-2-map': 'config.properties.' + name,
+                'entity': 'entity.' + name,
+                'mode': config.mode
+            });
+        });
+        return context.$templateCache.get(Constants.MAP);
+    }
+    HawtioForms.getMapTemplate = getMapTemplate;
+    function getArrayTemplate(context, config, name, control) {
+        /*
+        if (control.items) {
+          if (!('javaType' in control.items)) {
+            log.debug("Array, name: ", name, " type: ", control.items.type, " control: ", control);
+          } else {
+            log.debug("Array, name: ", name, " type: ", control.items.javaType, " control: ", control);
+          }
+        }
+        */
+        addPostInterpolateAction(context, name, function (el) {
+            el.find('.inline-array').attr({
+                'hawtio-forms-2-array': 'config.properties.' + name,
+                'entity': 'entity.' + name,
+                'mode': config.mode
+            });
+        });
+        return context.$templateCache.get(Constants.ARRAY);
+    }
+    HawtioForms.getArrayTemplate = getArrayTemplate;
+    ;
+    function lookupTemplate(context, config, name, control) {
+        var controlType = context.mappings.getMapping(control.type);
+        if ('enum' in control) {
+            controlType = 'select';
+        }
+        if ('properties' in control) {
+            controlType = 'object';
+        }
+        if (control.hidden) {
+            controlType = 'hidden';
+        }
+        // coerce this for now...
+        if (control.type === 'object' && control.javaType && _.startsWith(control.javaType, 'java.util.Map')) {
+            controlType = 'map';
+        }
+        if (controlType) {
+            switch (controlType) {
+                case 'array':
+                    return getArrayTemplate(context, config, name, control);
+                case 'number':
+                    return getStandardTemplate(context, config, control, 'number');
+                case 'password':
+                    return getStandardTemplate(context, config, control, 'password');
+                case 'text':
+                    return getStandardTemplate(context, config, control, 'text');
+                case 'static':
+                    return getStaticTextTemplate(context, config);
+                case 'object':
+                    return getObjectTemplate(context, config, name, control);
+                case 'map':
+                    return getMapTemplate(context, config, name, control);
+                case 'hidden':
+                    control.hidden = true;
+                    return applyElementConfig(context, config, control, context.$templateCache.get(Constants.HIDDEN));
+                case 'select':
+                    return getSelectTemplate(context, config, name, control);
+                case 'checkbox':
+                    return getCheckboxTemplate(context, config, control);
+            }
+        }
+        // log.debug("No mapping found for control: ", control);
+        var type = control.javaType || control.type;
+        // log.debug("controlType: ", type);
+        // look in the schema registry
+        var schema = context.schemas.getSchema(type);
+        // log.debug("Schema: ", schema);
+        if (schema) {
+            return getObjectTemplate(context, config, name, _.extend(control, schema));
+        }
+        return undefined;
+    }
+    HawtioForms.lookupTemplate = lookupTemplate;
+    function getTemplate(context, config, name, control) {
+        if ('formTemplate' in control) {
+            return control.formTemplate;
+        }
+        return lookupTemplate(context, config, name, control);
+    }
+    HawtioForms.getTemplate = getTemplate;
+    function interpolateTemplate(context, config, name, control, template, model) {
+        if (control.formTemplate) {
+            //log.debug("template: ", template);
+            //log.debug("name: ", name, " control: ", control);
+            return control.formTemplate;
+        }
+        var interpolateFunc = context.$interpolate(template);
+        var answer = interpolateFunc({
+            maybeHumanize: context.maybeHumanize,
+            control: control,
+            name: name,
+            model: model
+        });
+        // log.debug("postInterpolateActions: ", postInterpolateActions);
+        if (context.postInterpolateActions[name]) {
+            var el = angular.element(answer);
+            context.postInterpolateActions[name].forEach(function (func) {
+                func(el);
+            });
+            answer = el.prop('outerHTML');
+        }
+        return answer;
+    }
+    HawtioForms.interpolateTemplate = interpolateTemplate;
+    function createMaybeHumanize(context) {
+        return function (value) {
+            var config = context.config;
+            if (!config || (config && !config.disableHumanizeLabel)) {
+                return Core.humanizeValue(value);
+            }
+            else {
+                return value;
+            }
+        };
+    }
+    HawtioForms.createMaybeHumanize = createMaybeHumanize;
+    function initConfig(context, config, lookup) {
+        if (lookup === void 0) { lookup = true; }
+        var answer = config;
+        if (!answer && lookup) {
+            // look in schema registry
+            var name = context.attrs[context.directiveName];
+            // log.debug("not a full config object, looking up schema: ", name);
+            if (name) {
+                answer = context.schemas.cloneSchema(name);
+                if (!answer) {
+                    // log.debug("No schema found for type: ", name);
+                    // log.debug("attrs: ", context.attrs);
+                    answer = {};
+                }
+            }
+        }
+        if (answer) {
+            // set any missing defaults
+            if ('label' in context.attrs) {
+                answer.label = context.attrs['label'];
+            }
+            if ('mode' in context.attrs) {
+                answer.mode = Number(context.attrs['mode']);
+            }
+            if ('style' in context.attrs) {
+                answer.style = Number(context.attrs['style']);
+            }
+            if ('noWrap' in context.attrs) {
+                if (context.attrs['noWrap']) {
+                    answer.style = HawtioForms.FormStyle.UNWRAPPED;
+                }
+            }
+        }
+        return HawtioForms.createFormConfiguration(answer);
+    }
+    HawtioForms.initConfig = initConfig;
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Helpers.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    HawtioForms._module = angular.module(HawtioForms.pluginName, []);
+    HawtioForms._module.run(function () {
+        HawtioForms.log.debug("loaded");
+    });
+    hawtioPluginLoader.addModule(HawtioForms.pluginName);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    HawtioForms._module.directive('hawtioCombobox', [function () {
+            return {
+                restrict: 'A',
+                link: function (scope, element, attrs) {
+                    // TODO - disable the bootstrap combobox until we can have it properly display a drop-down
+                    /*
+                    var isComboboxAlready = false;
+                    scope.$children = element.children();
+                    scope.$watchCollection('$children', (children) => {
+                      if (!isComboboxAlready && children.length > 5) {
+                        isComboboxAlready = true;
+                        (<any>element).combobox();
+                      }
+                      setTimeout(() => {
+                        console.log("Refreshing");
+                        (<any>element).combobox('refresh');
+                      }, 10);
+                    });
+                    */
+                }
+            };
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    var directiveName = "hawtioForms2Array";
+    function clearBody(context, table) {
+        var body = table.find('tbody');
+        body.empty();
+        return body;
+    }
+    function buildTableBody(context, columnSchema, entity, body) {
+        _.forEach(entity, function (row, index) {
+            var tr = newBodyRow(context);
+            if (columnSchema.properties.$items) {
+                tr.append('<td>' + row + '</td>');
+            }
+            else {
+                _.forIn(columnSchema.properties, function (control, name) {
+                    var tmpConfig = {
+                        style: HawtioForms.FormStyle.UNWRAPPED,
+                        mode: HawtioForms.FormMode.VIEW,
+                        properties: {}
+                    };
+                    tmpConfig.properties[name] = control;
+                    var template = HawtioForms.getTemplate(context, tmpConfig, name, control);
+                    if (template) {
+                        var el = angular.element(template);
+                        el.attr({
+                            'class': ''
+                        });
+                        el.find('label').text('');
+                        ['input', 'select'].forEach(function (controlType) {
+                            el.find(controlType).attr({
+                                'ng-disabled': 'true',
+                                'style': 'width: auto'
+                            }).removeClass('form-control')
+                                .addClass('table-control');
+                        });
+                        if (control.enum) {
+                            HawtioForms.addPostInterpolateAction(context, name, function (el) {
+                                var select = el.find('select');
+                                var propName = 'config.columnSchema.properties[\'' + name + '\'].enum';
+                                HawtioForms.setSelectOptions(_.isArray(control.enum), propName, select);
+                            });
+                        }
+                        if ('properties' in control || 'javaType' in control) {
+                            HawtioForms.addPostInterpolateAction(context, name, function (el) {
+                                el.find('h4').remove();
+                                el.find('.inline-object').attr({
+                                    'entity': 'entity[' + index + '].' + name,
+                                    'label': false
+                                });
+                            });
+                        }
+                        template = HawtioForms.interpolateTemplate(context, tmpConfig, name, control, el.prop('outerHTML'), 'entity[' + index + '].' + name);
+                        var td = angular.element('<td></td>');
+                        td.append(template);
+                        tr.append(td);
+                    }
+                    else {
+                        tr.append('<td>' + row[name] + '</td>');
+                    }
+                });
+            }
+            var deleteRow = angular.element(context.$templateCache.get('deleteRow.html'));
+            deleteRow.find('.deleteRow').attr({
+                'ng-click': 'deleteRow(' + index + ')'
+            });
+            deleteRow.find('.editRow').attr({
+                'ng-click': 'editRow(' + index + ')'
+            });
+            tr.append(deleteRow);
+            body.append(tr);
+        });
+    }
+    function newBodyRow(context) {
+        return angular.element(context.$templateCache.get('rowTemplate.html'));
+    }
+    function newHeaderRow(context, table) {
+        var header = table.find('thead');
+        header.empty();
+        return header.append(context.$templateCache.get('rowTemplate.html')).find('tr');
+    }
+    function buildTableHeader(context, table, columnSchema) {
+        var headerRow = newHeaderRow(context, table);
+        _.forIn(columnSchema.properties, function (control, name) {
+            var interpolateFunc = context.$interpolate(control.headerTemplate || context.$templateCache.get('header.html'));
+            headerRow.append(interpolateFunc({
+                control: control,
+                name: context.maybeHumanize(name)
+            }));
+        });
+        headerRow.append(context.$templateCache.get("newItemHeader.html"));
+        return headerRow;
+    }
+    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', '$modal', function ($compile, $templateCache, $interpolate, schemas, mappings, $modal) {
+            return {
+                restrict: 'A',
+                replace: true,
+                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Array.html'),
+                scope: {
+                    config: '=' + directiveName,
+                    entity: '=?'
+                },
+                link: function (scope, element, attrs) {
+                    scope.$watch('config', function (newConfig) {
+                        var context = {
+                            postInterpolateActions: {},
+                            maybeHumanize: undefined,
+                            config: undefined,
+                            element: element,
+                            attrs: attrs,
+                            mappings: mappings,
+                            schemas: schemas,
+                            $templateCache: $templateCache,
+                            $interpolate: $interpolate,
+                            $compile: $compile,
+                            directiveName: directiveName
+                        };
+                        var config = HawtioForms.initConfig(context, _.cloneDeep(newConfig), false);
+                        context.config = config;
+                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
+                        if (!scope.entity) {
+                            scope.entity = [];
+                        }
+                        if (!config || !config.items) {
+                            return;
+                        }
+                        var type = config.items.type || config.items.javaType;
+                        var entity = scope.entity;
+                        var columnSchema = {
+                            properties: {}
+                        };
+                        if (mappings.hasMapping(type)) {
+                            var items = {};
+                            _.merge(items, config, {
+                                type: mappings.getMapping(type)
+                            });
+                            if ('items' in items) {
+                                delete items['items'];
+                            }
+                            if (!items.label) {
+                                items.label = 'Entries';
+                            }
+                            columnSchema.properties.$items = items;
+                        }
+                        else {
+                            columnSchema = schemas.getSchema(type);
+                        }
+                        var table = angular.element($templateCache.get("table.html"));
+                        var header = buildTableHeader(context, table, columnSchema);
+                        var s = scope.$new();
+                        config.columnSchema = columnSchema;
+                        s.config = config;
+                        s.entity = entity;
+                        function initSchema(schema) {
+                            var answer = _.clone(schema, true);
+                            answer.style = HawtioForms.FormStyle.STANDARD;
+                            if ('$items' in answer.properties) {
+                                answer.properties.$items['label-attributes'] = {
+                                    'style': 'display: none'
+                                };
+                            }
+                            return answer;
+                        }
+                        s.deleteRow = function (index) {
+                            var modal = $modal.open({
+                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
+                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
+                                        $scope.schema = initSchema(columnSchema);
+                                        $scope.schema.mode = HawtioForms.FormMode.VIEW;
+                                        $scope.header = "Delete Entry?";
+                                        $scope.description = "<p>Are you sure you want to delete the following entry?</p><p><strong>This operation cannot be undone!</strong></p>";
+                                        if (columnSchema.properties.$items) {
+                                            $scope.newEntity = {
+                                                $items: entity[index]
+                                            };
+                                        }
+                                        else {
+                                            $scope.newEntity = _.clone(entity[index]);
+                                        }
+                                        $scope.ok = function () {
+                                            modal.close();
+                                            entity.splice(index, 1);
+                                        };
+                                        $scope.cancel = function () {
+                                            modal.dismiss();
+                                        };
+                                    }]
+                            });
+                        };
+                        s.editRow = function (index) {
+                            var modal = $modal.open({
+                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
+                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
+                                        $scope.schema = initSchema(columnSchema);
+                                        $scope.header = "Edit Entry";
+                                        if (columnSchema.properties.$items) {
+                                            $scope.newEntity = {
+                                                $items: entity[index]
+                                            };
+                                        }
+                                        else {
+                                            $scope.newEntity = _.clone(entity[index]);
+                                        }
+                                        $scope.ok = function () {
+                                            modal.close();
+                                            if ('$items' in $scope.newEntity) {
+                                                entity[index] = $scope.newEntity.$items;
+                                            }
+                                            else {
+                                                entity[index] = $scope.newEntity;
+                                            }
+                                        };
+                                        $scope.cancel = function () {
+                                            modal.dismiss();
+                                        };
+                                    }]
+                            });
+                        };
+                        s.createNewRow = function () {
+                            var modal = $modal.open({
+                                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'arrayItemModal.html'),
+                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
+                                        $scope.schema = initSchema(columnSchema);
+                                        $scope.newEntity = undefined;
+                                        $scope.header = "Add New Entry";
+                                        $scope.ok = function () {
+                                            modal.close();
+                                            if ('$items' in $scope.newEntity) {
+                                                entity.push($scope.newEntity.$items);
+                                            }
+                                            else {
+                                                entity.push($scope.newEntity);
+                                            }
+                                        };
+                                        $scope.cancel = function () {
+                                            modal.dismiss();
+                                        };
+                                    }]
+                            });
+                        };
+                        s.watch = s.$watchCollection('entity', function (entity, old) {
+                            scope.entity = entity;
+                            var body = clearBody(context, table);
+                            var tmp = angular.element('<div></div>');
+                            buildTableBody(context, columnSchema, entity, tmp);
+                            body.append($compile(tmp.children())(s));
+                        });
+                        element.append($compile(table)(s));
+                    }, true);
+                }
+            };
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    var directiveName = 'hawtioForm2';
+    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', function ($compile, $templateCache, $interpolate, schemas, mappings) {
+            return {
+                restrict: 'A',
+                replace: true,
+                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Directive.html'),
+                scope: {
+                    config: '=' + directiveName,
+                    entity: '=?',
+                    name: '@?'
+                },
+                link: function (scope, element, attrs) {
+                    var configCache = '';
+                    var configChanges = 0;
+                    scope.$watch('config', function (config) {
+                        var stringified = angular.toJson(config, true);
+                        if (stringified === configCache) {
+                            return;
+                        }
+                        else {
+                            scope.diff = diffString(configCache || '', stringified || '');
+                            configCache = stringified;
+                        }
+                        updateConfig(config);
+                    }, true);
+                    function updateConfig(config) {
+                        // track how many times this function fires
+                        configChanges = configChanges + 1;
+                        scope.configChanges = configChanges;
+                        element.empty();
+                        // Store everything in here so we can pass
+                        // around all this info to functions
+                        var context = {
+                            postInterpolateActions: {},
+                            preCompileActions: {},
+                            maybeHumanize: undefined,
+                            config: undefined,
+                            scope: undefined,
+                            element: element,
+                            attrs: attrs,
+                            mappings: mappings,
+                            schemas: schemas,
+                            $templateCache: $templateCache,
+                            $interpolate: $interpolate,
+                            $compile: $compile,
+                            directiveName: directiveName
+                        };
+                        config = HawtioForms.initConfig(context, _.cloneDeep(config));
+                        context.config = config;
+                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
+                        if (!scope.entity) {
+                            scope.entity = {};
+                        }
+                        var entity = scope.entity;
+                        if (!('properties' in config)) {
+                            return;
+                        }
+                        // create our child scope here
+                        var s = context.scope = scope.$new();
+                        s.config = config;
+                        s.name = scope.name || 'hawtio-form';
+                        // s.entity = entity;
+                        s.maybeHumanize = context.maybeHumanize;
+                        // These are here to figure out what controls go on which page
+                        var pages = {};
+                        var controls = {};
+                        // log.debug("Config: ", config);
+                        // log.debug("Entity: ", entity);
+                        var form = angular.element(HawtioForms.getFormMain(context, config));
+                        form.find('form').attr({
+                            name: config.id || 'form'
+                        });
+                        var parent = form.find('fieldset');
+                        if (parent.length === 0) {
+                            parent = form;
+                        }
+                        var singlePage = false;
+                        if (('wizard' in config) && config.wizard.pages) {
+                            var wizard = config.wizard;
+                            var wizardBody = $templateCache.get('wizardParent.html');
+                            parent.append(wizardBody);
+                            s.pageIds = [];
+                            parent = parent.find('.wizardParent');
+                            s.onFinish = function () {
+                                HawtioForms.log.warn("No onFinish() function supplied to form wizard");
+                            };
+                            s.buttons = {
+                                'next': 'Next',
+                                'back': 'Back',
+                                'finish': 'Finish'
+                            };
+                            s.isValid = function () {
+                                HawtioForms.log.debug("scope: ", scope);
+                                return true;
+                            };
+                            s.isDisabled = function (form) {
+                                return form.$invalid;
+                            };
+                            s.isBackDisabled = function (form) {
+                                return false;
+                            };
+                            _.forIn(wizard, function (attr, key) {
+                                s[key] = attr;
+                            });
+                            _.forIn(wizard.pages, function (pageConfig, id) {
+                                if (!('title' in pageConfig)) {
+                                    pageConfig.title = id;
+                                }
+                                pageConfig.el = angular.element($templateCache.get('wizardPage.html'));
+                                pageConfig.el.attr({
+                                    'ng-switch-when': id
+                                });
+                                pageConfig.el.find('h3').text(id);
+                                if ('template' in pageConfig) {
+                                    pageConfig.el.append($compile(pageConfig.template)(scope));
+                                }
+                                pageConfig.parent = pageConfig.el.find('.wizardPageBody');
+                                pageConfig.parent.attr({
+                                    'ng-form': _.camelCase(id)
+                                });
+                                HawtioForms.addPreCompileAction(context, _.camelCase(id), function () {
+                                    var buttons = angular.element($templateCache.get('wizardButtons.html'));
+                                    var disabled = {
+                                        'ng-disabled': 'isDisabled(' + _.camelCase(id) + ')'
+                                    };
+                                    buttons.find('.next').attr(disabled);
+                                    buttons.find('.finish').attr(disabled);
+                                    buttons.find('.back').attr({ 'ng-disabled': 'isBackDisabled(' + _.camelCase(id) + ')' });
+                                    pageConfig.parent.append(buttons);
+                                });
+                                pages[id] = pageConfig;
+                                s.pageIds.push(id);
+                            });
+                            s.currentPageIndex = 0;
+                            s.gotoPage = function (index, current) {
+                                if (index < 0 || index > s.pageIds.length) {
+                                    if (index < 0 && s.onCancel) {
+                                        s.onCancel();
+                                    }
+                                    return;
+                                }
+                                if (s.onChange) {
+                                    var idx = s.onChange(current, index, s.pageIds);
+                                    if (idx) {
+                                        s.currentPageIndex = idx;
+                                        return;
+                                    }
+                                }
+                                s.currentPageIndex = index;
+                            };
+                            s.getCurrentPageId = function () {
+                                return s.pageIds[s.currentPageIndex];
+                            };
+                            s.atFront = function () {
+                                return s.currentPageIndex === 0 && !s.onCancel;
+                            };
+                            s.atBack = function () {
+                                return s.currentPageIndex === s.pageIds.length - 1;
+                            };
+                            s.next = function () {
+                                s.gotoPage(s.currentPageIndex + 1, s.currentPageIndex);
+                            };
+                            s.back = function () {
+                                s.gotoPage(s.currentPageIndex - 1, s.currentPageIndex);
+                            };
+                        }
+                        else if ('tabs' in config) {
+                            parent.append($templateCache.get('tabElement.html'));
+                            parent = parent.find('.tabbable');
+                            var tabs = config.tabs;
+                            _.forIn(tabs, function (tabConfig, id) {
+                                var tab = angular.element($templateCache.get('tabPage.html'));
+                                tab.attr({
+                                    'title': id
+                                });
+                                var tabPage = {
+                                    controls: tabConfig,
+                                    el: tab,
+                                    parent: tab
+                                };
+                                pages[id] = tabPage;
+                            });
+                        }
+                        else if ('controls' in config) {
+                            pages['$main'] = {
+                                'controls': config.controls,
+                                'el': form,
+                                'parent': parent
+                            };
+                            singlePage = true;
+                        }
+                        else {
+                            pages['$main'] = {
+                                'controls': ['*'],
+                                'el': form,
+                                'parent': parent
+                            };
+                            singlePage = true;
+                        }
+                        _.forIn(config.properties, function (control, name) {
+                            // Set up typeahead if data is provided
+                            var typeaheadData = Core.pathGet(control, ['typeaheadData']);
+                            if (typeaheadData && !Core.pathGet(control, ['input-attributes', 'typeahead'])) {
+                                Core.pathSet(control, ['input-attributes', 'typeahead'], 'item for item in config.properties.' + name + '.typeaheadData');
+                            }
+                            // set up an initial value if set in the input attributes
+                            var value = Core.pathGet(control, ['input-attributes', 'value']);
+                            if (value) {
+                                entity[name] = value;
+                            }
+                            // set the initial value if set as a default for the property
+                            var _default = Core.pathGet(control, ['default']);
+                            if (_default) {
+                                entity[name] = _default;
+                            }
+                            if (mappings.getMapping(control.type) === "checkbox") {
+                                entity[name] = Core.parseBooleanValue(_default);
+                            }
+                            // log.debug("control: ", control);
+                            var template = HawtioForms.getTemplate(context, config, name, control);
+                            if (template) {
+                                template = HawtioForms.interpolateTemplate(context, config, name, control, template, 'entity.' + name);
+                                controls[name] = template;
+                            }
+                        });
+                        /*
+                           log.debug("pages: ", pages);
+                           log.debug("controls: ", controls);
+                         */
+                        var ids = _.keys(pages);
+                        var wildcardId = undefined;
+                        ids.forEach(function (pageId) {
+                            var pageConfig = pages[pageId];
+                            if (pageConfig.controls) {
+                                pageConfig.controls.forEach(function (name) {
+                                    if (name === '*') {
+                                        if (singlePage) {
+                                            _.forIn(controls, function (control, controlId) {
+                                                if (_.any(pageConfig.controls, function (id) { return id === controlId; })) {
+                                                    return;
+                                                }
+                                                else {
+                                                    pageConfig.parent.append(control);
+                                                    delete controls[controlId];
+                                                }
+                                            });
+                                        }
+                                        else {
+                                            wildcardId = pageId;
+                                        }
+                                    }
+                                    else {
+                                        if (name in controls) {
+                                            pageConfig.parent.append(controls[name]);
+                                            delete controls[name];
+                                        }
+                                        else {
+                                            HawtioForms.log.debug("Control with name ", name, " not found");
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        // take care of leftover controls
+                        if (_.keys(controls).length > 0) {
+                            if (!wildcardId) {
+                                wildcardId = _.last(ids);
+                            }
+                            _.forIn(controls, function (control, controlId) {
+                                pages[wildcardId].parent.append(control);
+                                delete controls[controlId];
+                            });
+                        }
+                        _.forIn(pages, function (pageConfig, id) {
+                            if (id !== '$main') {
+                                parent.append(pageConfig.el);
+                            }
+                        });
+                        _.forIn(context.preCompileActions, function (value, name) {
+                            _.forEach(value, function (func) {
+                                func();
+                            });
+                        });
+                        if (config.debug) {
+                            form.append('<div><h4>Config Update Count</h4><pre>{{configChanges}}</pre></div>');
+                            form.append('<div><h4>Entity</h4><pre>{{entity | json}}</pre></div>');
+                            form.append('<div><h4>Config</h4><pre>{{config | json}}</pre></div>');
+                            form.append('<div><h4>Last Change</h4><pre ng-bind-html="diff"></pre></div>');
+                        }
+                        element.append($compile(form)(s));
+                        s.$emit('hawtio-form2-form', {
+                            name: s.name,
+                            form: s.$eval(s.name)
+                        });
+                    }
+                }
+            };
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    var directiveName = "hawtioForms2Map";
+    HawtioForms._module.directive(directiveName, ['$compile', '$templateCache', '$interpolate', 'SchemaRegistry', 'ControlMappingRegistry', '$modal', function ($compile, $templateCache, $interpolate, schemas, mappings, $modal) {
+            function clearBody(context, table) {
+                var body = table.find('tbody');
+                body.empty();
+                return body;
+            }
+            function findSchema(name, type, control) {
+                var answer = {
+                    properties: {},
+                    control: control
+                };
+                if ('items' in control) {
+                    answer.properties[name] = {
+                        noLabel: true,
+                        type: type,
+                        items: {
+                            type: control.items.type
+                        }
+                    };
+                }
+                else if (mappings.hasMapping(type)) {
+                    answer.properties[name] = {
+                        noLabel: true,
+                        type: mappings.getMapping(type)
+                    };
+                }
+                else {
+                    answer = schemas.getSchema(type);
+                }
+                if (angular.isObject(answer)) {
+                    answer.control = control;
+                }
+                return answer;
+            }
+            function buildMap(context, entity, keySchema, valueSchema, body) {
+                var s = context.s;
+                s.keys = {};
+                s.values = {};
+                _.forIn(entity, function (value, key) {
+                    s.keys[key] = {
+                        key: key
+                    };
+                    if (valueSchema.control.items || mappings.hasMapping(valueSchema.control.type)) {
+                        s.values[key] = {
+                            value: value
+                        };
+                    }
+                    else {
+                        s.values[key] = value;
+                    }
+                    var template = context.$templateCache.get('mapRowTemplate.html');
+                    var func = $interpolate(template);
+                    template = func({
+                        key: key
+                    });
+                    body.append(template);
+                });
+            }
+            return {
+                restrict: 'A',
+                replace: true,
+                templateUrl: UrlHelpers.join(HawtioForms.templatePath, 'forms2Map.html'),
+                scope: {
+                    config: '=' + directiveName,
+                    entity: '=?'
+                },
+                link: function (scope, element, attrs) {
+                    scope.$watch('config', function (newConfig) {
+                        var context = {
+                            postInterpolateActions: {},
+                            maybeHumanize: undefined,
+                            config: undefined,
+                            s: undefined,
+                            element: element,
+                            attrs: attrs,
+                            mappings: mappings,
+                            schemas: schemas,
+                            $templateCache: $templateCache,
+                            $interpolate: $interpolate,
+                            $compile: $compile,
+                            directiveName: directiveName
+                        };
+                        var config = HawtioForms.initConfig(context, _.cloneDeep(newConfig), false);
+                        context.config = config;
+                        context.maybeHumanize = HawtioForms.createMaybeHumanize(context);
+                        if (!scope.entity) {
+                            scope.entity = {};
+                        }
+                        if (!config || !config.items) {
+                            HawtioForms.log.debug("Invalid map config, no 'items' configured");
+                            return;
+                        }
+                        if (!config.items.key) {
+                            HawtioForms.log.debug("Invalid map config, no 'key' attribute configured in 'items'");
+                            return;
+                        }
+                        if (!config.items.value) {
+                            HawtioForms.log.debug("Invalid map config, no 'value' attribute configured in 'items'");
+                            return;
+                        }
+                        var entity = scope.entity;
+                        // log.debug("In map, config: ", config, " entity: ", entity);
+                        var s = scope.$new();
+                        context.s = s;
+                        var keySchema = findSchema('key', config.items.key.type, config.items.key);
+                        var valueSchema = findSchema('value', config.items.value.type, config.items.value);
+                        var table = angular.element($templateCache.get('table.html'));
+                        var body = table.find('tbody');
+                        s.config = config;
+                        s.entity = entity;
+                        s.keySchema = _.cloneDeep(keySchema);
+                        s.valueSchema = _.cloneDeep(valueSchema);
+                        if (s.keySchema) {
+                            s.keySchema.mode = HawtioForms.FormMode.VIEW;
+                            s.keySchema.style = HawtioForms.FormStyle.UNWRAPPED;
+                            s.keySchema.hideLegend = true;
+                        }
+                        if (s.valueSchema) {
+                            s.valueSchema.mode = HawtioForms.FormMode.VIEW;
+                            s.valueSchema.style = HawtioForms.FormStyle.UNWRAPPED;
+                            s.valueSchema.hideLegend = true;
+                        }
+                        function initSchema(schema) {
+                            var answer = _.cloneDeep(schema);
+                            answer.style = HawtioForms.FormStyle.STANDARD;
+                            _.forIn(answer.properties, function (value, key) {
+                                if ('noLabel' in value) {
+                                    delete value['noLabel'];
+                                }
+                            });
+                            HawtioForms.log.debug("Schema: ", schema);
+                            return answer;
+                        }
+                        s.editRow = function (key) {
+                            HawtioForms.log.debug("Edit row: ", key);
+                        };
+                        s.deleteRow = function (key) {
+                            HawtioForms.log.debug("Delete row: ", key);
+                        };
+                        s.createRow = function () {
+                            HawtioForms.log.debug("create row");
+                            var modal = $modal.open({
+                                templateUrl: "mapItemModal.html",
+                                controller: ['$scope', '$modalInstance', function ($scope, $modalInstance) {
+                                        $scope.header = "Create Entry";
+                                        $scope.description = "<p>Add a new entry to the map by filling in the details for the key and value</p>";
+                                        $scope.keySchema = initSchema(keySchema);
+                                        $scope.valueSchema = initSchema(valueSchema);
+                                        $scope.ok = function () {
+                                            modal.close();
+                                            var key = $scope.newKeyEntity.key;
+                                            var value = $scope.newValueEntity;
+                                            if (valueSchema.control.items || mappings.hasMapping(valueSchema.control.type)) {
+                                                value = $scope.newValueEntity.value;
+                                            }
+                                            HawtioForms.log.debug("New key: ", key);
+                                            HawtioForms.log.debug("New value: ", value);
+                                            entity[key] = value;
+                                        };
+                                        $scope.cancel = function () {
+                                            modal.dismiss();
+                                        };
+                                    }]
+                            });
+                        };
+                        s.$watch('entity', function (entity, old) {
+                            scope.entity = entity;
+                            var body = clearBody(context, table);
+                            var tmp = angular.element('<div></div>');
+                            buildMap(context, entity, keySchema, valueSchema, tmp);
+                            body.append($compile(tmp.children())(s));
+                        }, true);
+                        element.append($compile(table)(s));
+                    });
+                }
+            };
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    HawtioForms._module.factory("SchemaRegistry", ['ControlMappingRegistry', function (mappings) {
+            var schemaMap = {};
+            var listeners = {};
+            function addSchemaInternal(name, schema) {
+                schemaMap[name] = schema;
+                _.forIn(listeners, function (listener, id) {
+                    listener(name, schema);
+                });
+            }
+            function getTypeConfig(type) {
+                if (mappings.getMapping(type) === type) {
+                    return {
+                        type: 'object',
+                        javaType: type
+                    };
+                }
+                else {
+                    return {
+                        type: type
+                    };
+                }
+            }
+            var registry = {
+                addListener: function (name, callback) {
+                    if (!name || !callback) {
+                        return;
+                    }
+                    _.forIn(schemaMap, function (schema, name) {
+                        callback(name, schema);
+                    });
+                    listeners[name] = callback;
+                },
+                removeListener: function (name) {
+                    if (name in listeners) {
+                        delete listeners[name];
+                    }
+                },
+                addSchema: function (name, schema) {
+                    var schemaClone = _.cloneDeep(schema);
+                    _.forIn(schemaClone.properties, function (property, id) {
+                        if (_.startsWith(property.javaType, 'java.util.Map')) {
+                            var trimmed = property.javaType.replace('java.util.Map<', '').replace('>', '');
+                            var parts = trimmed.split(',');
+                            if (parts.length !== 2) {
+                                return;
+                            }
+                            property.type = 'map';
+                            property.items = {
+                                key: getTypeConfig(parts[0]),
+                                value: getTypeConfig(parts[1])
+                            };
+                        }
+                    });
+                    // log.debug("Adding schema: ", name, " schema: ", schema);
+                    addSchemaInternal(name, schemaClone);
+                    if (schema.javaType) {
+                        // log.debug("Adding schema by Java type: ", schema.javaType, " value: ", schema);
+                        addSchemaInternal(schema.javaType, schemaClone);
+                    }
+                    if (schema.definitions) {
+                        // log.debug("Found definitions in schema: ", name);
+                        _.forIn(schema.definitions, function (value, key) {
+                            registry.addSchema(key, value);
+                        });
+                    }
+                },
+                getSchema: function (name) {
+                    return schemaMap[name];
+                },
+                cloneSchema: function (name) {
+                    return _.clone(schemaMap[name], true);
+                },
+                removeSchema: function (name) {
+                    var answer = undefined;
+                    if (name in schemaMap) {
+                        answer = schemaMap[name];
+                        delete schemaMap[name];
+                    }
+                    return answer;
+                },
+                iterate: function (iter) {
+                    _.forIn(schemaMap, iter);
+                }
+            };
+            /*
+            registry.addListener('logging', (name: string, schema: any) => {
+              log.debug("Added schema name: ", name, " schema: ", schema);
+            });
+            */
+            return registry;
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
+/// <reference path="forms2Plugin.ts"/>
+var HawtioForms;
+(function (HawtioForms) {
+    HawtioForms._module.factory('ControlMappingRegistry', [function () {
+            var controlMap = {};
+            var answer = {
+                hasMapping: function (name) {
+                    if (!name) {
+                        return false;
+                    }
+                    return (name.toLowerCase() in controlMap);
+                },
+                addMapping: function (name, controlType) {
+                    controlMap[name.toLowerCase()] = controlType;
+                },
+                getMapping: function (name) {
+                    if (!name) {
+                        return undefined;
+                    }
+                    var answer = controlMap[name.toLowerCase()];
+                    if (!answer) {
+                        return name;
+                    }
+                    return answer;
+                },
+                removeMapping: function (name) {
+                    var answer = undefined;
+                    if (name.toLowerCase() in controlMap) {
+                        answer = controlMap[name.toLowerCase()];
+                        delete controlMap[name.toLowerCase()];
+                    }
+                    return answer;
+                },
+                iterate: function (iter) {
+                    _.forIn(controlMap, iter);
+                }
+            };
+            /* Set up some defaults */
+            _.forEach(["int",
+                "number",
+                "integer",
+                "long",
+                "short",
+                "java.lang.integer",
+                "java.lang.long",
+                "float",
+                "double",
+                "java.lang.float",
+                "java.lang.double"
+            ], function (name) { return answer.addMapping(name, 'number'); });
+            _.forEach(["boolean",
+                "bool",
+                "java.lang.boolean"
+            ], function (name) { return answer.addMapping(name, 'checkbox'); });
+            answer.addMapping('password', 'password');
+            answer.addMapping('hidden', 'hidden');
+            answer.addMapping('static', 'static');
+            answer.addMapping('enum', 'select');
+            answer.addMapping('choice', 'radio-group');
+            answer.addMapping('multiple', 'multiple-select');
+            _.forEach(["string",
+                "text",
+                "java.lang.string"
+            ], function (name) { return answer.addMapping(name, 'text'); });
+            return answer;
+        }]);
+})(HawtioForms || (HawtioForms = {}));
+
 angular.module("hawtio-forms-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("plugins/forms/html/formGrid.html","<div>\n\n  <script type=\"text/ng-template\" id=\"heroUnitTemplate.html\">\n    <div class=\"hero-unit\">\n      <h5>No Items Added</h5>\n      <p><a href=\"\" ng-click=\"addThing()\">Add an item</a> to the table</p>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"headerCellTemplate.html\">\n    <th>{{label}}</th>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"emptyHeaderCellTemplate.html\">\n    <th></th>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"deleteRowTemplate.html\">\n    <td ng-click=\"removeThing({{index}})\" class=\"align-center\">\n      <i class=\"icon-remove red mouse-pointer\"></i>\n    </td>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"cellTemplate.html\">\n    <td>\n      <editable-property ng-model=\"{{row}}\"\n                         type=\"{{type}}\"\n                         property=\"{{key}}\"></editable-property>\n    </td>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"cellNumberTemplate.html\">\n    <td>\n      <editable-property ng-model=\"{{row}}\"\n                         type=\"{{type}}\"\n                         property=\"{{key}}\" min=\"{{min}}\" max=\"{{max}}\"></editable-property>\n    </td>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"rowTemplate.html\">\n    <tr></tr>\n  </script>\n\n  <div ng-show=\"configuration.rows.length == 0\" class=\"row-fluid\">\n    <div class=\"span12 nodata\">\n    </div>\n  </div>\n  <div ng-hide=\"configuration.rows.length == 0\" class=\"row-fluid\">\n    <div class=\"span12\">\n      <h3 ng-show=\"configuration.heading\">{{getHeading()}}</h3>\n      <table class=\"table table-striped\">\n        <thead>\n        </thead>\n        <tbody>\n        </tbody>\n      </table>\n    </div>\n    <div ng-click=\"addThing()\" class=\"centered mouse-pointer\">\n      <i class=\"icon-plus green\"></i><span ng-show=\"configuration.rowName\"> Add {{_.startCase(configuration.rowName)}}</span>\n    </div>\n  </div>\n</div>\n");
 $templateCache.put("plugins/forms/html/formMapDirective.html","<div class=\"control-group\">\n  <label class=\"control-label\" for=\"keyValueList\">{{data[name].label || name | humanize}}:</label>\n  <div class=\"controls\">\n    <ul id=\"keyValueList\" class=\"zebra-list\">\n      <li ng-repeat=\"(key, value) in entity[name]\">\n        <strong>Key:</strong>&nbsp;{{key}}&nbsp;<strong>Value:</strong>&nbsp;{{value}}\n        <i class=\"pull-right icon-remove red mouse-pointer\" ng-click=\"deleteKey(key)\"></i>\n      </li>\n      <li>\n        <button class=\"btn btn-success\"  ng-click=\"showForm = true\" ng-hide=\"showForm\"><i class=\"icon-plus\"></i></button>\n        <div class=\"well\" ng-show=\"showForm\">\n          <form class=\"form-horizontal\">\n            <fieldset>\n              <div class=\"control-group\">\n                <label class=\"control-label\" for=\"newItemKey\">Key:</label>\n                <div class=\"controls\">\n                  <input id=\"newItemKey\" type=\"text\" ng-model=\"newItem.key\">\n                </div>\n              </div>\n              <div class=\"control-group\">\n                <label class=\"control-label\" for=\"newItemKey\">Value:</label>\n                <div id=\"valueInput\" class=\"controls\">\n                  <input id=\"newItemValue\" type=\"text\" ng-model=\"newItem.value\">\n                </div>\n              </div>\n              <p>\n              <input type=\"submit\" class=\"btn btn-success pull-right\" ng-disabled=\"!newItem.key && !newItem.value\" ng-click=\"addItem(newItem)\" value=\"Add\">\n              <span class=\"pull-right\">&nbsp;</span>\n              <button class=\"btn pull-right\" ng-click=\"showForm = false\">Cancel</button>\n              </p>\n            </fieldset>\n          </form>\n        </div>\n      </li>\n    </ul>\n  </div>\n</div>\n");
 $templateCache.put("plugins/forms2/html/array.html","<div class=\"row\">\n  <div class=\"clearfix col-md-12\">\n    <div ng-hide=\"{{control.noLabel}}\" class=\"row\"><h4>{{control.label || maybeHumanize(name)}}</h4></div>\n    <div class=\"row\">\n      <div class=\"inline-array\"></div>\n    </div>\n  </div>\n</div>\n");
@@ -3665,7 +3695,7 @@ $templateCache.put("plugins/forms2/html/form-standard.html","<form class=\"hawti
 $templateCache.put("plugins/forms2/html/form-unwrapped.html","<div class=\"hawtio-form-2 hawtio-form-2-unwrapped\">\n  <h4 ng-show=\"config.label || config.description\" ng-hide=\"config.hideLegend || config.label == \'false\'\">{{config.label || config.description}}</h4>\n\n</div>\n");
 $templateCache.put("plugins/forms2/html/form2Map.html","<div>\n\n</div>\n");
 $templateCache.put("plugins/forms2/html/forms2Array.html","<div>\n  <script type=\"text/ng-template\" id=\"header.html\">\n    <th>{{control.label || name}}</th>\n  </script>\n  <script type=\"text/ng-template\" id=\"emptyHeader.html\">\n    <th></th>\n  </script>\n  <script type=\"text/ng-template\" id=\"newItemHeader.html\">\n    <th class=\"align-right\">\n      <button ng-hide=\"config.mode == 0\" class=\"button button-success\" ng-click=\"createNewRow()\">\n        <i class=\"fa fa-plus green\" ></i>\n      </button>\n    </th>\n  </script>\n  <script type=\"text/ng-template\" id=\"rowTemplate.html\">\n    <tr></tr>\n  </script>\n  <script type=\"text/ng-template\" id=\"deleteRow.html\">\n    <td class=\"align-right\">\n      <button ng-hide=\"config.mode == 0\" class=\'editRow\'><i class=\"fa fa-pencil yellow\"></i></button>\n      <button ng-hide=\"config.mode == 0\" class=\'deleteRow\'><i class=\"fa fa-minus red\"></i></button>\n    </td>\n  </script>\n  <script type=\"text/ng-template\" id=\"table.html\">\n    <table class=\"table table-striped\">\n      <thead>\n      </thead>\n      <tbody>\n      </tbody>\n    </table>\n  </script>\n</div> \n");
-$templateCache.put("plugins/forms2/html/forms2Directive.html","<div>\n  <script type=\"text/ng-template\" id=\"wizardParent.html\">\n    <div>\n      <div class=\"wizardParent\" ng-switch=\"getCurrentPageId()\">\n      </div>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"wizardButtons.html\">\n    <div class=\"wizardButtons align-right\">\n      <span>{{currentPageIndex + 1}} / {{pageIds.length}}</span>\n      <button class=\"btn\" ng-click=\"back()\" ng-hide=\"atFront()\">{{buttons.back}}</button>\n      <button class=\"btn btn-primary next\" ng-click=\"next()\" ng-hide=\"atBack()\">{{buttons.next}}</button>\n      <button class=\"btn btn-primary finish\" ng-click=\"onFinish()\" ng-show=\"atBack()\">{{buttons.finish}}</button>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"wizardPage.html\">\n    <div class=\"wizardPage\">\n      <h3></h3>\n      <div class=\"wizardPageBody\">\n      </div>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"tabElement.html\">\n    <div class=\"tabbable hawtio-form-tabs\"></div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"tabPage.html\">\n    <div class=\"tab-pane\"></div>\n  </script>\n</div>\n");
+$templateCache.put("plugins/forms2/html/forms2Directive.html","<div>\n  <script type=\"text/ng-template\" id=\"wizardParent.html\">\n    <div>\n      <div class=\"wizardParent\" ng-switch=\"getCurrentPageId()\">\n      </div>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"wizardButtons.html\">\n    <div class=\"wizardButtons align-right\">\n      <span>{{currentPageIndex + 1}} / {{pageIds.length}}</span>\n      <button class=\"btn btn-default back\" ng-click=\"back()\" ng-hide=\"atFront()\">{{buttons.back}}</button>\n      <button class=\"btn btn-primary next\" ng-click=\"next()\" ng-hide=\"atBack()\">{{buttons.next}}</button>\n      <button class=\"btn btn-primary finish\" ng-click=\"onFinish()\" ng-show=\"atBack()\">{{buttons.finish}}</button>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"wizardPage.html\">\n    <div class=\"wizardPage\">\n      <h3></h3>\n      <div class=\"wizardPageBody\">\n      </div>\n    </div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"tabElement.html\">\n    <div class=\"tabbable hawtio-form-tabs\"></div>\n  </script>\n\n  <script type=\"text/ng-template\" id=\"tabPage.html\">\n    <div class=\"tab-pane\"></div>\n  </script>\n</div>\n");
 $templateCache.put("plugins/forms2/html/forms2Map.html","<div>\n  <script type=\"text/ng-template\" id=\"mapItemModal.html\">\n    <div class=\"modal-header\">\n      <h3 class=\"modal-title\">{{header}}</h3>\n    </div>\n    <div class=\"modal-body\">\n      <div class=\"row\">\n        <div ng-show=\"description\" ng-bind-html=\"description\"></div>\n      </div>\n      <div class=\"row\">\n        <div class=\"col-md-6\">\n          <div hawtio-form-2=\"keySchema\" entity=\"newKeyEntity\"></div>\n        </div>\n        <div class=\"col-md-6\">\n          <div hawtio-form-2=\"valueSchema\" entity=\"newValueEntity\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"modal-footer\">\n      <button class=\"btn btn-primary\" ng-click=\"ok()\">OK</button>\n      <button class=\"btn btn-warning\" ng-click=\"cancel()\">Cancel</button>\n    </div>\n  </script>\n  <script type=\"text/ng-template\" id=\"table.html\">\n    <table class=\"table table-striped\">\n      <thead>\n        <tr>\n          <th>\n            Key\n          </th>\n          <th>\n            Value\n          </th>\n          <th class=\"align-right\">\n            <button ng-hide=\"config.mode == 0\" class=\"button button-success\" ng-click=\"createRow()\">\n              <i class=\"fa fa-plus green\" ></i>\n            </button>\n          </th>\n        </tr>\n      </thead>\n      <tbody>\n      </tbody>\n    </table>\n  </script>\n  <script type=\"text/ng-template\" id=\"mapRowTemplate.html\">\n    <tr>\n      <td>\n        <div class=\"inline form-map-key\" hawtio-form-2=\"keySchema\" entity=\"keys[\'{{key}}\']\"></div>\n      </td>\n      <td>\n        <div class=\"inline form-map-value\" hawtio-form-2=\"valueSchema\" entity=\"values[\'{{key}}\']\"></div>\n      </td>\n      <td class=\"align-right\">\n        <button ng-hide=\"config.mode == 0\" class=\"form-map-edit button button-warning\" ng-click=\"editRow(\'{{key}}\')\">\n          <i class=\"fa fa-pencil yellow\"></i>\n        </button>\n        <button ng-hide=\"config.mode == 0\" class=\"form-map-remove button button-danger\" ng-click=\"deleteRow(\'{{key}}\')\">\n          <i class=\"fa fa-remove red\"></i>\n        </button>\n      </td>\n    </tr>\n  </script>\n\n</div>\n");
 $templateCache.put("plugins/forms2/html/hidden.html","<div class=\"form-group\" ng-hide=\"true\">\n  <input type=\"hidden\" ng-model=\"{{model}}\" name=\"{{name}}\">\n</div>\n");
 $templateCache.put("plugins/forms2/html/map.html","<div class=\"row\">\n  <div class=\"clearfix col-md-12\">\n    <div class=\"row\"><h4>{{control.label || maybeHumanize(name)}}</h4></div>\n    <div class=\"row\">\n      <div class=\"inline-map\"></div>\n    </div>\n  </div>\n</div>\n");

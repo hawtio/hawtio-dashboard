@@ -123,6 +123,17 @@
       ms: 'ezredmásodperc',
       decimal: ','
     },
+    id: {
+      y: 'tahun',
+      mo: 'bulan',
+      w: 'minggu',
+      d: 'hari',
+      h: 'jam',
+      m: 'menit',
+      s: 'detik',
+      ms: 'milidetik',
+      decimal: '.'
+    },
     it: {
       y: function (c) { return 'ann' + (c !== 1 ? 'i' : 'o') },
       mo: function (c) { return 'mes' + (c !== 1 ? 'i' : 'e') },
@@ -166,6 +177,17 @@
       s: function (c) { return ['sekundė', 'sekundės', 'sekundžių'][getLithuanianForm(c)] },
       ms: function (c) { return ['milisekundė', 'milisekundės', 'milisekundžių'][getLithuanianForm(c)] },
       decimal: ','
+    },
+    ms: {
+      y: 'tahun',
+      mo: 'bulan',
+      w: 'minggu',
+      d: 'hari',
+      h: 'jam',
+      m: 'minit',
+      s: 'saat',
+      ms: 'milisaat',
+      decimal: '.'
     },
     nl: {
       y: 'jaar',
@@ -290,7 +312,7 @@
     }
   }
 
-  // You can create a humanizer, which returns a function with defaults
+  // You can create a humanizer, which returns a function with default
   // parameters.
   function humanizer (passedOptions) {
     var result = function humanizer (ms, humanizerOptions) {
@@ -302,6 +324,8 @@
       language: 'en',
       delimiter: ', ',
       spacer: ' ',
+      conjunction: '',
+      serialComma: true,
       units: ['y', 'mo', 'w', 'd', 'h', 'm', 's'],
       languages: {},
       round: false,
@@ -396,7 +420,13 @@
     }
 
     if (result.length) {
-      return result.join(options.delimiter)
+      if (!options.conjunction || result.length === 1) {
+        return result.join(options.delimiter)
+      } else if (result.length === 2) {
+        return result.join(options.conjunction)
+      } else if (result.length > 2) {
+        return result.slice(0, -1).join(options.delimiter) + (options.serialComma ? ',' : '') + options.conjunction + result.slice(-1)
+      }
     } else {
       return render(0, options.units[options.units.length - 1], dictionary, options)
     }
@@ -466,7 +496,7 @@
   function getSlavicForm (c) {
     if (Math.floor(c) !== c) {
       return 2
-    } else if ((c >= 5 && c <= 20) || (c % 10 >= 5 && c % 10 <= 9) || c % 10 === 0) {
+    } else if ((c % 100 >= 5 && c % 100 <= 20) || (c % 10 >= 5 && c % 10 <= 9) || c % 10 === 0) {
       return 0
     } else if (c % 10 === 1) {
       return 1

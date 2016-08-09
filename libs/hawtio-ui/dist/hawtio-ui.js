@@ -19,16 +19,21 @@ var DataTable;
  */
 var DataTable;
 (function (DataTable) {
-    DataTable._module.directive('hawtioSimpleTable', ["$compile", function ($compile) {
+    DataTable._module.directive('hawtioSimpleTable', ["$compile", "$timeout", function ($compile, $timeout) {
             return {
                 restrict: 'A',
                 scope: {
                     config: '=hawtioSimpleTable'
                 },
                 link: function ($scope, $element, $attrs) {
-                    var defaultPrimaryKeyFn = function (entity, idx) {
-                        // default function to use id/_id/name as primary key, and fallback to use index
-                        return entity["id"] || entity["_id"] || entity["_key"] || entity["name"] || idx;
+                    var defaultPrimaryKeyFn = function (entity) {
+                        // default function to use id/_id/_key/name as primary key, and fallback to use all property values
+                        var primaryKey = entity["id"] || entity["_id"] || entity["_key"] || entity["name"];
+                        if (primaryKey === undefined) {
+                            throw new Error("Missing primary key. Please add a property called 'id', '_id', '_key', or 'name' " +
+                                "to your entities. Alternatively, set the 'primaryKeyFn' configuration option.");
+                        }
+                        return primaryKey;
                     };
                     var config = $scope.config;
                     var dataName = config.data || "data";
@@ -92,9 +97,9 @@ var DataTable;
                         // and for that we need to evaluate the primary key function so we can match new data with old data.
                         var reSelectedItems = [];
                         rows.forEach(function (row, idx) {
-                            var rpk = primaryKeyFn(row.entity, row.index);
+                            var rpk = primaryKeyFn(row.entity);
                             var selected = _.some(config.selectedItems, function (s) {
-                                var spk = primaryKeyFn(s, s.index);
+                                var spk = primaryKeyFn(s);
                                 return angular.equals(rpk, spk);
                             });
                             if (selected) {
@@ -105,9 +110,11 @@ var DataTable;
                                 DataTable.log.debug("Data changed so keep selecting row at index " + row.index);
                             }
                         });
-                        config.selectedItems = reSelectedItems;
+                        config.selectedItems.length = 0;
+                        (_a = config.selectedItems).push.apply(_a, reSelectedItems);
                         Core.pathSet(scope, ['hawtioSimpleTable', dataName, 'rows'], rows);
                         $scope.rows = rows;
+                        var _a;
                     };
                     scope.$watchCollection(dataName, listener);
                     // lets add a separate event so we can force updates
@@ -144,7 +151,7 @@ var DataTable;
                         selectionArray.splice(0, selectionArray.length);
                         angular.forEach($scope.rows, function (row) {
                             row.selected = newFlag;
-                            if (allRowsSelected) {
+                            if (allRowsSelected && $scope.showRow(row)) {
                                 selectionArray.push(row.entity);
                             }
                         });
@@ -250,36 +257,19 @@ var DataTable;
                         rootElement.empty();
                         var showCheckBox = firstValueDefined(config, ["showSelectionCheckbox", "displaySelectionCheckbox"], true);
                         var enableRowClickSelection = firstValueDefined(config, ["enableRowClickSelection"], false);
-                        var onMouseDown;
-                        if (enableRowClickSelection) {
-                            onMouseDown = "ng-click='onRowSelected(row)' ";
+                        var scrollable = config.maxBodyHeight !== undefined;
+                        var headHtml = buildHeadHtml(config.columnDefs, showCheckBox, isMultiSelect(), scrollable);
+                        var bodyHtml = buildBodyHtml(config.columnDefs, showCheckBox, enableRowClickSelection);
+                        if (scrollable) {
+                            var head = $compile(headHtml)($scope);
+                            var body = $compile(bodyHtml)($scope);
+                            buildScrollableTable(rootElement, head, body, $timeout, config.maxBodyHeight);
                         }
                         else {
-                            onMouseDown = "";
+                            var html = headHtml + bodyHtml;
+                            var newContent = $compile(html)($scope);
+                            rootElement.html(newContent);
                         }
-                        var headHtml = "<thead><tr>";
-                        // use a function to check if a row is selected so the UI can be kept up to date asap
-                        var bodyHtml = "<tbody><tr ng-repeat='row in rows track by $index' ng-show='showRow(row)' ng-class=\"{'selected': isSelected(row)}\" >";
-                        var idx = 0;
-                        if (showCheckBox) {
-                            var toggleAllHtml = isMultiSelect() ?
-                                "<input type='checkbox' ng-show='rows.length' ng-model='config.allRowsSelected' ng-change='toggleAllSelections()'>" : "";
-                            headHtml += "\n<th class='simple-table-checkbox'>" +
-                                toggleAllHtml +
-                                "</th>";
-                            bodyHtml += "\n<td class='simple-table-checkbox'><input type='checkbox' ng-model='row.selected' ng-change='toggleRowSelection(row)'></td>";
-                        }
-                        angular.forEach(config.columnDefs, function (colDef) {
-                            var field = colDef.field;
-                            var cellTemplate = colDef.cellTemplate || '<div class="ngCellText" title="{{row.entity.' + field + '}}">{{row.entity.' + field + '}}</div>';
-                            headHtml += "\n<th class='clickable no-fade table-header' ng-click=\"sortBy('" + field + "')\" ng-class=\"getClass('" + field + "')\">{{config.columnDefs[" + idx + "].displayName}}<span class='indicator'></span></th>";
-                            bodyHtml += "\n<td + " + onMouseDown + ">" + cellTemplate + "</td>";
-                            idx += 1;
-                        });
-                        var html = headHtml + "\n</tr></thead>\n" +
-                            bodyHtml + "\n</tr></tbody>";
-                        var newContent = $compile(html)($scope);
-                        rootElement.html(newContent);
                     });
                 }
             };
@@ -321,6 +311,111 @@ var DataTable;
             }
         }
         return true;
+    }
+    /**
+     * Builds the thead HTML.
+     *
+     * @param columnDefs column definitions
+     * @param showCheckBox add extra column for checkboxes
+     * @param multiSelect show "select all" checkbox
+     * @param scrollable table with fixed height and scrollbar
+     */
+    function buildHeadHtml(columnDefs, showCheckBox, multiSelect, scrollable) {
+        var headHtml = "<thead><tr>";
+        if (showCheckBox) {
+            headHtml += "\n<th class='simple-table-checkbox'>";
+            if (multiSelect) {
+                headHtml += "<input type='checkbox' ng-show='rows.length' ng-model='config.allRowsSelected' " +
+                    "ng-change='toggleAllSelections()'>";
+            }
+            headHtml += "</th>";
+        }
+        for (var i = 0, len = columnDefs.length; i < len; i++) {
+            var columnDef = columnDefs[i];
+            headHtml += "\n<th class='clickable no-fade table-header' ng-click=\"sortBy('" + columnDef.field +
+                "')\" ng-class=\"getClass('" + columnDef.field + "')\">{{config.columnDefs[" + i +
+                "].displayName}}<span class='indicator'></span></th>";
+        }
+        if (scrollable) {
+            headHtml += "\n<th class='table-header'></th>";
+        }
+        headHtml += "\n</tr></thead>\n";
+        return headHtml;
+    }
+    /**
+     * Builds the tbody HTML.
+     *
+     * @param columnDefs column definitions
+     * @param showCheckBox show selection checkboxes
+     * @param enableRowClickSelection enable row click selection
+     */
+    function buildBodyHtml(columnDefs, showCheckBox, enableRowClickSelection) {
+        // use a function to check if a row is selected so the UI can be kept up to date asap
+        var bodyHtml = "<tbody><tr ng-repeat='row in rows track by $index' ng-show='showRow(row)' " +
+            "ng-class=\"{'selected': isSelected(row)}\" >";
+        if (showCheckBox) {
+            bodyHtml += "\n<td class='simple-table-checkbox'><input type='checkbox' ng-model='row.selected' " +
+                "ng-change='toggleRowSelection(row)'></td>";
+        }
+        var onMouseDown = enableRowClickSelection ? "ng-click='onRowSelected(row)' " : "";
+        for (var i = 0, len = columnDefs.length; i < len; i++) {
+            var columnDef = columnDefs[i];
+            var cellTemplate = columnDef.cellTemplate || '<div class="ngCellText" title="{{row.entity.' +
+                columnDef.field + '}}">{{row.entity.' + columnDef.field + '}}</div>';
+            bodyHtml += "\n<td + " + onMouseDown + ">" + cellTemplate + "</td>";
+        }
+        bodyHtml += "\n</tr></tbody>";
+        return bodyHtml;
+    }
+    /**
+     * Transform original table into a scrollable table.
+     *
+     * @param $table jQuery object referencing the DOM table element
+     * @param head thead HTML
+     * @param body tbody HTML
+     * @param $timeout Angular's $timeout service
+     * @param maxBodyHeight maximum tbody height
+     */
+    function buildScrollableTable($table, head, body, $timeout, maxBodyHeight) {
+        $table.html(body);
+        $table.addClass('scroll-body-table');
+        if ($table.parent().hasClass('scroll-body-table-wrapper')) {
+            $table.parent().scrollTop(0);
+        }
+        else {
+            var $headerTable = $table.clone();
+            $headerTable.html(head);
+            $headerTable.removeClass('scroll-body-table');
+            $headerTable.addClass('scroll-header-table');
+            $table.wrap('<div class="scroll-body-table-wrapper"></div>');
+            var $bodyTableWrapper = $table.parent();
+            $bodyTableWrapper.css('max-height', maxBodyHeight);
+            $bodyTableWrapper.wrap('<div></div>');
+            var $tableWrapper = $bodyTableWrapper.parent();
+            $tableWrapper.addClass('table');
+            $tableWrapper.addClass('table-bordered');
+            var scrollBarWidth = $bodyTableWrapper.width() - $table.width();
+            $headerTable.find('th:last-child').width(scrollBarWidth);
+            $headerTable.insertBefore($bodyTableWrapper);
+            $timeout(function () {
+                $(window).resize(function () {
+                    // Get the tbody columns width array
+                    var colWidths = $table.find('tr:first-child td').map(function () {
+                        return $(this).width();
+                    }).get();
+                    // Set the width of thead columns
+                    $headerTable.find('th').each(function (i, th) {
+                        $(th).width(colWidths[i]);
+                    });
+                    // Set the width of tbody columns
+                    $table.find('tr').each(function (i, tr) {
+                        $(tr).find('td').each(function (j, td) {
+                            $(td).width(colWidths[j]);
+                        });
+                    });
+                }).resize(); // Trigger resize handler
+            });
+        }
     }
 })(DataTable || (DataTable = {}));
 
@@ -1076,7 +1171,7 @@ var UI;
  */
 var UI;
 (function (UI) {
-    UI._module = angular.module(UI.pluginName, ['patternfly']);
+    UI._module = angular.module(UI.pluginName, []);
     UI._module.factory('UI', function () {
         return UI;
     });
@@ -3477,7 +3572,7 @@ var UI;
                                     count: $scope.filteredCollection.map(function (c) {
                                         return c[$scope.collectionProperty];
                                     }).reduce(function (count, c) {
-                                        if (_.some(c, t)) {
+                                        if (_.includes(c, t)) {
                                             return count + 1;
                                         }
                                         return count;
@@ -3514,7 +3609,9 @@ var UI;
                         }
                     });
                     $scope.$watchCollection('selected', function (selected) {
-                        $scope.selected = _.uniq(selected);
+                        var unique = _.uniq(selected);
+                        $scope.selected.length = 0;
+                        (_a = $scope.selected).push.apply(_a, unique);
                         //log.debug("newValue: ", $scope.selected);
                         //TODO
                         /*
@@ -3525,6 +3622,7 @@ var UI;
                         }
                         */
                         maybeFilterVisibleTags();
+                        var _a;
                     });
                 }
             };
@@ -3545,6 +3643,7 @@ var UI;
                     selected: '=?'
                 },
                 link: function (scope, $element, attr) {
+                    SelectionHelpers.decorate(scope);
                     var tagBase = $templateCache.get('tagBase.html');
                     var tagRemove = $templateCache.get('tagRemove.html');
                     scope.addSelected = function (tag) {
@@ -3552,15 +3651,8 @@ var UI;
                             scope.selected.push(tag);
                         }
                     };
-                    scope.isSelected = function (tag) {
-                        if (!scope.selected) {
-                            return 'badge-success';
-                        }
-                        return _.any(scope.selected, function (item) { return tag === item; }) ? 'badge-success' : '';
-                    };
-                    scope.removeTag = function (tag) {
-                        scope.tags.remove(tag);
-                    };
+                    scope.isSelected = function (tag) { return !scope.selected || _.include(scope.selected, tag); };
+                    scope.removeTag = function (tag) { return scope.tags.remove(tag); };
                     scope.$watchCollection('tags', function (tags) {
                         //log.debug("Collection changed: ", tags);
                         var tmp = angular.element("<div></div>");
@@ -3571,7 +3663,7 @@ var UI;
                                 el.append($interpolate(tagRemove)({ tag: tag }));
                             }
                             if (scope.selected) {
-                                el.attr('ng-click', 'addSelected(\'' + tag + '\')');
+                                el.attr('ng-click', 'toggleSelectionFromGroup(selected, \'' + tag + '\')');
                             }
                             tmp.append(el);
                         });
@@ -4052,6 +4144,265 @@ var UI;
 })(UI || (UI = {}));
 
 /// <reference path="../../includes.ts"/>
+/**
+ * @module Tree
+ * @main Tree
+ */
+var Tree;
+(function (Tree) {
+    Tree.pluginName = 'tree';
+    Tree.log = Logger.get("Tree");
+    function expandAll(el) {
+        treeAction(el, true);
+    }
+    Tree.expandAll = expandAll;
+    function contractAll(el) {
+        treeAction(el, false);
+    }
+    Tree.contractAll = contractAll;
+    function treeAction(el, expand) {
+        $(el).dynatree("getRoot").visit(function (node) {
+            node.expand(expand);
+        });
+    }
+    /**
+     * @function sanitize
+     * @param tree
+     *
+     * Use to HTML escape all entries in a tree before passing it
+     * over to the dynatree plugin to avoid cross site scripting
+     * issues.
+     *
+     */
+    function sanitize(tree) {
+        if (!tree) {
+            return;
+        }
+        if (angular.isArray(tree)) {
+            tree.forEach(function (folder) {
+                Tree.sanitize(folder);
+            });
+        }
+        var title = tree['title'];
+        if (title) {
+            tree['title'] = _.escape(_.unescape(title));
+        }
+        if (tree.children) {
+            Tree.sanitize(tree.children);
+        }
+    }
+    Tree.sanitize = sanitize;
+    Tree._module = angular.module(Tree.pluginName, []);
+    Tree._module.directive('hawtioTree', ["workspace", "$timeout", "$location", function (workspace, $timeout, $location) {
+            // return the directive link function. (compile function not needed)
+            return function (scope, element, attrs) {
+                var tree = null;
+                var data = null;
+                var widget = null;
+                var timeoutId = null;
+                var onSelectFn = lookupFunction("onselect");
+                var onDragStartFn = lookupFunction("ondragstart");
+                var onDragEnterFn = lookupFunction("ondragenter");
+                var onDropFn = lookupFunction("ondrop");
+                function lookupFunction(attrName) {
+                    var answer = null;
+                    var fnName = attrs[attrName];
+                    if (fnName) {
+                        answer = Core.pathGet(scope, fnName);
+                        if (!angular.isFunction(answer)) {
+                            answer = null;
+                        }
+                    }
+                    return answer;
+                }
+                // watch the expression, and update the UI on change.
+                var data = attrs.hawtioTree;
+                var queryParam = data;
+                scope.$watch(data, onWidgetDataChange);
+                // lets add a separate event so we can force updates
+                // if we find cases where the delta logic doesn't work
+                scope.$on("hawtio.tree." + data, function (args) {
+                    var value = Core.pathGet(scope, data);
+                    onWidgetDataChange(value);
+                });
+                // listen on DOM destroy (removal) event, and cancel the next UI update
+                // to prevent updating ofter the DOM element was removed.
+                element.bind('$destroy', function () {
+                    $timeout.cancel(timeoutId);
+                });
+                updateLater(); // kick off the UI update process.
+                // used to update the UI
+                function updateWidget() {
+                    // console.log("updating the grid!!");
+                    Core.$applyNowOrLater(scope);
+                }
+                function onWidgetDataChange(value) {
+                    tree = value;
+                    if (tree) {
+                        Tree.sanitize(tree);
+                    }
+                    if (tree && !widget) {
+                        // lets find a child table element
+                        // or lets add one if there's not one already
+                        var treeElement = $(element);
+                        var children = Core.asArray(tree);
+                        var hideRoot = attrs["hideroot"];
+                        var imagePath = null;
+                        if (attrs['relativeiconpaths']) {
+                            // yay, hack to allow relative path locations
+                            imagePath = [];
+                        }
+                        if ("true" === hideRoot) {
+                            children = tree['children'];
+                        }
+                        var config = {
+                            imagePath: imagePath,
+                            clickFolderMode: 3,
+                            /*
+                              * The event handler called when a different node in the tree is selected
+                              */
+                            onActivate: function (node) {
+                                var data = node.data;
+                                if (onSelectFn) {
+                                    onSelectFn(data, node);
+                                }
+                                else {
+                                    workspace.updateSelectionNode(data);
+                                }
+                                Core.$apply(scope);
+                            },
+                            /*
+                              onLazyRead: function(treeNode) {
+                              var folder = treeNode.data;
+                              var plugin = null;
+                              if (folder) {
+                              plugin = Jmx.findLazyLoadingFunction(workspace, folder);
+                              }
+                              if (plugin) {
+                              console.log("Lazy loading folder " + folder.title);
+                              var oldChildren = folder.childen;
+                              plugin(workspace, folder, () => {
+                              treeNode.setLazyNodeStatus(DTNodeStatus_Ok);
+                              var newChildren = folder.children;
+                              if (newChildren !== oldChildren) {
+                              treeNode.removeChildren();
+                              angular.forEach(newChildren, newChild => {
+                              treeNode.addChild(newChild);
+                              });
+                              }
+                              });
+                              } else {
+                              treeNode.setLazyNodeStatus(DTNodeStatus_Ok);
+                              }
+                              },
+                              */
+                            onClick: function (node, event) {
+                                if (event["metaKey"]) {
+                                    event.preventDefault();
+                                    var url = $location.absUrl();
+                                    if (node && node.data) {
+                                        var key = node.data["key"];
+                                        if (key) {
+                                            var hash = $location.search();
+                                            hash[queryParam] = key;
+                                            // TODO this could maybe be a generic helper function?
+                                            // lets trim after the ?
+                                            var idx = url.indexOf('?');
+                                            if (idx <= 0) {
+                                                url += "?";
+                                            }
+                                            else {
+                                                url = url.substring(0, idx + 1);
+                                            }
+                                            url += $.param(hash);
+                                        }
+                                    }
+                                    window.open(url, '_blank');
+                                    window.focus();
+                                    return false;
+                                }
+                                return true;
+                            },
+                            persist: false,
+                            debugLevel: 0,
+                            children: children,
+                            dnd: {
+                                onDragStart: onDragStartFn ? onDragStartFn : function (node) {
+                                    /* This function MUST be defined to enable dragging for the tree.
+                                      *  Return false to cancel dragging of node.
+                                      */
+                                    console.log("onDragStart!");
+                                    return true;
+                                },
+                                onDragEnter: onDragEnterFn ? onDragEnterFn : function (node, sourceNode) {
+                                    console.log("onDragEnter!");
+                                    return true;
+                                },
+                                onDrop: onDropFn ? onDropFn : function (node, sourceNode, hitMode) {
+                                    console.log("onDrop!");
+                                    /* This function MUST be defined to enable dropping of items on
+                                      *  the tree.
+                                      */
+                                    sourceNode.move(node, hitMode);
+                                    return true;
+                                }
+                            }
+                        };
+                        if (!onDropFn && !onDragEnterFn && !onDragStartFn) {
+                            delete config["dnd"];
+                        }
+                        widget = treeElement.dynatree(config);
+                        var activatedNode = false;
+                        var activateNodeName = attrs["activatenodes"];
+                        if (activateNodeName) {
+                            var values = scope[activateNodeName];
+                            var tree = treeElement.dynatree("getTree");
+                            if (values && tree) {
+                                angular.forEach(Core.asArray(values), function (value) {
+                                    //tree.selectKey(value, true);
+                                    tree.activateKey(value);
+                                    activatedNode = true;
+                                });
+                            }
+                        }
+                        var root = treeElement.dynatree("getRoot");
+                        if (root) {
+                            var onRootName = attrs["onroot"];
+                            if (onRootName) {
+                                var fn = scope[onRootName];
+                                if (fn) {
+                                    fn(root);
+                                }
+                            }
+                            // select and activate first child if we have not activated any others
+                            if (!activatedNode) {
+                                var children = root['getChildren']();
+                                if (children && children.length) {
+                                    var child = children[0];
+                                    child.expand(true);
+                                    child.activate(true);
+                                }
+                            }
+                        }
+                    }
+                    updateWidget();
+                }
+                // schedule update in one second
+                function updateLater() {
+                    // save the timeoutId for canceling
+                    timeoutId = $timeout(function () {
+                        updateWidget(); // update DOM
+                    }, 300);
+                }
+            };
+        }]);
+    Tree._module.run(["helpRegistry", function (helpRegistry) {
+            helpRegistry.addDevDoc(Tree.pluginName, 'app/tree/doc/developer.md');
+        }]);
+    hawtioPluginLoader.addModule(Tree.pluginName);
+})(Tree || (Tree = {}));
+
+/// <reference path="../../includes.ts"/>
 var UIBootstrap;
 (function (UIBootstrap) {
     var pluginName = "hawtio-ui-bootstrap";
@@ -4081,6 +4432,6 @@ $templateCache.put("plugins/ui/html/pane.html","<div class=\"pane\">\r\n  <div c
 $templateCache.put("plugins/ui/html/slideout.html","<div class=\"slideout {{direction || \'right\'}}\">\r\n  <div class=slideout-title>\r\n    <div ng-show=\"{{close || \'true\'}}\" class=\"mouse-pointer pull-right\" ng-click=\"hidePanel($event)\" title=\"Close panel\">\r\n      <i class=\"fa fa-remove\"></i>\r\n    </div>\r\n    <span>{{title}}</span>\r\n  </div>\r\n  <div class=\"slideout-content\">\r\n    <div class=\"slideout-body\"></div>\r\n  </div>\r\n</div>\r\n");
 $templateCache.put("plugins/ui/html/tablePager.html","<div class=\"hawtio-pager clearfix\">\r\n  <label>{{rowIndex() + 1}} / {{tableLength()}}</label>\r\n  <div class=btn-group>\r\n    <button class=\"btn\" ng-disabled=\"isEmptyOrFirst()\" ng-click=\"first()\"><i class=\"fa fa-fast-backward\"></i></button>\r\n    <button class=\"btn\" ng-disabled=\"isEmptyOrFirst()\" ng-click=\"previous()\"><i class=\"fa fa-step-backward\"></i></button>\r\n    <button class=\"btn\" ng-disabled=\"isEmptyOrLast()\" ng-click=\"next()\"><i class=\"fa fa-step-forward\"></i></button>\r\n    <button class=\"btn\" ng-disabled=\"isEmptyOrLast()\" ng-click=\"last()\"><i class=\"fa fa-fast-forward\"></i></button>\r\n  </div>\r\n</div>\r\n");
 $templateCache.put("plugins/ui/html/tagFilter.html","<div>\r\n  <ul class=\"list-unstyled label-list\">\r\n    <li ng-repeat=\"tag in visibleTags | orderBy:\'tag.id || tag\'\"\r\n        class=\"mouse-pointer\"\r\n        ng-click=\"toggleSelectionFromGroup(selected, tag.id || tag)\">\r\n              <span class=\"badge\"\r\n                    ng-class=\"isInGroup(selected, tag.id || tag, \'badge-success\', \'\')\"\r\n                      >{{tag.id || tag}}</span>\r\n              <span class=\"pull-right\"\r\n                    ng-show=\"tag.count\">{{tag.count}}&nbsp;</span>\r\n    </li>\r\n  </ul>\r\n  <div class=\"mouse-pointer\"\r\n       ng-show=\"selected.length\"\r\n       ng-click=\"clearGroup(selected)\">\r\n    <i class=\"fa fa-remove\" ></i> Clear Tags\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("plugins/ui/html/tagList.html","<span>\r\n<script type=\"text/ng-template\" id=\"tagBase.html\">\r\n  <span class=\"badge mouse-pointer\" ng-class=\"isSelected(\'{{tag}}\')\">{{tag}}</span>\r\n</script>\r\n<script type=\"text/ng-template\" id=\"tagRemove.html\">\r\n  <i class=\"fa fa-remove\" ng-click=\"removeTag({{tag}})\"></i>\r\n</script>\r\n</span>\r\n");
+$templateCache.put("plugins/ui/html/tagList.html","<span>\n<script type=\"text/ng-template\" id=\"tagBase.html\">\n  <span class=\"badge mouse-pointer\"ng-class=\"isSelected(\'{{tag}}\') ? \'badge-success\' : \'\'\">{{tag}}</span>\n</script>\n<script type=\"text/ng-template\" id=\"tagRemove.html\">\n  <i class=\"fa fa-remove\" ng-click=\"removeTag({{tag}})\"></i>\n</script>\n</span>\n");
 $templateCache.put("plugins/ui/html/toc.html","<div>\r\n  <div ng-repeat=\"item in myToc\">\r\n    <div id=\"{{item[\'href\']}}Target\" ng-bind-html=\"item.text\">\r\n    </div>\r\n  </div>\r\n</div>\r\n");
 $templateCache.put("plugins/ui-bootstrap/html/message.html","<div class=\"modal-header\">\r\n	<h3>{{ title }}</h3>\r\n</div>\r\n<div class=\"modal-body\">\r\n	<p>{{ message }}</p>\r\n</div>\r\n<div class=\"modal-footer\">\r\n	<button ng-repeat=\"btn in buttons\" ng-click=\"close(btn.result)\" class=\"btn\" ng-class=\"btn.cssClass\">{{ btn.label }}</button>\r\n</div>\r\n");}]); hawtioPluginLoader.addModule("hawtio-ui-templates");

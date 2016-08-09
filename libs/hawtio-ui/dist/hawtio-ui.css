@@ -172,12 +172,6 @@ fs-donut svg g text.units {
   background: inherit;
   color: white;
 }
-ul.dynatree-container {
-  background: inherit;
-}
-ul.dynatree-container li {
-  background: inherit;
-}
 .axis line {
   stroke: #000;
 }
@@ -209,15 +203,6 @@ ul.dynatree-container li {
 }
 i.expandable-indicator {
   color: #666;
-}
-span.dynatree-expander {
-  color: #728271;
-}
-span.dynatree-icon {
-  color: #EECA7C;
-}
-span:not(.dynatree-has-children) .dynatree-icon:before {
-  color: gray;
 }
 .table-hover tbody tr:hover td.details {
   background-color: #ffffff;
@@ -1540,9 +1525,6 @@ ol.zebra-list > li:before {
 ._jsPlumb_overlay {
   z-index: 6;
 }
-.dynatree-container {
-  overflow: visible;
-}
 .search-query {
   min-width: 20em;
   padding: 5px;
@@ -2128,6 +2110,10 @@ ul.nav select {
   margin-top: 10px;
 }
 
+.editor-autoresize .CodeMirror {
+  height: auto;
+}
+
 .dataTables_filter label {
   margin-bottom: 0px;
 }
@@ -2191,9 +2177,64 @@ table.dataTable tbody tr td {
 .table th {
   vertical-align: middle;
 }
+table.scroll-header-table {
+  border: none;
+  margin-bottom: 0;
+}
+table.scroll-header-table th:first-child {
+  border-left: none;
+}
+table.scroll-header-table th:nth-last-child(2) {
+  border-right: none;
+}
+table.scroll-header-table th:last-child {
+  padding: 0;
+  border-left: none;
+  border-top: none;
+  border-right: none;
+}
+table.scroll-body-table {
+  border: none;
+  margin-bottom: 0;
+}
+table.scroll-body-table td:first-child {
+  border-left: none;
+}
+table.scroll-body-table td:last-child {
+  border-right: none;
+}
+table.scroll-body-table tr:first-child td {
+  border-top: none;
+}
+table.scroll-body-table tr:last-child td {
+  border-bottom: none;
+}
+div.scroll-body-table-wrapper {
+  overflow-y: scroll;
+}
 
-.editor-autoresize .CodeMirror {
-  height: auto;
+.dynatree-container {
+  background: inherit;
+  overflow: visible;
+}
+.dynatree-container li {
+  background: inherit;
+}
+.dynatree-container a {
+  margin: inherit !important;
+}
+.dynatree-container .dynatree-node > img {
+  vertical-align: middle;
+}
+span.dynatree-expander {
+  color: #728271;
+  vertical-align: top;
+}
+span.dynatree-icon {
+  color: #EECA7C;
+}
+span:not(.dynatree-has-children) .dynatree-icon:before {
+  color: gray;
 }
 
 .badge {

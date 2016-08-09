@@ -5,8 +5,9 @@
 /*globals window document Logger CustomEvent URI _ $ angular hawtioPluginLoader jQuery*/
 
 // Polyfill custom event if necessary since we kinda need it
+// https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent#Polyfill
 (function () {
-  if (!window.CustomEvent) {
+  if (typeof window.CustomEvent !== "function") {
     function CustomEvent ( event, params ) {
       params = params || { bubbles: false, cancelable: false, detail: undefined };
       var evt = document.createEvent( 'CustomEvent' );
