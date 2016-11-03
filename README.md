@@ -2,7 +2,11 @@
 
 [![Circle CI](https://circleci.com/gh/hawtio/hawtio-dashboard.svg?style=svg)](https://circleci.com/gh/hawtio/hawtio-dashboard)
 
+### Live Demo
+
 <a class="btn btn-primary" href="http://dashboard.hawt.io">View Demo</a>
+
+### About
 
 This module contains the dashboard widget for hawtio v2.
 
@@ -27,3 +31,7 @@ Out of the box the backend used to store dashboards is in browser local storage.
 ```
 
 The interface that the `dashboardRepository` service needs to implement is defined [here](https://github.com/hawtio/hawtio-dashboard/blob/master/plugins/dashboard/ts/dashboardInterfaces.ts#L39-47)
+
+### Working on the code
+
+Have a look at the hawtio 2.x [overview document](https://github.com/hawtio/hawtio/blob/master/docs/Overview2dotX.md) under "Getting Started" specifically.
