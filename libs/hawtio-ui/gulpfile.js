@@ -11,7 +11,8 @@ var gulp = require('gulp'),
     uri = require('urijs'),
     s = require('underscore.string'),
     argv = require('yargs').argv,
-    del = require('del');
+    del = require('del'),
+    runSequence = require('run-sequence');
 
 var plugins = gulpLoadPlugins({});
 var pkg = require('./package.json');
@@ -21,6 +22,7 @@ var config = {
   ts: ['plugins/**/*.ts'],
   testTs: ['test-plugins/**/*.ts'],
   less: ['plugins/**/*.less'],
+  testLess: ['test-plugins/**/*.less'],
   templates: ['plugins/**/*.html'],
   testTemplates: ['test-plugins/**/*.html'],
   templateModule: pkg.name + '-templates',
@@ -29,6 +31,7 @@ var config = {
   js: pkg.name + '.js',
   testJs: pkg.name + '-test.js',
   css: pkg.name + '.css',
+  testCss: pkg.name + '-test.css',
   tsProject: plugins.typescript.createProject({
     target: 'ES5',
     module: 'commonjs',
@@ -41,6 +44,7 @@ var config = {
     declarationFiles: false,
     noExternalResolve: false
   }),
+  vendorJs: 'plugins/vendor/*.js'
 };
 
 gulp.task('bower', function() {
@@ -138,6 +142,24 @@ gulp.task('less', function () {
     .pipe(gulp.dest(config.dist));
 });
 
+gulp.task('test-less', function () {
+  return gulp.src(config.testLess)
+    .pipe(plugins.less({
+      paths: [
+        path.join(__dirname, 'less', 'includes'),
+        path.join(__dirname, 'libs')
+      ]
+    }))
+    .on('error', plugins.notify.onError({
+      onLast: true,
+      message: '<%= error.message %>',
+      title: 'less file compilation error'
+    }))
+    .pipe(plugins.concat(config.testCss))
+    .pipe(gulp.dest(config.dist));
+});
+
+
 
 gulp.task('template', ['tsc'], function() {
   return gulp.src(config.templates)
@@ -152,7 +174,7 @@ gulp.task('template', ['tsc'], function() {
 });
 
 gulp.task('concat', ['template'], function() {
-  return gulp.src(['compiled.js', 'templates.js'])
+  return gulp.src(['compiled.js', 'templates.js', config.vendorJs])
     .pipe(plugins.concat(config.js))
     .pipe(gulp.dest(config.dist));
 });
@@ -164,6 +186,9 @@ gulp.task('clean', ['concat'], function() {
 gulp.task('watch-less', function() {
   plugins.watch(config.less, function() {
     gulp.start('less');
+  });
+  plugins.watch(config.testLess, function() {
+    gulp.start('test-less');
   });
 });
 
@@ -260,7 +285,9 @@ gulp.task('site', ['build', 'build-example'], function() {
   gulp.src('index.html')
     .pipe(plugins.rename('404.html'))
     .pipe(gulp.dest('site'));
-  gulp.src(['index.html', 'hawtio-nav-example.js', 'test/**', 'css/**', 'images/**', 'img/**', 'libs/**/*.js', 'libs/**/*.css', 'libs/**/*.swf', 'libs/**/*.woff','libs/**/*.woff2', 'libs/**/*.ttf', 'libs/**/*.map', 'dist/**'], {base: '.'})
+  gulp.src('README.md')
+    .pipe(gulp.dest('site'));
+  return gulp.src(['index.html', 'hawtio-nav-example.js', 'test/**', 'css/**', 'images/**', 'img/**', 'libs/**/*.js', 'libs/**/*.css', 'libs/**/*.swf', 'libs/**/*.woff','libs/**/*.woff2', 'libs/**/*.ttf', 'libs/**/*.map', 'dist/**'], {base: '.'})
     .pipe(gulp.dest('site'));
 
   var dirs = fs.readdirSync('./libs');
@@ -286,9 +313,25 @@ gulp.task('deploy', function() {
     }));
 });
 
-gulp.task('build', ['bower', 'path-adjust', 'tsc', 'less', 'template', 'concat', 'clean', 'embed-images']);
+gulp.task('build-clean', function() {
+  return del(['dist/hawtio-ui.*']);
+});
 
-gulp.task('build-example', ['example-tsc', 'example-template', 'example-concat', 'example-clean']);
+gulp.task('build-example-clean', function() {
+  return del(['dist/hawtio-ui-test.*']);
+});
+
+gulp.task('build', function(callback) {
+  runSequence('build-clean',
+              ['bower', 'path-adjust', 'tsc', 'less', 'template', 'concat', 'clean', 'embed-images'],
+              callback);
+});
+
+gulp.task('build-example', function(callback) {
+  runSequence('build-example-clean',
+              ['example-tsc', 'test-less', 'example-template', 'example-concat', 'example-clean'],
+              callback);
+});
 
 gulp.task('default', ['connect']);
 
