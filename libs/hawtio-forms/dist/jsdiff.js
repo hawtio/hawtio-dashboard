@@ -9,7 +9,7 @@
  *  http://ejohn.org/projects/javascript-diff-algorithm/
  */
 
-function escape(s) {
+function escapeJSDiff(s) {
     var n = s;
     n = n.replace(/&/g, "&amp;");
     n = n.replace(/</g, "&lt;");
@@ -41,23 +41,23 @@ function diffString( o, n ) {
 
   if (out.n.length == 0) {
       for (var i = 0; i < out.o.length; i++) {
-        str += '<del>' + escape(out.o[i]) + oSpace[i] + "</del>";
+        str += '<del>' + escapeJSDiff(out.o[i]) + oSpace[i] + "</del>";
       }
   } else {
     if (out.n[0].text == null) {
       for (n = 0; n < out.o.length && out.o[n].text == null; n++) {
-        str += '<del>' + escape(out.o[n]) + oSpace[n] + "</del>";
+        str += '<del>' + escapeJSDiff(out.o[n]) + oSpace[n] + "</del>";
       }
     }
 
     for ( var i = 0; i < out.n.length; i++ ) {
       if (out.n[i].text == null) {
-        str += '<ins>' + escape(out.n[i]) + nSpace[i] + "</ins>";
+        str += '<ins>' + escapeJSDiff(out.n[i]) + nSpace[i] + "</ins>";
       } else {
         var pre = "";
 
         for (n = out.n[i].row + 1; n < out.o.length && out.o[n].text == null; n++ ) {
-          pre += '<del>' + escape(out.o[n]) + oSpace[n] + "</del>";
+          pre += '<del>' + escapeJSDiff(out.o[n]) + oSpace[n] + "</del>";
         }
         str += " " + out.n[i].text + nSpace[i] + pre;
       }
@@ -98,9 +98,9 @@ function diffString2( o, n ) {
 
       if (out.o[i].text != null) {
           os += '<span style="background-color: ' +colors[i]+ '">' + 
-                escape(out.o[i].text) + oSpace[i] + "</span>";
+                escapeJSDiff(out.o[i].text) + oSpace[i] + "</span>";
       } else {
-          os += "<del>" + escape(out.o[i]) + oSpace[i] + "</del>";
+          os += "<del>" + escapeJSDiff(out.o[i]) + oSpace[i] + "</del>";
       }
   }
 
@@ -108,9 +108,9 @@ function diffString2( o, n ) {
   for (var i = 0; i < out.n.length; i++) {
       if (out.n[i].text != null) {
           ns += '<span style="background-color: ' +colors[out.n[i].row]+ '">' + 
-                escape(out.n[i].text) + nSpace[i] + "</span>";
+                escapeJSDiff(out.n[i].text) + nSpace[i] + "</span>";
       } else {
-          ns += "<ins>" + escape(out.n[i]) + nSpace[i] + "</ins>";
+          ns += "<ins>" + escapeJSDiff(out.n[i]) + nSpace[i] + "</ins>";
       }
   }
 
