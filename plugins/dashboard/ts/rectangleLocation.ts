@@ -14,7 +14,7 @@ module Dashboard {
     private _path: string;
     private _hash: string;
     private _search: any;
-    private uri:URI;
+    private uri:uri.URI;
 
     constructor(public delegate:ng.ILocationService, path:string, search, hash:string) {
       this._path = path;
