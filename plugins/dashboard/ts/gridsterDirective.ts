@@ -421,6 +421,7 @@ module Dashboard {
 
       function makeResizable() {
         var blocks:any = $('.grid-block');
+        blocks.resizable();
         blocks.resizable('destroy');
 
         blocks.resizable({
