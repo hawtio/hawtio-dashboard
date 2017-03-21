@@ -25,5 +25,10 @@
   "devDependencies": {
     "hawtio-core-dts": "~2.0.0",
     "hawtio-template-cache": "~3.0.0"
+  },
+  "resolutions": {
+    "hawtio-core-navigation": "~2.0.59",
+    "hawtio-core": "~3.0.0",
+    "jquery": "~2.1.0"
   }
 }
