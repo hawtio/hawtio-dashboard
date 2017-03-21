@@ -1,217 +1,5 @@
 /// <reference path="../defs.d.ts"/>
 
-/// <reference path="../../includes.ts"/>
-var Forms1Tests;
-(function (Forms1Tests) {
-    var pluginName = 'hawtio-forms1-tests';
-    var log = Logger.get(pluginName);
-    var tp = 'test-plugins/form1-examples/html';
-    var _module = angular.module(pluginName, []);
-    var tab = null;
-    _module.config(['$routeProvider', 'HawtioNavBuilderProvider', function ($routeProvider, builder) {
-            tab = builder.create()
-                .id(pluginName)
-                .rank(1)
-                .title(function () { return "Forms"; })
-                .href(function () { return "/forms"; })
-                .subPath("Simple Form", "simple_form", builder.join(tp, "test.html"), 1)
-                .subPath("Form Table", "form_table", builder.join(tp, "testTable.html"), 2)
-                .subPath("Wizard", "form_wizard", builder.join(tp, "wizard.html"), 3)
-                .build();
-            builder.configureRouting($routeProvider, tab);
-        }]);
-    _module.run(["HawtioNav", "SchemaRegistry", function (nav, schemas) {
-            nav.add(tab);
-        }]);
-    _module.controller("HawtioFormsTests.WizardController", ["$scope", "$templateCache", function ($scope, $templateCache) {
-            $scope.wizardConfig = {
-                "properties": {
-                    "key": {
-                        "description": "Argument key",
-                        "type": "java.lang.String"
-                    },
-                    "value": {
-                        "description": "Argument Value",
-                        "type": "java.lang.String"
-                    },
-                    "longArg": {
-                        "description": "Long argument",
-                        "type": "Long",
-                        "minimum": "5",
-                        "maximum": "10"
-                    },
-                    "intArg": {
-                        "description": "Int argument",
-                        "type": "Integer"
-                    },
-                    "objectArg": {
-                        "description": "some object",
-                        "type": "object"
-                    },
-                    "booleanArg": {
-                        "description": "Some boolean value",
-                        "type": "java.lang.Boolean"
-                    }
-                },
-                "description": "My awesome wizard!",
-                "type": "java.lang.String",
-                "wizard": {
-                    "Page One": ["key", "value"],
-                    "Page Two": ["*"],
-                    "Page Three": ["booleanArg"]
-                }
-            };
-            $scope.wizardConfigStr = angular.toJson($scope.wizardConfig, true);
-            $scope.wizardMarkup = $templateCache.get("wizardMarkup.html");
-            $scope.$watch('wizardConfigStr', _.debounce(function () {
-                try {
-                    $scope.wizardConfig = angular.fromJson($scope.wizardConfigStr);
-                    log.debug("Updated config...");
-                    Core.$apply($scope);
-                }
-                catch (e) {
-                }
-            }, 1000));
-        }]);
-    _module.controller("Forms.FormTestController", ["$scope", function ($scope) {
-            $scope.editing = false;
-            $scope.html = "text/html";
-            $scope.javascript = "javascript";
-            $scope.basicFormEx1Entity = {
-                'key': 'Some key',
-                'value': 'Some value'
-            };
-            $scope.basicFormEx1EntityString = angular.toJson($scope.basicFormEx1Entity, true);
-            $scope.basicFormEx1Result = '';
-            $scope.toggleEdit = function () {
-                $scope.editing = !$scope.editing;
-            };
-            $scope.view = function () {
-                if (!$scope.editing) {
-                    return "view";
-                }
-                return "edit";
-            };
-            $scope.basicFormEx1 = '<div simple-form name="some-form" action="#/forms/test" method="post" data="basicFormEx1SchemaObject" entity="basicFormEx1Entity" onSubmit="callThis()"></div>';
-            $scope.toObject = function (str) {
-                return angular.fromJson(str.replace("'", "\""));
-            };
-            $scope.fromObject = function (str) {
-                return angular.toJson($scope[str], true);
-            };
-            $scope.basicFormEx1Config = {
-                "properties": {
-                    "key": {
-                        "description": "Argument key",
-                        "type": "java.lang.String"
-                    },
-                    "value": {
-                        "description": "Argument Value",
-                        "type": "java.lang.String"
-                    },
-                    "longArg": {
-                        "description": "Long argument",
-                        "type": "Long",
-                        "minimum": "5",
-                        "maximum": "10"
-                    },
-                    "intArg": {
-                        "description": "Int argument",
-                        "type": "Integer"
-                    },
-                    "objectArg": {
-                        "description": "some object",
-                        "type": "object"
-                    },
-                    "booleanArg": {
-                        "description": "Some boolean value",
-                        "type": "java.lang.Boolean"
-                    }
-                },
-                "description": "Show some stuff in a form",
-                "type": "java.lang.String",
-                "tabs": {
-                    "Tab One": ["key", "value"],
-                    "Tab Two": ["*"],
-                    "Tab Three": ["booleanArg"]
-                }
-            };
-            $scope.basicFormEx1Schema = angular.toJson($scope.basicFormEx1Config, true);
-            $scope.basicFormEx1SchemaObject = $scope.toObject($scope.basicFormEx1Schema);
-            $scope.updateSchema = function () {
-                $scope.basicFormEx1SchemaObject = $scope.toObject($scope.basicFormEx1Schema);
-            };
-            $scope.updateEntity = function () {
-                $scope.basicFormEx1Entity = angular.fromJson($scope.basicFormEx1EntityString);
-            };
-            $scope.hawtioResetEx = '<a class="btn" href="" hawtio-reset="some-form"><i class="icon-refresh"></i> Clear</a>';
-            $scope.hawtioSubmitEx = '      <a class="btn" href="" hawtio-submit="some-form"><i class="icon-save"></i> Save</a>';
-            $scope.callThis = function (json, form) {
-                $scope.basicFormEx1Result = angular.toJson(json, true);
-                Core.notification('success', 'Form "' + form.get(0).name + '" submitted...');
-                Core.$apply($scope);
-            };
-            $scope.config = {
-                name: 'form-with-config-object',
-                action: "/some/url",
-                method: "post",
-                data: 'setVMOption',
-                showtypes: 'false'
-            };
-            $scope.cheese = {
-                key: "keyABC",
-                value: "valueDEF",
-                intArg: 999
-            };
-            $scope.onCancel = function (form) {
-                Core.notification('success', 'Cancel clicked on form "' + form.get(0).name + '"');
-            };
-            $scope.onSubmit = function (json, form) {
-                Core.notification('success', 'Form "' + form.get(0).name + '" submitted... (well not really), data:' + JSON.stringify(json));
-            };
-            $scope.derp = function (json, form) {
-                Core.notification('error', 'derp with json ' + JSON.stringify(json));
-            };
-            $scope.inputTableData = {
-                rows: [
-                    { id: "object1", name: 'foo' },
-                    { id: "object2", name: 'bar' }
-                ]
-            };
-            $scope.inputTableConfig = {
-                data: 'inputTableData.rows',
-                displayFooter: false,
-                showFilter: false,
-                showSelectionCheckbox: false,
-                enableRowClickSelection: true,
-                primaryKeyProperty: 'id',
-                properties: {
-                    'rows': { items: { type: 'string', properties: {
-                                'id': {
-                                    description: 'Object ID',
-                                    type: 'java.lang.String'
-                                },
-                                'name': {
-                                    description: 'Object Name',
-                                    type: 'java.lang.String'
-                                }
-                            } } }
-                },
-                columnDefs: [
-                    {
-                        field: 'id',
-                        displayName: 'ID'
-                    },
-                    {
-                        field: 'name',
-                        displayName: 'Name'
-                    }
-                ]
-            };
-        }]);
-    hawtioPluginLoader.addModule(pluginName);
-})(Forms1Tests || (Forms1Tests = {}));
-
 var Kubernetes;
 (function (Kubernetes) {
     Kubernetes.schema = {
@@ -4328,17 +4116,229 @@ var Forms2Tests;
         }]);
 })(Forms2Tests || (Forms2Tests = {}));
 
-angular.module("hawtio-forms-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/form1-examples/html/test.html","<div ng-controller=\'Forms.FormTestController\'>\r\n\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h3>Basic form</h3>\r\n      <p>Here\'s a basic form generated from some JSON schema</p>\r\n      <p>Here\'s some example JSON schema definition</p>\r\n      <div hawtio-editor=\"basicFormEx1Schema\" mode=\"javascript\"></div>\r\n      <button class=\'btn\' ng-click=\"updateSchema()\"><i class=\"icon-save\"></i> Update form</button>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <p>You can define an entity object to have default values filled in</p>\r\n      <div hawtio-editor=\"basicFormEx1EntityString\" mode=\"javascript\"></div>\r\n      <button class=\'btn\' ng-click=\"updateEntity()\"><i class=\"icon-save\"></i> Update form</button>\r\n      <p>And here is the code for the form</p>\r\n      <div hawtio-editor=\"basicFormEx1\" mode=\"html\"></div>\r\n      <h3>The resulting form</h3>\r\n      <div class=\"directive-example\">\r\n        <div compile=\"basicFormEx1\"></div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <h3>Form related controls</h3>\r\n      <p>There\'s also directives to take care of resetting or submitting a form</p>\r\n      <p></p>\r\n      <p>Clearing a form is done using the hawtio-reset directive</p>\r\n      <div hawtio-editor=\"hawtioResetEx\" mode=\"html\"></div>\r\n      <p>Click the button below to clear the above form</p>\r\n      <div class=\"directive-example\">\r\n        <div compile=\"hawtioResetEx\"></div>\r\n      </div>\r\n      <p>And to submit a form use hawtio-submit</p>\r\n      <div hawtio-editor=\"hawtioSubmitEx\" mode=\"html\"></div>\r\n      <div class=\"directive-example\">\r\n        <div compile=\"hawtioSubmitEx\"></div>\r\n      </div>\r\n      <p>Fill in the form and click the submit button above to see what the form produces</p>\r\n      <div hawtio-editor=\"basicFormEx1Result\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <p></p>\r\n    </div>\r\n  </div>\r\n\r\n  <!--\r\n\r\n  <h3>Form Testing</h3>\r\n\r\n  <div>\r\n    <div class=\"control-group\">\r\n      <a class=\'btn\' ng-href=\"\" hawtio-submit=\'form-with-inline-arguments\'><i class=\"icon-save\"></i> Save</a>\r\n      <a class=\'btn\' ng-href=\"\" hawtio-reset=\'form-with-inline-arguments\'><i class=\"icon-refresh\"></i> Clear</a>\r\n    </div>\r\n    Form with inline arguments\r\n    <div simple-form name=\'form-with-inline-arguments\' action=\'#/forms/test\' method=\'post\' data=\'setVMOption\' entity=\'cheese\' onSubmit=\"derp()\"></div>\r\n  </div>\r\n\r\n  <hr>\r\n\r\n  <div>\r\n    Read Only Form with config object\r\n    <div class=\"row-fluid\">\r\n      <button class=\"btn\" ng-click=\"toggleEdit()\">Edit</button>\r\n    </div>\r\n    <div simple-form data=\'setVMOption\' entity=\'cheese\' mode=\'view\'></div>\r\n  </div>\r\n\r\n  <hr>\r\n\r\n  <div>\r\n    Form with config object\r\n    <div simple-form=\'config\'></div>\r\n  </div>\r\n\r\n  <hr>\r\n\r\n  <div>\r\n    form with inline json config\r\n    <div simple-form name=\'form-with-inline-json-config\' action=\'#/forms/test\' method=\'post\' showTypes=\'false\' json=\'\r\n    {\r\n      \"properties\": {\r\n        \"key\": { \"description\": \"Argument key\", \"type\": \"java.lang.String\" },\r\n        \"value\": { \"description\": \"Argument value\", \"type\": \"java.lang.String\" },\r\n        \"longArg\": { \"description\": \"Long argument\", \"type\": \"Long\" },\r\n        \"intArg\": { \"description\": \"Int argument\", \"type\": \"Integer\" }},\r\n       \"description\": \"Show some stuff in a form from JSON\",\r\n       \"type\": \"java.lang.String\"\r\n    }\'></div>\r\n  </div>\r\n\r\n  -->\r\n</div>\r\n");
-$templateCache.put("test-plugins/form1-examples/html/testTable.html","<div ng-controller=\'Forms.FormTestController\'>\r\n\r\n  <h3>Input Table Testing</h3>\r\n\r\n  <div>\r\n    input table with config object\r\n    <div hawtio-input-table=\"inputTableConfig\" entity=\"inputTableData\" data=\"inputTableConfig\" property=\"rows\"></div>\r\n  </div>\r\n\r\n</div>\r\n");
-$templateCache.put("test-plugins/form1-examples/html/wizard.html","\r\n<script type=\"text/ng-template\" id=\"wizardMarkup.html\">\r\n  <div hawtio-form data=\"wizardConfig\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.WizardController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-6\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"wizardConfigStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"wizardMarkup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-6\">\r\n      <h5>In Action</h5>\r\n      <div class=\"directive-example\">\r\n        <div compile=\"wizardMarkup\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/arrayExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"Forms2Tests.ArrayExample\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>Example Javascript</h5>\r\n      <p>With hawtio-forms2 it\'s easy to create a form for building up a list or array of values.  Just specify \'array\' as the type, then add an \'items\' attribute to the form element configuration, which designates what type should be used for array items.  For more complex array types use the SchemaRegistry service to add a schema, hawtio-forms2 will then look that up as it builds the form markup.</p>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/fromSchema.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2SchemaController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/map.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2MapController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/nestedForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2NestedController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/selectorExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"Forms2Tests.SelectorExample\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>Config</h5>\r\n      <p>In this case we\'re passing a \'selectors\' property for the FormElement, hawtio-forms2 will do a jquery \'find\' on the control element for each selector instance and pass the result of \'find\' into the selector function provided here.  This will happen before interpolation and compilation of the entire form template, so it\'s possible to add Angular directives on the fly etc.  Use \'el\' to get the entire form-group for that element.  In this example, changing the \'select\' value to anything other than \'Two\' will hide the \'Name\' element.\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/simpleExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"Forms2Tests.SimpleExample\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>Example Javascript</h5>\r\n      <p>This is a fairly basic example form configuration showing a few features that make it easy to create a custom form with a simple javascript object.  It\'s possible to add extra attributes to an input, or a label or the entire control group via \'input-attributes\', \'label-attributes\' or \'control-attributes\'.  For even more control take a look at the \'Selector Example\' page.</p>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/simpleForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2Controller\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/tabbedForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2TabsController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/typeaheadExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"Forms2Tests.TypeaheadExample\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>Example Javascript</h5>\r\n      <p>For some fields it\'s nice to try and auto-fill values as users fill in the details.  It\'s possible to add typeahead support to input fields via \'input-attributes\'.  Seems to work best to attach the typeahead data to the config object.</p>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/welcome.html","<div class=\"row\" ng-controller=\"WelcomePageController\">\r\n  <div class=\"col-md-2\">\r\n  </div>\r\n  <div class=\"col-md-8\">\r\n    <div ng-bind-html=\"readme\"></div>\r\n  </div>\r\n  <div class=\"col-md-2\">\r\n  </div>\r\n\r\n</div>\r\n");
-$templateCache.put("test-plugins/form2-examples/html/wizardForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\r\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\r\n</script>\r\n\r\n<div ng-controller=\"HawtioFormsTests.Forms2WizardController\">\r\n  <div class=\"row-fluid\">\r\n    <div class=\"col-md-4\">\r\n      <h5>JSON Config</h5>\r\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\r\n      <p></p>\r\n      <h5>Markup</h5>\r\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>In Action</h5>\r\n        <div class=\"directive-example\">\r\n          <div compile=\"markup\"></div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n    <div class=\"col-md-4\">\r\n      <div class=\"row-fluid\">\r\n        <h5>Model</h5>\r\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n");}]); hawtioPluginLoader.addModule("hawtio-forms-test-templates");
+/// <reference path="../../includes.ts"/>
+var Forms1Tests;
+(function (Forms1Tests) {
+    var pluginName = 'hawtio-forms1-tests';
+    var log = Logger.get(pluginName);
+    var tp = 'test-plugins/form1-examples/html';
+    var _module = angular.module(pluginName, []);
+    var tab = null;
+    _module.config(['$routeProvider', 'HawtioNavBuilderProvider', function ($routeProvider, builder) {
+            tab = builder.create()
+                .id(pluginName)
+                .rank(1)
+                .title(function () { return "Forms"; })
+                .href(function () { return "/forms"; })
+                .subPath("Simple Form", "simple_form", builder.join(tp, "test.html"), 1)
+                .subPath("Form Table", "form_table", builder.join(tp, "testTable.html"), 2)
+                .subPath("Wizard", "form_wizard", builder.join(tp, "wizard.html"), 3)
+                .build();
+            builder.configureRouting($routeProvider, tab);
+        }]);
+    _module.run(["HawtioNav", "SchemaRegistry", function (nav, schemas) {
+            nav.add(tab);
+        }]);
+    _module.controller("HawtioFormsTests.WizardController", ["$scope", "$templateCache", function ($scope, $templateCache) {
+            $scope.wizardConfig = {
+                "properties": {
+                    "key": {
+                        "description": "Argument key",
+                        "type": "java.lang.String"
+                    },
+                    "value": {
+                        "description": "Argument Value",
+                        "type": "java.lang.String"
+                    },
+                    "longArg": {
+                        "description": "Long argument",
+                        "type": "Long",
+                        "minimum": "5",
+                        "maximum": "10"
+                    },
+                    "intArg": {
+                        "description": "Int argument",
+                        "type": "Integer"
+                    },
+                    "objectArg": {
+                        "description": "some object",
+                        "type": "object"
+                    },
+                    "booleanArg": {
+                        "description": "Some boolean value",
+                        "type": "java.lang.Boolean"
+                    }
+                },
+                "description": "My awesome wizard!",
+                "type": "java.lang.String",
+                "wizard": {
+                    "Page One": ["key", "value"],
+                    "Page Two": ["*"],
+                    "Page Three": ["booleanArg"]
+                }
+            };
+            $scope.wizardConfigStr = angular.toJson($scope.wizardConfig, true);
+            $scope.wizardMarkup = $templateCache.get("wizardMarkup.html");
+            $scope.$watch('wizardConfigStr', _.debounce(function () {
+                try {
+                    $scope.wizardConfig = angular.fromJson($scope.wizardConfigStr);
+                    log.debug("Updated config...");
+                    Core.$apply($scope);
+                }
+                catch (e) {
+                }
+            }, 1000));
+        }]);
+    _module.controller("Forms.FormTestController", ["$scope", function ($scope) {
+            $scope.editing = false;
+            $scope.html = "text/html";
+            $scope.javascript = "javascript";
+            $scope.basicFormEx1Entity = {
+                'key': 'Some key',
+                'value': 'Some value'
+            };
+            $scope.basicFormEx1EntityString = angular.toJson($scope.basicFormEx1Entity, true);
+            $scope.basicFormEx1Result = '';
+            $scope.toggleEdit = function () {
+                $scope.editing = !$scope.editing;
+            };
+            $scope.view = function () {
+                if (!$scope.editing) {
+                    return "view";
+                }
+                return "edit";
+            };
+            $scope.basicFormEx1 = '<div simple-form name="some-form" action="#/forms/test" method="post" data="basicFormEx1SchemaObject" entity="basicFormEx1Entity" onSubmit="callThis()"></div>';
+            $scope.toObject = function (str) {
+                return angular.fromJson(str.replace("'", "\""));
+            };
+            $scope.fromObject = function (str) {
+                return angular.toJson($scope[str], true);
+            };
+            $scope.basicFormEx1Config = {
+                "properties": {
+                    "key": {
+                        "description": "Argument key",
+                        "type": "java.lang.String"
+                    },
+                    "value": {
+                        "description": "Argument Value",
+                        "type": "java.lang.String"
+                    },
+                    "longArg": {
+                        "description": "Long argument",
+                        "type": "Long",
+                        "minimum": "5",
+                        "maximum": "10"
+                    },
+                    "intArg": {
+                        "description": "Int argument",
+                        "type": "Integer"
+                    },
+                    "objectArg": {
+                        "description": "some object",
+                        "type": "object"
+                    },
+                    "booleanArg": {
+                        "description": "Some boolean value",
+                        "type": "java.lang.Boolean"
+                    }
+                },
+                "description": "Show some stuff in a form",
+                "type": "java.lang.String",
+                "tabs": {
+                    "Tab One": ["key", "value"],
+                    "Tab Two": ["*"],
+                    "Tab Three": ["booleanArg"]
+                }
+            };
+            $scope.basicFormEx1Schema = angular.toJson($scope.basicFormEx1Config, true);
+            $scope.basicFormEx1SchemaObject = $scope.toObject($scope.basicFormEx1Schema);
+            $scope.updateSchema = function () {
+                $scope.basicFormEx1SchemaObject = $scope.toObject($scope.basicFormEx1Schema);
+            };
+            $scope.updateEntity = function () {
+                $scope.basicFormEx1Entity = angular.fromJson($scope.basicFormEx1EntityString);
+            };
+            $scope.hawtioResetEx = '<a class="btn btn-default" href="" hawtio-reset="some-form">Clear</a>';
+            $scope.hawtioSubmitEx = '<a class="btn btn-default" href="" hawtio-submit="some-form">Save</a>';
+            $scope.callThis = function (json, form) {
+                $scope.basicFormEx1Result = angular.toJson(json, true);
+                Core.notification('success', 'Form "' + form.get(0).name + '" submitted...');
+                Core.$apply($scope);
+            };
+            $scope.config = {
+                name: 'form-with-config-object',
+                action: "/some/url",
+                method: "post",
+                data: 'setVMOption',
+                showtypes: 'false'
+            };
+            $scope.cheese = {
+                key: "keyABC",
+                value: "valueDEF",
+                intArg: 999
+            };
+            $scope.onCancel = function (form) {
+                Core.notification('success', 'Cancel clicked on form "' + form.get(0).name + '"');
+            };
+            $scope.onSubmit = function (json, form) {
+                Core.notification('success', 'Form "' + form.get(0).name + '" submitted... (well not really), data:' + JSON.stringify(json));
+            };
+            $scope.derp = function (json, form) {
+                Core.notification('error', 'derp with json ' + JSON.stringify(json));
+            };
+            $scope.inputTableData = {
+                rows: [
+                    { id: "object1", name: 'foo' },
+                    { id: "object2", name: 'bar' }
+                ]
+            };
+            $scope.inputTableConfig = {
+                data: 'inputTableData.rows',
+                displayFooter: false,
+                showFilter: false,
+                showSelectionCheckbox: false,
+                enableRowClickSelection: true,
+                primaryKeyProperty: 'id',
+                properties: {
+                    'rows': { items: { type: 'string', properties: {
+                                'id': {
+                                    description: 'Object ID',
+                                    type: 'java.lang.String'
+                                },
+                                'name': {
+                                    description: 'Object Name',
+                                    type: 'java.lang.String'
+                                }
+                            } } }
+                },
+                columnDefs: [
+                    {
+                        field: 'id',
+                        displayName: 'ID'
+                    },
+                    {
+                        field: 'name',
+                        displayName: 'Name'
+                    }
+                ]
+            };
+        }]);
+    hawtioPluginLoader.addModule(pluginName);
+})(Forms1Tests || (Forms1Tests = {}));
+
+angular.module("hawtio-forms-test-templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("test-plugins/form1-examples/html/test.html","<div ng-controller=\'Forms.FormTestController\'>\n\n  <div class=\"row-fluid\">\n    <div class=\"col-md-12\">\n      <h1>Simple Form</h1>\n      <p>Here\'s a simple form generated from some JSON schema.</p>\n      \n      <h3>Form definition</h3>\n      <div hawtio-editor=\"basicFormEx1Schema\" mode=\"javascript\"></div>\n      <button class=\'btn btn-default\' ng-click=\"updateSchema()\">Update form</button>\n      \n      <h3>Default values</h3>\n      <div hawtio-editor=\"basicFormEx1EntityString\" mode=\"javascript\"></div>\n      <button class=\'btn btn-default\' ng-click=\"updateEntity()\">Update form</button>\n      \n      <h3>HTML</h3>\n      <div hawtio-editor=\"basicFormEx1\" mode=\"html\"></div>\n      \n      <h3>Result</h3>\n      <div class=\"directive-example\">\n        <div compile=\"basicFormEx1\"></div>\n      </div>\n\n      <h3>Form related controls</h3>\n      <p>There\'s also directives to take care of resetting or submitting a form.</p>\n      <ol>\n        <li>\n          <p>Clearing a form is done using the hawtio-reset directive</p>\n          <div hawtio-editor=\"hawtioResetEx\" mode=\"html\"></div>\n          <p>Click the button below to clear the above form</p>\n          <div class=\"directive-example\">\n            <div compile=\"hawtioResetEx\"></div>\n          </div>\n        </li>\n        <li>\n          <p>And to submit a form use hawtio-submit</p>\n          <div hawtio-editor=\"hawtioSubmitEx\" mode=\"html\"></div>\n          <div class=\"directive-example\">\n            <div compile=\"hawtioSubmitEx\"></div>\n          </div>\n          <p>Fill in the form and click the submit button above to see what the form produces</p>\n          <div hawtio-editor=\"basicFormEx1Result\" mode=\"javascript\"></div>\n        </li>\n      </ol>\n    </div>\n  </div>\n\n  <!--\n\n  <h3>Form Testing</h3>\n\n  <div>\n    <div class=\"control-group\">\n      <a class=\'btn\' ng-href=\"\" hawtio-submit=\'form-with-inline-arguments\'><i class=\"icon-save\"></i> Save</a>\n      <a class=\'btn\' ng-href=\"\" hawtio-reset=\'form-with-inline-arguments\'><i class=\"icon-refresh\"></i> Clear</a>\n    </div>\n    Form with inline arguments\n    <div simple-form name=\'form-with-inline-arguments\' action=\'#/forms/test\' method=\'post\' data=\'setVMOption\' entity=\'cheese\' onSubmit=\"derp()\"></div>\n  </div>\n\n  <hr>\n\n  <div>\n    Read Only Form with config object\n    <div class=\"row-fluid\">\n      <button class=\"btn\" ng-click=\"toggleEdit()\">Edit</button>\n    </div>\n    <div simple-form data=\'setVMOption\' entity=\'cheese\' mode=\'view\'></div>\n  </div>\n\n  <hr>\n\n  <div>\n    Form with config object\n    <div simple-form=\'config\'></div>\n  </div>\n\n  <hr>\n\n  <div>\n    form with inline json config\n    <div simple-form name=\'form-with-inline-json-config\' action=\'#/forms/test\' method=\'post\' showTypes=\'false\' json=\'\n    {\n      \"properties\": {\n        \"key\": { \"description\": \"Argument key\", \"type\": \"java.lang.String\" },\n        \"value\": { \"description\": \"Argument value\", \"type\": \"java.lang.String\" },\n        \"longArg\": { \"description\": \"Long argument\", \"type\": \"Long\" },\n        \"intArg\": { \"description\": \"Int argument\", \"type\": \"Integer\" }},\n       \"description\": \"Show some stuff in a form from JSON\",\n       \"type\": \"java.lang.String\"\n    }\'></div>\n  </div>\n\n  -->\n</div>\n");
+$templateCache.put("test-plugins/form1-examples/html/testTable.html","<div ng-controller=\'Forms.FormTestController\'>\n\n  <h3>Input Table Testing</h3>\n\n  <div>\n    input table with config object\n    <div hawtio-input-table=\"inputTableConfig\" entity=\"inputTableData\" data=\"inputTableConfig\" property=\"rows\"></div>\n  </div>\n\n</div>\n");
+$templateCache.put("test-plugins/form1-examples/html/wizard.html","\n<script type=\"text/ng-template\" id=\"wizardMarkup.html\">\n  <div hawtio-form data=\"wizardConfig\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.WizardController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-6\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"wizardConfigStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"wizardMarkup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-6\">\n      <h5>In Action</h5>\n      <div class=\"directive-example\">\n        <div compile=\"wizardMarkup\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/arrayExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"Forms2Tests.ArrayExample\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>Example Javascript</h5>\n      <p>With hawtio-forms2 it\'s easy to create a form for building up a list or array of values.  Just specify \'array\' as the type, then add an \'items\' attribute to the form element configuration, which designates what type should be used for array items.  For more complex array types use the SchemaRegistry service to add a schema, hawtio-forms2 will then look that up as it builds the form markup.</p>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/fromSchema.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2SchemaController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/map.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2MapController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/nestedForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2NestedController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/selectorExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"Forms2Tests.SelectorExample\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>Config</h5>\n      <p>In this case we\'re passing a \'selectors\' property for the FormElement, hawtio-forms2 will do a jquery \'find\' on the control element for each selector instance and pass the result of \'find\' into the selector function provided here.  This will happen before interpolation and compilation of the entire form template, so it\'s possible to add Angular directives on the fly etc.  Use \'el\' to get the entire form-group for that element.  In this example, changing the \'select\' value to anything other than \'Two\' will hide the \'Name\' element.\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/simpleExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"Forms2Tests.SimpleExample\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>Example Javascript</h5>\n      <p>This is a fairly basic example form configuration showing a few features that make it easy to create a custom form with a simple javascript object.  It\'s possible to add extra attributes to an input, or a label or the entire control group via \'input-attributes\', \'label-attributes\' or \'control-attributes\'.  For even more control take a look at the \'Selector Example\' page.</p>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/simpleForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2Controller\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/tabbedForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2TabsController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/typeaheadExample.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"Forms2Tests.TypeaheadExample\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>Example Javascript</h5>\n      <p>For some fields it\'s nice to try and auto-fill values as users fill in the details.  It\'s possible to add typeahead support to input fields via \'input-attributes\'.  Seems to work best to attach the typeahead data to the config object.</p>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/welcome.html","<div class=\"row\" ng-controller=\"WelcomePageController\">\n  <div class=\"col-md-2\">\n  </div>\n  <div class=\"col-md-8\">\n    <div ng-bind-html=\"readme\"></div>\n  </div>\n  <div class=\"col-md-2\">\n  </div>\n\n</div>\n");
+$templateCache.put("test-plugins/form2-examples/html/wizardForm2.html","<script type=\"text/ng-template\" id=\"markup.html\">\n  <div hawtio-form-2=\"config\" entity=\"model\"></div>\n</script>\n\n<div ng-controller=\"HawtioFormsTests.Forms2WizardController\">\n  <div class=\"row-fluid\">\n    <div class=\"col-md-4\">\n      <h5>JSON Config</h5>\n      <div hawtio-editor=\"configStr\" mode=\"javascript\"></div>\n      <p></p>\n      <h5>Markup</h5>\n      <div hawtio-editor=\"markup\" mode=\"html\"></div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>In Action</h5>\n        <div class=\"directive-example\">\n          <div compile=\"markup\"></div>\n        </div>\n      </div>\n    </div>\n    <div class=\"col-md-4\">\n      <div class=\"row-fluid\">\n        <h5>Model</h5>\n        <div hawtio-editor=\"modelStr\" mode=\"javascript\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n");}]); hawtioPluginLoader.addModule("hawtio-forms-test-templates");

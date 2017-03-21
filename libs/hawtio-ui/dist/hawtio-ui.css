@@ -91,9 +91,6 @@
 @import url("./fonts/Open-Sans/stylesheet.css");
 @import url("./fonts/Droid-Sans-Mono/stylesheet.css");
 */
-body {
-  font-family: OpenSans;
-}
 #log-panel-statements li {
   font-family: OpenSans;
 }
@@ -443,37 +440,6 @@ table.table thead .sorting_desc:after {
 .bundle-item a.toggle-action .icon-play-circle {
   color: green;
 }
-div.hawtio-form-tabs div.tab-content {
-  border: 1px solid #d4d4d4;
-  border-radius: 4px;
-  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
-}
-div.hawtio-form-tabs ul.nav-tabs {
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  background: inherit;
-  background-color: inherit !important;
-  background-image: inherit !important;
-  border-top: none !important;
-}
-div.hawtio-form-tabs ul.nav-tabs li {
-  border: 1px solid #d4d4d4 !important;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  background-color: inherit;
-  box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.08) !important;
-}
-div.hawtio-form-tabs ul.nav-tabs li.active {
-  border-bottom: 1px solid white !important;
-  background-color: white;
-  box-shadow: 0 -10px 10px -10px rgba(0, 0, 0, 0.1) !important;
-}
-div.hawtio-form-tabs ul.nav-tabs li.active a {
-  box-shadow: none !important;
-  text-shadow: none !important;
-  background-color: inherit !important;
-}
 .slideout {
   box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
   border: 1px solid #d4d4d4;
@@ -603,21 +569,6 @@ td.adding {
 }
 .login-logo {
   color: white;
-}
-/** highlight required fields which have no focus */
-input.ng-invalid,
-textarea.ng-invalid,
-select.ng-invalid {
-  border-color: #e5e971;
-  -webkit-box-shadow: 0 0 6px #eff898;
-  -moz-box-shadow: 0 0 6px #eff898;
-  box-shadow: 0 0 6px #eff898;
-}
-/** Use bigger and darker border on checkboxes as its hard to see since they already have a shadow */
-input[type="checkbox"].ng-invalid {
-  -webkit-box-shadow: 0 0 12px #e5e971;
-  -moz-box-shadow: 0 0 12px #e5e971;
-  box-shadow: 0 0 12px #e5e971;
 }
 .profile-details div .tab-pane ul li:nth-child(even):not(.add) {
   background-color: #f3f3f3;
@@ -949,18 +900,6 @@ tr.selected .ngCellText a,
   background-color: #c9dde1;
 }
 */
-input.ng-invalid-pattern {
-  border-color: #e9322d;
-  -webkit-box-shadow: 0 0 6px #f8b9b7;
-  -moz-box-shadow: 0 0 6px #f8b9b7;
-  box-shadow: 0 0 6px #f8b9b7;
-}
-input.ng-invalid-pattern:focus {
-  border-color: #e9322d;
-  -webkit-box-shadow: 0 0 6px #f8b9b7;
-  -moz-box-shadow: 0 0 6px #f8b9b7;
-  box-shadow: 0 0 6px #f8b9b7;
-}
 .runnable {
   color: green;
 }
@@ -993,16 +932,6 @@ strong.new,
   background: #737373;
   box-shadow: inset 0px 1px 0px 0px rgba(250, 250, 250, 0.5);
 }
-.table-header {
-  color: black;
-}
-.table-header:hover {
-  background-color: #f3f3f3;
-}
-.table-header.asc,
-.table-header.desc {
-  background-color: #f3f3f3;
-}
 .dropdown-menu {
   border-radius: 0;
 }
@@ -1026,6 +955,11 @@ strong.new,
   background-image: linear-gradient(to bottom, #0088cc, #0077b3);
   background-repeat: repeat-x;
   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff0088cc', endColorstr='#ff0077b3', GradientType=0);
+}
+.hawtio-dropdown > ul > li:hover > a {
+  color: #ffffff;
+  background-color: unset;
+  border-color: transparent;
 }
 .hawtio-dropdown > ul > li:hover > span > ul.sub-menu > li {
   color: #333333;
@@ -1209,6 +1143,9 @@ img.nodeIcon:hover {
   border: 4px dashed #aaffaa;
   background: #ddffdd;
   min-height: 150px;
+}
+textarea {
+  resize: none;
 }
 
 @media (min-width: 1600px) {
@@ -1537,17 +1474,16 @@ ol.zebra-list > li:before {
   padding-top: 2px;
   padding-bottom: 2px;
 }
-.row {
-  margin-left: auto;
-  margin-right: auto;
+.toolbar-pf .form-group:first-child {
+  padding-left: 0;
 }
-.hawtio-form input {
-  width: 20em;
+.spinner.loading-page {
+  margin-top: 20px;
 }
-.hawtio-form textarea {
-  margin-left: 90px;
-  width: 20em;
-  min-height: 5em;
+.loading-message {
+  margin-top: 20px;
+  font-weight: bold;
+  text-align: center;
 }
 
 body {
@@ -1728,21 +1664,6 @@ li.stacktrace {
   min-height: 30px;
   width: 160px;
 }
-/** highlight required fields which have no focus */
-input.ng-invalid,
-textarea.ng-invalid,
-select.ng-invalid {
-  border-color: #e5e971;
-  -webkit-box-shadow: 0 0 6px #eff898;
-  -moz-box-shadow: 0 0 6px #eff898;
-  box-shadow: 0 0 6px #eff898;
-}
-/** Use bigger and darker border on checkboxes as its hard to see since they already have a shadow */
-input[type="checkbox"].ng-invalid {
-  -webkit-box-shadow: 0 0 12px #e5e971;
-  -moz-box-shadow: 0 0 12px #e5e971;
-  box-shadow: 0 0 12px #e5e971;
-}
 @media (max-width: 979px) {
   .navbar-fixed-top .navbar-inner,
   .navbar-fixed-bottom .navbar-inner {
@@ -1776,42 +1697,10 @@ tabset > .tabbable > .tab-content > .nav.nav-tabs > li.active {
 tabset > .tabbable > .tab-content > .nav.nav-tabs > li.disabled {
   opacity: 0.3;
 }
-input.ng-invalid-pattern {
-  border-color: #e9322d;
-  -webkit-box-shadow: 0 0 6px #f8b9b7;
-  -moz-box-shadow: 0 0 6px #f8b9b7;
-  box-shadow: 0 0 6px #f8b9b7;
-}
-input.ng-invalid-pattern:focus {
-  border-color: #e9322d;
-  -webkit-box-shadow: 0 0 6px #f8b9b7;
-  -moz-box-shadow: 0 0 6px #f8b9b7;
-  box-shadow: 0 0 6px #f8b9b7;
-}
-.table-header {
-  color: black;
-  position: relative;
-}
-.table-header > .indicator:after {
-  font-family: 'FontAwesome';
-  position: absolute;
-  right: 5px;
-}
-.table-header.asc > .indicator:after {
-  content: "\f077";
-}
-.table-header.desc > .indicator:after {
-  content: "\f078";
-}
 .table > thead > tr > th {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-th > .indicator:before {
-  display: inline-block;
-  content: "\00a0";
-  margin-left: 12px;
 }
 .ngCellText .icon-replication-controller {
   width: 32px;
@@ -2840,8 +2729,17 @@ span.dynatree-drop-target.dynatree-drop-reject {
 }
 table.dataTable {
   table-layout: fixed;
+  border-collapse: collapse;
 }
-table.dataTable tbody tr td {
+table.dataTable thead .sorting {
+  background-image: none;
+}
+table.dataTable td {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+table.dataTable td div {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -2930,6 +2828,9 @@ div.scroll-body-table-wrapper {
 .editor-autoresize .CodeMirror {
   height: auto;
 }
+.editor-autoresize .CodeMirror-scroll {
+  min-height: 100px;
+}
 
 .dynatree-container {
   background: inherit;
@@ -2953,6 +2854,10 @@ span.dynatree-icon {
 }
 span:not(.dynatree-has-children) .dynatree-icon:before {
   color: gray;
+}
+
+.dropdown.overflow {
+  visibility: hidden;
 }
 
 .badge {
@@ -3017,6 +2922,14 @@ span:not(.dynatree-has-children) .dynatree-icon:before {
 .hawtio-breadcrumbs .hawtio-breadcrumbs-divider {
   margin-left: 7px;
   margin-right: 7px;
+}
+
+.input-group-button {
+  padding: 0;
+}
+.input-group-button .btn-clipboard {
+  padding: 3px 7px;
+  border-width: 0;
 }
 
 .color-picker {
@@ -3106,7 +3019,7 @@ h4 > .contained {
   width: 100%;
 }
 
-.dropdown-menu {
+.hawtio-dropdown .dropdown-menu {
   padding-top: 0;
   padding-bottom: 0;
   margin-top: 0;
@@ -3115,24 +3028,21 @@ h4 > .contained {
   right: 0;
   border-radius: 0;
 }
-.dropdown-menu > li:hover > a {
-  text-shadow: 0px 0px 1px white;
-}
-.dropdown-menu:before {
+.hawtio-dropdown .dropdown-menu:before {
   display: none !important;
 }
-.dropdown-menu:after {
+.hawtio-dropdown .dropdown-menu:after {
   display: none !important;
 }
-.dropdown-menu.right {
+.hawtio-dropdown .dropdown-menu.right {
   left: auto;
   right: 0;
 }
-.dropdown-menu.right:before {
+.hawtio-dropdown .dropdown-menu.right:before {
   left: auto !important;
   right: 9px;
 }
-.dropdown-menu.right:after {
+.hawtio-dropdown .dropdown-menu.right:after {
   left: auto !important;
   right: 10px;
 }
@@ -3162,17 +3072,20 @@ h4 > .contained {
   top: 0;
   right: -2px;
 }
-.dropdown-menu .sub-menu {
+.hawtio-dropdown .dropdown-menu .sub-menu {
   position: absolute;
   left: 195px;
   top: -8px;
 }
-.dropdown-menu .dropdown .caret {
+.hawtio-dropdown .dropdown-menu .dropdown .caret {
   display: none;
 }
 span.hawtio-dropdown {
   position: relative;
   display: block;
+  cursor: pointer;
+}
+li.hawtio-dropdown {
   cursor: pointer;
 }
 span.hawtio-dropdown .dropdown-menu {
@@ -3186,15 +3099,15 @@ span.hawtio-dropdown .dropdown-menu {
   margin-top: 5px;
   text-align: left;
 }
-.dropdown.perspective-selector > .dropdown-menu {
+.hawtio-dropdown .dropdown.perspective-selector > .dropdown-menu {
   min-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dropdown.perspective-selector .dropdown-menu > div {
+.hawtio-dropdown .dropdown.perspective-selector .dropdown-menu > div {
   display: block;
 }
-.dropdown.perspective-selector .dropdown-menu > div > p,
+.hawtio-dropdown .dropdown.perspective-selector .dropdown-menu > div > p,
 .hawtio-dropdown p {
   font-size: smaller;
   padding-left: 3px;
@@ -3204,10 +3117,10 @@ span.hawtio-dropdown .dropdown-menu {
 .nav .hawtio-dropdown {
   margin-top: 2px;
 }
-.dropdown.perspective-selector .dropdown-menu > div > ul {
+.hawtio-dropdown .dropdown.perspective-selector .dropdown-menu > div > ul {
   margin-top: 0;
 }
-.dropdown.perspective-selector .dropdown-menu > div > ul > li.clear-recent > a {
+.hawtio-dropdown .dropdown.perspective-selector .dropdown-menu > div > ul > li.clear-recent > a {
   padding: 3px 5px;
 }
 .nav.nav-tabs li .hawtio-dropdown .dropdown-menu {
@@ -3557,133 +3470,12 @@ div.log-stack-trace p {
 /* end log page */
 
 .modal-backdrop {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1040;
-  background-color: #000000;
-}
-.modal-backdrop.fade {
-  opacity: 0;
-}
-.modal-backdrop,
-.modal-backdrop.fade.in {
   opacity: 0.8;
-  filter: alpha(opacity=80);
 }
 .modal {
-  right: auto;
-  bottom: auto;
   display: block;
-  position: fixed;
-  overflow-y: auto;
-  top: 50%;
-  left: 50%;
-  z-index: 1050;
-  width: 560px;
-  margin: -250px 0 0 -280px;
-  background-color: #ffffff;
-  border: 1px solid #999;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  *border: 1px solid #999;
-  -webkit-border-radius: 6px;
-  -moz-border-radius: 6px;
-  border-radius: 6px;
-  outline: none;
-  -webkit-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
-  -moz-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
-  -webkit-background-clip: padding-box;
-  -moz-background-clip: padding-box;
-  background-clip: padding-box;
-}
-.modal.fade {
-  top: -25%;
-  -webkit-transition: opacity 0.3s linear, top 0.3s ease-out;
-  -moz-transition: opacity 0.3s linear, top 0.3s ease-out;
-  -o-transition: opacity 0.3s linear, top 0.3s ease-out;
-  transition: opacity 0.3s linear, top 0.3s ease-out;
-}
-.modal.fade.in {
-  top: 50%;
-}
-.modal-header {
-  padding: 9px 15px;
-  border-bottom: 1px solid #eee;
-}
-.modal-header .close {
-  margin-top: 2px;
-}
-.modal-header h3 {
-  margin: 0;
-  line-height: 30px;
-}
-.modal-body {
-  max-height: 400px;
-  padding: 15px;
-  overflow-y: auto;
-}
-.modal-form {
-  margin-bottom: 0;
-}
-.modal-footer {
-  padding: 14px 15px 15px;
-  margin-bottom: 0;
-  text-align: right;
-  background-color: #f5f5f5;
-  border-top: 1px solid #ddd;
-  -webkit-border-radius: 0 0 6px 6px;
-  -moz-border-radius: 0 0 6px 6px;
-  border-radius: 0 0 6px 6px;
-  *zoom: 1;
-  -webkit-box-shadow: inset 0 1px 0 #ffffff;
-  -moz-box-shadow: inset 0 1px 0 #ffffff;
-  box-shadow: inset 0 1px 0 #ffffff;
-}
-.modal-footer:before,
-.modal-footer:after {
-  display: table;
-  line-height: 0;
-  content: "";
-}
-.modal-footer:after {
-  clear: both;
-}
-.modal-footer .btn + .btn {
-  margin-bottom: 0;
-  margin-left: 5px;
-}
-.modal-footer .btn-group .btn + .btn {
-  margin-left: -1px;
-}
-.modal-footer .btn-block + .btn-block {
-  margin-left: 0;
-}
-.modal-dialog {
-  margin: 0;
-  width: auto;
-}
-.modal {
-  z-index: 5000;
-  width: 660px;
-  margin: -250px 0 0 -320px;
-}
-.modal-backdrop {
-  z-index: 4090;
 }
 
-.hawtio-pager {
-  overflow: auto;
-  display: inline-block;
-}
-.hawtio-pager label {
-  min-height: 100%;
-  vertical-align: middle;
-  margin-right: 5px;
-  display: inline-block;
-}
 
 .pane {
   position: fixed;
@@ -3757,6 +3549,7 @@ div.log-stack-trace p {
 }
 .popover {
   width: auto;
+  max-width: 600px;
 }
 
 /* slideout directive stuff */
@@ -3959,11 +3752,11 @@ ul.inline > li {
   background-color: #5ab15a;
 }
 .blue {
-  color: dodgerblue !important;
+  color: #0088ce !important;
 }
 .background-blue {
   color: white;
-  background-color: #006dcc;
+  background-color: #0088ce;
 }
 .icon1point5x {
   font-size: 1.5em;

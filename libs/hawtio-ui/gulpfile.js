@@ -36,13 +36,13 @@ var config = {
     target: 'ES5',
     module: 'commonjs',
     declarationFiles: true,
-    noExternalResolve: false
+    noResolve: false
   }),
   testTsProject: plugins.typescript.createProject({
     target: 'ES5',
     module: 'commonjs',
     declarationFiles: false,
-    noExternalResolve: false
+    noResolve: false
   }),
   vendorJs: 'plugins/vendor/*.js'
 };
