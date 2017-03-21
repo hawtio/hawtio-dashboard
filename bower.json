@@ -23,8 +23,6 @@
     "hawtio-forms": "~2.0.11"
   },
   "devDependencies": {
-    "bootstrap": "~3.3.6",
-    "patternfly": "~2.7.0",
     "hawtio-core-dts": "~2.0.0",
     "hawtio-template-cache": "~2.0.3"
   },
