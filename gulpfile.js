@@ -32,14 +32,14 @@ var config = {
     target: 'ES5',
     outFile: 'compiled.js',
     declaration: true,
-    noExternalResolve: false,
+    noResolve: false,
     removeComments: true
   }),
   testTsProject: plugins.typescript.createProject({
     target: 'ES5',
     outFile: 'test-compiled.js',
     declaration: false,
-    noExternalResolve: false
+    noResolve: false
   }),
   tsLintOptions: {
     rulesDirectory: './tslint-rules/',
