@@ -30,15 +30,15 @@ var config = {
   css: pkg.name + '.css',
   tsProject: plugins.typescript.createProject({
     target: 'ES5',
-    module: 'commonjs',
-    declarationFiles: true,
+    outFile: 'compiled.js',
+    declaration: true,
     noExternalResolve: false,
     removeComments: true
   }),
   testTsProject: plugins.typescript.createProject({
     target: 'ES5',
-    module: 'commonjs',
-    declarationFiles: false,
+    outFile: 'test-compiled.js',
+    declaration: false,
     noExternalResolve: false
   }),
   tsLintOptions: {
@@ -74,16 +74,14 @@ gulp.task('clean-defs', function() {
 
 gulp.task('example-tsc', ['tsc'], function() {
   var tsResult = gulp.src(config.testTs)
-    .pipe(plugins.typescript(config.testTsProject))
+    .pipe(config.testTsProject())
     .on('error', plugins.notify.onError({
       onLast: true,
       message: '<%= error.message %>',
       title: 'Typescript compilation error - test'
     }));
 
-    return tsResult.js
-        .pipe(plugins.concat('test-compiled.js'))
-        .pipe(gulp.dest('.'));
+    return tsResult.js.pipe(gulp.dest('.'));
 });
 
 gulp.task('example-template', ['example-tsc'], function() {
@@ -112,7 +110,7 @@ gulp.task('tsc', ['clean-defs'], function() {
   var cwd = process.cwd();
   var tsResult = gulp.src(config.ts)
     .pipe(plugins.sourcemaps.init())
-    .pipe(plugins.typescript(config.tsProject))
+    .pipe(config.tsProject())
     .on('error', plugins.notify.onError({
       onLast: true,
       message: '<%= error.message %>',
@@ -121,18 +119,11 @@ gulp.task('tsc', ['clean-defs'], function() {
 
     return eventStream.merge(
       tsResult.js
-        .pipe(plugins.concat('compiled.js'))
         .pipe(plugins.sourcemaps.write())
         .pipe(gulp.dest('.')),
       tsResult.dts
-        .pipe(gulp.dest('d.ts')))
-        .pipe(plugins.filter('**/*.d.ts'))
-        .pipe(plugins.concatFilenames('defs.d.ts', {
-          root: cwd,
-          prepend: '/// <reference path="',
-          append: '"/>'
-        }))
-        .pipe(gulp.dest('.'));
+        .pipe(plugins.rename('defs.d.ts'))
+        .pipe(gulp.dest('.')));
 });
 
 gulp.task('less', function () {
