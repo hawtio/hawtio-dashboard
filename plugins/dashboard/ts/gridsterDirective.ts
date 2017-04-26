@@ -275,7 +275,7 @@ module Dashboard {
               var plugins = _.filter(hawtioPluginLoader.getModules(), (module) => angular.isString(module));
               var tmpModule = angular.module(tmpModuleName, plugins);
 
-              function getServices(module:string, answer?:any) {
+              const getServices = function(module:string, answer?:any) {
                 if (!answer) {
                   answer = <any>{};
                 }
