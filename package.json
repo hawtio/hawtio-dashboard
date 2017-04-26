@@ -24,6 +24,7 @@
     "gulp-typescript": "^3.0.0",
     "gulp-watch": "^3.0.0",
     "hawtio-node-backend": "^2.0.5",
+    "typescript": "^2.0.0",
     "through2": "^0.6.3",
     "underscore.string": "^2.4.0",
     "urijs": "^1.17.0",
