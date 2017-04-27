@@ -19,7 +19,7 @@ module Dashboard {
     public restrict = 'A';
     public replace = true;
 
-    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", "$modal", "$sce", "$timeout", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate, $modal, $sce, $timeout) => {
+    public controller = ["$scope", "$element", "$attrs", "$location", "$routeParams", "$templateCache", "dashboardRepository", "$compile", "$templateRequest", "$interpolate", "$uibModal", "$sce", "$timeout", ($scope, $element, $attrs, $location, $routeParams, $templateCache, dashboardRepository:DashboardRepository, $compile, $templateRequest, $interpolate, $uibModal, $sce, $timeout) => {
 
       var gridSize = 150;
       var gridMargin = 6;
@@ -189,11 +189,11 @@ module Dashboard {
           }
         }
 
-        function doRemoveWidget($modal, widget) {
+        function doRemoveWidget($uibModal, widget) {
           log.debug("Remove widget: ", widget);
-          var modal = $modal.open({
+          var modal = $uibModal.open({
             templateUrl: UrlHelpers.join(templatePath, 'deleteWidgetModal.html'),
-            controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+            controller: ['$scope', '$uibModalInstance', ($scope, $uibModalInstance) => {
               $scope.widget = widget;
               $scope.ok = () => {
                 modal.close();
@@ -206,11 +206,11 @@ module Dashboard {
           });
         }
 
-        function doRenameWidget($modal, widget) {
+        function doRenameWidget($uibModal, widget) {
           log.debug("Rename widget: ", widget);
-          var modal = $modal.open({
+          var modal = $uibModal.open({
             templateUrl: UrlHelpers.join(templatePath, 'renameWidgetModal.html'),
-            controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+            controller: ['$scope', '$uibModalInstance', ($scope, $uibModalInstance) => {
               $scope.widget = widget;
               $scope.config = {
                 properties: {
@@ -241,8 +241,8 @@ module Dashboard {
               log.debug("Rendering external (iframe) widget: ", widget.title || widget.id);
               var scope = $scope.$new();
               scope.widget = widget;
-              scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
-              scope.renameWidget = (widget) => doRenameWidget($modal, widget);
+              scope.removeWidget = (widget) => doRemoveWidget($uibModal, widget);
+              scope.renameWidget = (widget) => doRenameWidget($uibModal, widget);
               var widgetBody:any = angular.element($templateCache.get(UrlHelpers.join(templatePath, 'iframeWidgetTemplate.html')));
               var outerDiv = angular.element($templateCache.get(UrlHelpers.join(templatePath, 'widgetBlockTemplate.html')));
               widgetBody.find('iframe').attr('src', widget.iframe);
@@ -371,10 +371,10 @@ module Dashboard {
                   }
                 });
               }]);
-              tmpModule.controller('HawtioDashboard.Title', ["$scope", "$modal", ($scope, $modal) => {
+              tmpModule.controller('HawtioDashboard.Title', ["$scope", "$uibModal", ($scope, $uibModal) => {
                 $scope.widget = widget;
-                $scope.removeWidget = (widget) => doRemoveWidget($modal, widget);
-                $scope.renameWidget = (widget) => doRenameWidget($modal, widget);
+                $scope.removeWidget = (widget) => doRemoveWidget($uibModal, widget);
+                $scope.renameWidget = (widget) => doRenameWidget($uibModal, widget);
               }]);
 
               var div:any = $(template);

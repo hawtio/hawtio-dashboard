@@ -4,7 +4,7 @@
  */
 module Dashboard {
 
-  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$modal", "HawtioDashboardTab", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $modal, tab) => {
+  _module.controller("Dashboard.EditDashboardsController", ["$scope", "$routeParams", "$route", "$location", "$rootScope", "dashboardRepository", "HawtioNav", "$timeout", "$templateCache", "$uibModal", "HawtioDashboardTab", ($scope, $routeParams, $route, $location, $rootScope, dashboardRepository:DashboardRepository, nav, $timeout, $templateCache, $uibModal, tab) => {
 
     $scope._dashboards = [];
 
@@ -261,9 +261,9 @@ module Dashboard {
       var counter = dashboards().length + 1;
       var title = "Untitled" + counter;
 
-      var modal = $modal.open({
+      var modal = $uibModal.open({
         templateUrl: UrlHelpers.join(templatePath, 'createDashboardModal.html'),
-        controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+        controller: ['$scope', '$uibModalInstance', ($scope, $uibModalInstance) => {
           $scope.entity = {
             title: title
           }
@@ -328,9 +328,9 @@ module Dashboard {
     $scope.renameDashboard = () => {
       if ($scope.gridOptions.selectedItems.length === 1) {
         var selected = <any>_.first($scope.gridOptions.selectedItems);
-        var modal = $modal.open({
+        var modal = $uibModal.open({
           templateUrl: UrlHelpers.join(templatePath, 'renameDashboardModal.html'),
-          controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+          controller: ['$scope', '$uibModalInstance', ($scope, $uibModalInstance) => {
             $scope.config = {
               properties: {
                 'title': {
@@ -360,9 +360,9 @@ module Dashboard {
     $scope.deleteDashboard = () => {
       if ($scope.hasSelection()) {
         var selected = $scope.gridOptions.selectedItems;
-        var modal = $modal.open({
+        var modal = $uibModal.open({
           templateUrl: UrlHelpers.join(templatePath, 'deleteDashboardModal.html'),
-          controller: ['$scope', '$modalInstance', ($scope, $modalInstance) => {
+          controller: ['$scope', '$uibModalInstance', ($scope, $uibModalInstance) => {
             $scope.selected = selected;
             $scope.ok = () => {
               modal.close();

@@ -173,7 +173,7 @@ declare module Dashboard {
     class GridsterDirective {
         restrict: string;
         replace: boolean;
-        controller: (string | (($scope: any, $element: any, $attrs: any, $location: any, $routeParams: any, $templateCache: any, dashboardRepository: DashboardRepository, $compile: any, $templateRequest: any, $interpolate: any, $modal: any, $sce: any, $timeout: any) => void))[];
+        controller: (string | (($scope: any, $element: any, $attrs: any, $location: any, $routeParams: any, $templateCache: any, dashboardRepository: DashboardRepository, $compile: any, $templateRequest: any, $interpolate: any, $uibModal: any, $sce: any, $timeout: any) => void))[];
     }
 }
 declare module Dashboard {
