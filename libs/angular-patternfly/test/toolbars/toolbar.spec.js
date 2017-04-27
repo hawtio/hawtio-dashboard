@@ -7,9 +7,9 @@ describe('Directive:  pfToolbar', function () {
 
   // load the controller's module
   beforeEach(function () {
-    module('patternfly.toolbars', 'patternfly.views', 'patternfly.filters', 'patternfly.select', 'toolbars/toolbar.html',
-           'filters/filter.html', 'filters/filter-fields.html', 'filters/filter-results.html',
-           'sort/sort.html');
+    module('patternfly.toolbars', 'patternfly.views', 'patternfly.filters', 'toolbars/toolbar.html',
+      'filters/filter.html', 'filters/filter-fields.html', 'filters/filter-results.html',
+      'sort/sort.html');
   });
 
   beforeEach(inject(function (_$compile_, _$rootScope_, pfViewUtils) {
@@ -132,7 +132,7 @@ describe('Directive:  pfToolbar', function () {
       }
     };
 
-    var htmlTmp = '<div pf-toolbar config="config"></div>';
+    var htmlTmp = '<pf-toolbar config="config"></pf-toolbar>';
 
     compileHTML(htmlTmp, $scope);
   });
@@ -176,16 +176,19 @@ describe('Directive:  pfToolbar', function () {
   });
 
   it ('should add a dropdown select when a select type is chosen', function() {
-    var pfSelects = element.find('.filter-select');
+    var filterSelect = element.find('.filter-select');
     var fields = element.find('.filter-field');
 
-    expect(pfSelects.length).toBe(0);
+    expect(filterSelect.length).toBe(0);
+    expect(fields.length).toBe(3);
+
     eventFire(fields[2], 'click');
     $scope.$digest();
-    pfSelects = element.find('.filter-select');
-    expect(pfSelects.length).toBe(2); // 2 because it is a directive
 
-    var items = pfSelects.find('li');
+    filterSelect = element.find('.filter-select');
+    expect(filterSelect.length).toBe(1);
+
+    var items = filterSelect.find('li');
     expect(items.length).toBe($scope.config.filterConfig.fields[2].filterValues.length + 1); // +1 for the null value
   });
 
@@ -255,7 +258,7 @@ describe('Directive:  pfToolbar', function () {
       }
     };
 
-    var htmlTmp = '<div pf-toolbar config="config"></div>';
+    var htmlTmp = '<pf-toolbar config="config"></pf-toolbar>';
 
     compileHTML(htmlTmp, $scope);
 
@@ -458,7 +461,7 @@ describe('Directive:  pfToolbar', function () {
       }
     };
 
-    var htmlTmp = '<div pf-toolbar config="config"></div>';
+    var htmlTmp = '<pf-toolbar config="config"></pf-toolbar>';
 
     compileHTML(htmlTmp, $scope);
 
@@ -550,7 +553,7 @@ describe('Directive:  pfToolbar', function () {
       }
     };
 
-    var htmlTmp = '<div pf-toolbar config="config"></div>';
+    var htmlTmp = '<pf-toolbar config="config"></pf-toolbar>';
 
     compileHTML(htmlTmp, $scope);
 
@@ -567,7 +570,7 @@ describe('Directive:  pfToolbar', function () {
 
     $scope.config.actionsConfig.actionsInclude = true;
 
-    var includeHtml = '<div pf-toolbar config="config"><actions><button class="btn btn-default add-action" type="button">Add Action</button></actions></div>';
+    var includeHtml = '<pf-toolbar config="config"><actions><button class="btn btn-default add-action" type="button">Add Action</button></actions></pf-toolbar>';
     compileHTML(includeHtml, $scope);
 
     actionBar = element.find('.toolbar-actions');

@@ -22,7 +22,7 @@ var templateCache;
         oldPut(id, template);
         if (id in $delegate.watches) {
           //log.debug("Found watches for id: ", id);
-          var func = _.forEach($delegate.watches[id], function(func) {
+          $delegate.watches[id].forEach(function(func) {
             func(template);
           });
           //log.debug("Removing watches for id: ", id);

@@ -1,5 +1,4 @@
 /// <reference path="../defs.d.ts"/>
-
 /// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 /// and other contributors as indicated by the @author tags.
 ///
@@ -21,7 +20,6 @@ var DevExample;
     DevExample.log = Logger.get(DevExample.pluginName);
     DevExample.templatePath = "test-plugins/example/html";
 })(DevExample || (DevExample = {}));
-
 /// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 /// and other contributors as indicated by the @author tags.
 ///
@@ -100,7 +98,6 @@ var DevExample;
         }]);
     hawtioPluginLoader.addModule(DevExample.pluginName);
 })(DevExample || (DevExample = {}));
-
 /// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 /// and other contributors as indicated by the @author tags.
 ///
@@ -135,7 +132,6 @@ var DevExample;
             };
         }]);
 })(DevExample || (DevExample = {}));
-
 /// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 /// and other contributors as indicated by the @author tags.
 ///
@@ -170,7 +166,6 @@ var DevExample;
             };
         }]);
 })(DevExample || (DevExample = {}));
-
 /// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 /// and other contributors as indicated by the @author tags.
 ///
