@@ -21,7 +21,7 @@ module Dashboard {
   export function cleanDashboardData(item) {
     var cleanItem = {};
     angular.forEach(item, (value, key) => {
-      if (!angular.isString(key) || (!key.startsWith("$") && !key.startsWith("_"))) {
+      if (!angular.isString(key) || (!_.startsWith(key, '$') && !_.startsWith(key, '_'))) {
         cleanItem[key] = value;
       }
     });
